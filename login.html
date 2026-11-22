@@ -1,0 +1,474 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="color-scheme" content="light">
+<meta name="theme-color" content="#FFFFFF">
+<title>Log in · Countrex</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,500;12..96,700;12..96,800&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#FFFFFF; --ink:#1A0B2E; --muted:#6A5F7C; --line:#DDD4EA; --field:#F6F2FB;
+  --accent:#5E3C88; --accent-hi:#70509A; --accent-ink:#FFFFFF; --ring:rgba(94,60,136,.2); --err:#C0213F;
+  --panel:#FFFFFF; --pline:#C2B2D6; --pslot:#F5F1F9; --glow:#5E3C88;
+  box-sizing:border-box;
+  padding-top:env(safe-area-inset-top,0px); padding-bottom:env(safe-area-inset-bottom,0px);
+}
+html{
+  height:100%;
+  scroll-padding-top:env(safe-area-inset-top,0px)
+}
+*,*::before,*::after{
+  box-sizing:border-box
+}
+body{
+  margin:0;
+  -webkit-tap-highlight-color:transparent;
+  min-height:100%;background:var(--bg);
+  color:var(--ink);
+  font-family:"Bricolage Grotesque",Arial,Helvetica,sans-serif;
+  line-height:1.5;
+  -webkit-font-smoothing:antialiased
+}
+.wrap{
+  min-height:100vh;
+  min-height:100dvh;
+  display:grid;
+  grid-template-columns:minmax(380px,5fr) 6fr
+}
+.form-side{
+  display:flex;
+  flex-direction:column;
+  padding:36px clamp(24px,6vw,88px) 48px
+}
+.brand{
+  font-weight:800;
+  font-size:1.7rem;
+  letter-spacing:-.03em
+}
+.center{
+  flex:1;
+  display:flex;
+  align-items:center
+}
+.box{
+  width:100%;
+  max-width:400px;
+  margin:40px 0
+}
+h1{
+  font-size:clamp(2.4rem,4.2vw,3.2rem);
+  line-height:1;
+  letter-spacing:-.035em;margin:0 0 12px;
+  font-weight:800
+}
+.sub{
+  color:var(--muted);
+  margin:0 0 36px;
+  font-size:1.05rem;
+  max-width:34ch
+}
+label{
+  display:block;
+  font-weight:600;
+  font-size:.92rem;
+  margin-bottom:8px
+}
+.field{
+  margin-bottom:20px
+}
+input[type=tel],input[type=text],input[type=password]{
+  width:100%;
+  height:54px;
+  padding:0 18px;
+  font:inherit;
+  font-size:1rem;
+  color:var(--ink);
+  background:var(--field);
+  border:1.5px solid transparent;
+  border-radius:14px;
+  transition:border-color .15s,box-shadow .15s,background .15s
+}
+input:focus{
+  outline:none;
+  border-color:var(--accent);
+  box-shadow:0 0 0 4px var(--ring);
+  background:var(--bg)
+}
+input[aria-invalid=true]{
+  border-color:var(--err)
+}
+button{
+  touch-action:manipulation
+}
+button:focus-visible,a:focus-visible{
+  outline:3px solid var(--accent);
+  outline-offset:3px
+}
+a{
+  color:var(--accent);
+  font-weight:600;
+  text-decoration:none
+}
+a:hover{
+  text-decoration:underline;
+  text-underline-offset:3px
+}
+.btn{
+  width:100%;
+  height:56px;
+  border:0;
+  border-radius:999px;
+  background:var(--accent);
+  color:var(--accent-ink);
+  font:inherit;
+  font-weight:700;
+  font-size:1.05rem;
+  cursor:pointer;
+  transition:transform .12s,background .15s,box-shadow .15s;box-shadow:0 6px 16px -10px rgba(40,20,70,.45)
+}
+.btn:hover{
+  background:var(--accent-hi);
+  transform:translateY(-1px)
+}
+.btn:active{
+  transform:translateY(0)
+}
+.btn[disabled]{
+  opacity:.75;cursor:progress;
+  transform:none
+}
+.msg{
+  min-height:1.4em;
+  margin:0 0 14px;
+  font-size:.92rem;
+  color:var(--err)
+}
+.msg.ok{
+  color:var(--muted)
+}
+.shake{
+  animation:shake .35s
+}
+@keyframes shake{
+  20%{transform:translateX(-6px)}40%{transform:translateX(5px)}60%{transform:translateX(-3px)}80%{transform:translateX(2px)}
+}
+.join{
+  margin-top:32px;
+  padding-top:24px;
+  border-top:1px solid var(--line);
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:16px;color:var(--muted);
+  font-size:.92rem
+}
+.ghost{
+  flex:none;
+  height:44px;
+  line-height:41px;
+  padding:0 20px;
+  border-radius:999px;
+  border:1.5px solid var(--ink);
+  color:var(--ink);
+  font-weight:600;
+  white-space:nowrap
+}
+.ghost:hover{
+  background:var(--ink);
+  color:var(--bg);
+  text-decoration:none
+}
+.panel{
+  background:var(--panel);
+  color:var(--ink);
+  border-left:1px solid var(--line);
+  display:flex;
+  flex-direction:column;
+  justify-content:space-between;
+  padding:48px clamp(28px,5vw,80px);
+  overflow:hidden
+}
+.bracket{
+  width:100%;
+  max-width:640px;
+  margin:auto 0;
+  height:auto;
+  overflow:visible
+}
+.ln{
+  fill:none;stroke:var(--pline);
+  stroke-width:2.5;
+  stroke-linecap:round;
+  stroke-linejoin:round;
+  stroke-dasharray:1;
+  stroke-dashoffset:0
+
+}
+.slot{
+  fill:var(--pslot);
+  stroke:var(--pline);
+  stroke-width:2
+
+}
+.slot.empty{
+  fill:none;
+  stroke-dasharray:5 5
+}
+.slot.you{
+  fill:var(--glow);
+  stroke:var(--glow)
+}
+.nm{
+  font-size:15px;
+  font-weight:600;
+  fill:#4A3C63
+}
+.nm.you{
+  fill:#FFFFFF;
+  font-weight:800;
+  font-size:17px
+}
+.tag{
+  font-size:clamp(2.6rem,4.6vw,4.4rem);
+  font-weight:800;
+  line-height:.98;
+  letter-spacing:-.04em;margin:0
+}
+.tag b{
+  color:var(--glow);
+  font-weight:800
+}
+.cap{
+  margin:16px 0 0;
+  color:var(--muted);
+  max-width:36ch
+}
+@media (prefers-reduced-motion:no-preference){
+  .l1{animation:draw .7s ease-out .2s backwards}
+  .l2{animation:draw .7s ease-out .9s backwards}
+  .l3{animation:draw .6s ease-out 1.55s backwards}
+  .s2{animation:pop .4s ease-out .85s backwards}
+  .s3{animation:pop .4s ease-out 1.5s backwards}
+  .s4{animation:pop .5s cubic-bezier(.3,1.5,.5,1) 2.1s backwards;transform-origin:475px 160px;transform-box:view-box}
+}
+.bracket:not(.go) *{animation-play-state:paused}
+@keyframes draw{from{stroke-dashoffset:1}}
+@keyframes pop{from{opacity:0;transform:scale(.92)}}
+@media (max-width:900px){
+  .wrap{grid-template-columns:1fr}
+  .panel{display:none}
+  .form-side{padding:20px 22px calc(28px + env(safe-area-inset-bottom,0px));min-height:100vh;min-height:100dvh}
+  .brand{font-size:1.5rem}
+  .center{align-items:flex-start}
+  .box{margin:36px 0 0;max-width:none}
+  h1{font-size:2.5rem}
+  .sub{margin-bottom:28px;max-width:none}
+  .join{flex-direction:column;align-items:stretch;gap:14px}
+  .ghost{text-align:center;height:50px;line-height:47px}
+}
+@media (min-width:901px) and (max-width:1100px){
+  .wrap{grid-template-columns:minmax(380px,1fr) 1fr}
+  .tag{font-size:2.6rem}
+}
+.brand a{color:var(--ink);font-weight:800}.brand a:hover{text-decoration:none}
+.or{display:flex;align-items:center;gap:14px;margin:22px 0 16px;color:var(--muted);font-size:.85rem}
+.or::before,.or::after{content:"";flex:1;height:1px;background:var(--line)}
+.gbtn{width:100%;height:56px;border-radius:999px;border:1.5px solid var(--line);background:var(--bg);color:var(--ink);font:inherit;font-weight:700;font-size:1.02rem;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:12px;transition:background .15s,border-color .15s}
+.gbtn:hover{background:var(--field);border-color:var(--pline)}
+</style>
+<style id="cx-dark">
+/* Dark mode. Applies when <html data-theme="dark"> (set from Settings > Preferences > Appearance). */
+html[data-theme="dark"]{color-scheme:dark;--bg:#131114;--ink:#EDE8F3;--muted:#9A92A8;--line:#2A252F;--field:#1B181E;--accent:#8A68C2;--accent-hi:#9A7CCF;--pline:#3B3342;--stage:#0C0B0D;--btn:#5B3C94}
+html[data-theme="dark"] body{background:var(--stage);color:var(--ink)}
+html[data-theme="dark"] .top,html[data-theme="dark"] .tabs{background:rgba(19,17,20,.97)}
+html[data-theme="dark"] .top{border-bottom:1px solid var(--line)}
+html[data-theme="dark"] .wal:hover,html[data-theme="dark"] .mclose:hover,html[data-theme="dark"] .mprofile:hover{background:#26212B}
+html[data-theme="dark"] .tabs a:hover,html[data-theme="dark"] .tabs a.on{background:#241F29}
+html[data-theme="dark"] .scrim{background:rgba(0,0,0,.6)}
+html[data-theme="dark"] .sheet,html[data-theme="dark"] .menu{background:#18151B;border:1px solid var(--line);box-shadow:0 30px 60px -30px #000}
+html[data-theme="dark"] .mav{background:var(--btn)}
+html[data-theme="dark"] .chev{color:#5E566A}
+html[data-theme="dark"] .mlist a.danger{color:#F0788E}
+html[data-theme="dark"] .mlist a.danger .mi{background:#3A1A22;color:#F0788E}
+html[data-theme="dark"] dialog{background:#18151B;border:1px solid var(--line);color:var(--ink)}
+html[data-theme="dark"] dialog::backdrop{background:rgba(0,0,0,.7)}
+html[data-theme="dark"] .cta .go,html[data-theme="dark"] .row a.main{background:var(--btn);border-color:var(--btn);box-shadow:none}
+html[data-theme="dark"] .cta .gh,html[data-theme="dark"] .row a,html[data-theme="dark"] .more{border-color:var(--pline)}
+html[data-theme="dark"] .hero{background:none}
+html[data-theme="dark"] .chip{background:var(--field);box-shadow:none}
+html[data-theme="dark"] .game{box-shadow:none;border:1px solid var(--line)}
+html[data-theme="dark"] .pick{background:var(--ink);color:#131114}
+html[data-theme="dark"] .sec.alt{background:#0F0D11}
+html[data-theme="dark"] .ev{box-shadow:none;background:var(--field)}
+html[data-theme="dark"] .tba,html[data-theme="dark"] .cd div{background:#131114}
+html[data-theme="dark"] input,html[data-theme="dark"] select,html[data-theme="dark"] textarea{color:var(--ink);background:var(--field)}
+html[data-theme="dark"] .app{box-shadow:0 0 0 1px var(--line)}
+/* pages with their own token names (wallet, notifications) */
+html[data-theme="dark"]{--purple:#5B3C94;--purple-dark:#8A68C2;--purple-soft:#241F29;--white:#18151B;--green:#3FCB92;--red:#F0788E}
+html[data-theme="dark"] .content{background:var(--bg)}
+html[data-theme="dark"] .chip:not(.active),html[data-theme="dark"] .sheet,html[data-theme="dark"] .tx,html[data-theme="dark"] .stat,html[data-theme="dark"] .nav,html[data-theme="dark"] .sheet input{background:var(--white);color:var(--ink)}
+html[data-theme="dark"] .btn-ghost,html[data-theme="dark"] .topbar .burger{color:#B8A2DC}
+/* the menu kit re-declares light colours on .menu/.scrim/.burger */
+html[data-theme="dark"] .menu,html[data-theme="dark"] .scrim,html[data-theme="dark"] .burger{--bg:#131114;--ink:#EDE8F3;--muted:#9A92A8;--line:#2A252F;--field:#1B181E;--accent:#8A68C2;--pline:#3B3342}
+html[data-theme="dark"] .burger span,html[data-theme="dark"] .burger span::before,html[data-theme="dark"] .burger span::after{background:var(--ink)}
+html[data-theme="dark"] .bottom-nav{background:#131114}
+/* login, signup */
+html[data-theme="dark"]{--panel:#131114;--pslot:#1F1B23;--glow:#8A68C2;--ring:rgba(138,104,194,.28);--err:#F0788E;--ok:#3FCB92}
+html[data-theme="dark"] .btn{background:var(--btn);box-shadow:none}
+html[data-theme="dark"] .btn:hover{background:#6A48A6}
+html[data-theme="dark"] .nm{fill:#C9BFD8}
+html[data-theme="dark"] .nm.you,html[data-theme="dark"] #you.on .nm{fill:#fff}
+html[data-theme="dark"] ::placeholder{color:#7C7389}
+html[data-theme="dark"] .ghost{border-color:var(--pline)}
+html[data-theme="dark"] .ghost:hover{background:var(--ink);color:var(--bg)}
+html[data-theme="dark"] .tut{background:var(--field)}
+/* community, leaderboard */
+html[data-theme="dark"] .filters{background:rgba(19,17,20,.97)}
+html[data-theme="dark"] .filters button,html[data-theme="dark"] .chips button,html[data-theme="dark"] .fchips button{background:var(--field);color:var(--ink)}
+html[data-theme="dark"] .filters button.on{background:var(--btn);color:#fff}
+html[data-theme="dark"] .msgs .msg{background:#241F29;color:var(--ink);box-shadow:none}
+html[data-theme="dark"] .msgs .msg.mine{background:var(--btn);color:#fff}
+html[data-theme="dark"] .dsep span{background:#241F29;color:var(--muted)}
+html[data-theme="dark"] .compose textarea:focus{background:var(--field)}
+html[data-theme="dark"] .star:hover{background:#26212B}
+html[data-theme="dark"] .skel{background:linear-gradient(90deg,#1B181E,#26212B,#1B181E);background-size:200% 100%}
+html[data-theme="dark"] .seg button[aria-selected="true"]{background:var(--btn);color:#fff;box-shadow:none}
+html[data-theme="dark"] .head{background:linear-gradient(180deg,#1B181E 0,#131114 220px)}
+html[data-theme="dark"] .me{background:linear-gradient(135deg,#241F29,var(--btn))}
+html[data-theme="dark"] .chat,html[data-theme="dark"] .chead,html[data-theme="dark"] .compose,html[data-theme="dark"] .only{background:var(--bg)}
+html[data-theme="dark"] .toast{background:#EDE8F3;color:#131114}
+</style>
+<script>(function(){try{var t=(JSON.parse(localStorage.getItem("countrex_settings")||"{}").theme)||"light";if(t==="system")t=matchMedia("(prefers-color-scheme:dark)").matches?"dark":"light";if(t==="dark")document.documentElement.setAttribute("data-theme","dark")}catch(e){}})();</script>
+</head>
+<body>
+<div class="wrap">
+  <main class="form-side">
+    <div class="brand"><a href="index.html">Countrex</a></div>
+    <div class="center">
+      <div class="box">
+        <h1>Welcome back.</h1>
+        
+        <form id="f" novalidate>
+          <div class="field">
+            <label for="phone">Username or phone number</label>
+        <input id="phone" type="text" autocomplete="username" autocapitalize="none" spellcheck="false" enterkeyhint="next" placeholder="Username or phone number" required>
+          </div>
+          <div class="field">
+            <label for="pw">Password</label>
+            <input id="pw" type="password" autocomplete="current-password" enterkeyhint="go" placeholder="Enter your password" required>
+          </div>
+          <p class="msg" id="msg" role="alert" aria-live="polite"></p>
+          <button class="btn" id="go" type="submit">Log in</button>
+        </form>
+        <div class="or"><span>or</span></div>
+        <button class="gbtn" id="google" type="button">
+          <svg width="18" height="18" viewBox="0 0 48 48" aria-hidden="true"><path fill="#EA4335" d="M24 9.5c3.5 0 6.6 1.2 9.1 3.6l6.8-6.8C35.8 2.4 30.3 0 24 0 14.6 0 6.5 5.4 2.6 13.2l7.9 6.1C12.4 13.6 17.7 9.5 24 9.5z"/><path fill="#4285F4" d="M46.5 24.5c0-1.6-.1-3.1-.4-4.5H24v9h12.7c-.6 3-2.3 5.5-4.8 7.2l7.6 5.9c4.4-4.1 7-10.1 7-17.6z"/><path fill="#FBBC05" d="M10.5 28.7c-.5-1.4-.8-3-.8-4.7s.3-3.2.8-4.7l-7.9-6.1C.9 16.4 0 20.1 0 24s.9 7.6 2.6 10.8l7.9-6.1z"/><path fill="#34A853" d="M24 48c6.5 0 11.9-2.1 15.9-5.8l-7.6-5.9c-2.1 1.4-4.9 2.3-8.3 2.3-6.3 0-11.6-4.1-13.5-9.8l-7.9 6.1C6.5 42.6 14.6 48 24 48z"/></svg>
+          Continue with Google
+        </button>
+        <div class="join">
+          <span>New to Countrex?</span>
+          <a class="ghost" href="signup.html">Sign up</a>
+        </div>
+      </div>
+    </div>
+  </main>
+  <aside class="panel" aria-hidden="true">
+    <svg class="bracket" viewBox="0 0 550 320" preserveAspectRatio="xMinYMid meet" role="img" aria-label="">
+      <g>
+        <path class="ln l1" pathLength="1" d="M130 40H170V120M130 120H170M170 80H210"/>
+        <path class="ln l1" pathLength="1" d="M130 200H170V280M130 280H170M170 240H210"/>
+        <path class="ln l2" pathLength="1" d="M330 80H370V240M330 240H370M370 160H410"/>
+      </g>
+      <g>
+        <rect class="slot" x="10" y="20" width="120" height="40" rx="10"/><text class="nm" x="26" y="45">nova</text>
+        <rect class="slot" x="10" y="100" width="120" height="40" rx="10"/><text class="nm" x="26" y="125">kairo</text>
+        <rect class="slot" x="10" y="180" width="120" height="40" rx="10"/><text class="nm" x="26" y="205">blitz</text>
+        <rect class="slot" x="10" y="260" width="120" height="40" rx="10"/><text class="nm" x="26" y="285">vex</text>
+      </g>
+      <g class="s2"><rect class="slot empty" x="210" y="60" width="120" height="40" rx="10"/><rect class="slot empty" x="210" y="220" width="120" height="40" rx="10"/></g>
+      <g class="s4"><rect class="slot you" x="410" y="140" width="130" height="40" rx="10"/><text class="nm you" x="430" y="166">You</text></g>
+    </svg>
+    <div>
+      <p class="tag">Game good.<br><b>Win.</b><br>Win safe.</p>
+      <p class="cap">Log in to jump back into your bracket.</p>
+    </div>
+  </aside>
+</div>
+<!-- 1. Supabase library, 2. js/supabase.js (your project URL + anon key), 3. the login logic below -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
+<script src="js/supabase.js"></script>
+<script>
+(function(){
+  // The form pieces we need: the form, username box, password box, message line and button
+  var f=document.getElementById('f'),ph=document.getElementById('phone'),cd=document.getElementById('pw'),
+      msg=document.getElementById('msg'),go=document.getElementById('go');
+  // err(): shows a red message under the form and shakes it. err(null,'') clears the message.
+  function err(el,text){
+    ph.removeAttribute('aria-invalid');cd.removeAttribute('aria-invalid');
+    msg.className='msg';msg.textContent=text;
+    if(el){el.setAttribute('aria-invalid','true');el.focus();
+      f.classList.remove('shake');void f.offsetWidth;f.classList.add('shake');}
+  }
+  var AFTER_LOGIN='index.html';            // the page users land on after logging in. Change it if needed.
+
+  // LOGIN: runs when the Log in button is pressed
+  f.addEventListener('submit',async function(e){
+    e.preventDefault();
+
+    // 1. check what the user typed
+    // the first box accepts a username (3-16 letters, numbers, _) OR a phone number (9-15 digits)
+    var who=ph.value.trim();
+    var digits=who.replace(/\D/g,'');
+    var isPhone=/^[+\d\s()-]+$/.test(who)&&digits.length>=9&&digits.length<=15;
+    var isUser=/^[A-Za-z0-9_]{3,16}$/.test(who);
+    if(!isPhone&&!isUser){return err(ph,'Enter your username or phone number.');}
+    if(!cd.value){return err(cd,'Enter your password.');}
+    if(typeof supabaseClient==='undefined'){return err(null,'Setup problem: js/supabase.js did not load.');}
+
+    err(null,'');
+    go.disabled=true;go.textContent='Logging in…';
+    msg.className='msg ok';msg.textContent='Checking your details…';
+
+    // 2. ask the backend "login" function to check the username or phone number + password.
+    //    NOTE: the function in Supabase is named "login", so the name here must match exactly.
+    //    (It looks up the account's current email itself, so this keeps working after a player verifies a real email.)
+    var res=await supabaseClient.functions.invoke('login',{body:{identifier:who,password:cd.value}});
+    var session=res.data&&res.data.session;
+    if(!session){
+      console.error(res.error);
+      go.disabled=false;go.textContent='Log in';
+      var st=res.error&&res.error.context&&res.error.context.status;   // 400 = wrong username or password
+      return err(cd,st===400?"That username or password isn't right.":st===429?"Too many attempts. Try again in 15 minutes.":'Something went wrong. Try again.');
+    }
+
+    // 3. hand the session to the Supabase client so the user stays logged in on the site
+    var set=await supabaseClient.auth.setSession({access_token:session.access_token,refresh_token:session.refresh_token});
+    go.disabled=false;go.textContent='Log in';
+    if(set.error){console.error(set.error);return err(null,'Something went wrong. Try again.');}
+
+    // 4. done: go to the site
+    window.location.href=AFTER_LOGIN;
+  });
+  // GOOGLE: sends the player to Google, which returns them to auth-done.html
+  document.getElementById('google').onclick=async function(){
+    if(typeof supabaseClient==='undefined'){return err(null,'Setup problem: js/supabase.js did not load.');}
+    try{sessionStorage.setItem('cx_next',AFTER_LOGIN)}catch(e){}
+    var r=await supabaseClient.auth.signInWithOAuth({provider:'google',options:{redirectTo:location.origin+location.pathname.replace(/[^/]*$/,'')+'auth-done.html'}});
+    if(r.error){console.error(r.error);err(null,'Could not start Google sign-in. Try again.');}
+  };
+  // BRACKET ANIMATION on the right side (decoration only)
+  var br=document.querySelector('.bracket');
+  if('IntersectionObserver' in window){
+    var io=new IntersectionObserver(function(en){
+      if(en[0].isIntersecting){br.classList.add('go');io.disconnect();}
+    },{threshold:.5});
+    io.observe(br);
+  }else{br.classList.add('go');}
+})();
+</script>
+</body>
+</html>

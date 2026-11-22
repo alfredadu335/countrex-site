@@ -1,0 +1,497 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#FFFFFF">
+<meta name="color-scheme" content="light">
+<title>Community · Countrex</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,600;12..96,700;12..96,800&display=swap" rel="stylesheet">
+<!-- Only logged-in players can see this page: gate.js sends everyone else to the login page. -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
+<script src="js/supabase.js"></script>
+<script src="js/gate.js"></script>
+<!--
+  COUNTREX COMMUNITY (chat rooms), phone-style screen like the rest of the site.
+  1. LIST VIEW: a top bar, the filters (All, Unread, Favorites) and the list of rooms. Tap the star to favourite a room.
+  2. CHAT VIEW: opens when you tap a room. Messages in the middle, the message box at the bottom. The back arrow returns to the list.
+  3. BOTTOM TAB BAR: Home, Events, Community (hidden while you are inside a chat).
+  The script at the bottom has a PREVIEW switch: true = sample chats so you can see the design now,
+  false = the real chats from Supabase (run backend/02_community.sql first).
+-->
+<style>
+/* ===== COLOURS (your login page palette) ===== */
+:root{--bg:#FFFFFF;--ink:#1A0B2E;--muted:#6A5F7C;--line:#DDD4EA;--field:#F6F2FB;--accent:#5E3C88;--accent-hi:#70509A;--pline:#C2B2D6;--stage:#E9E2F4;--gold:#E8A400;--tab:70px}
+*,*::before,*::after{box-sizing:border-box}
+[hidden]{display:none!important}
+html{background:var(--stage)}
+body{margin:0;background:var(--stage);color:var(--ink);font-family:"Bricolage Grotesque",Arial,sans-serif;line-height:1.45;-webkit-font-smoothing:antialiased;-webkit-tap-highlight-color:transparent}
+button{font:inherit;color:inherit}
+a{color:inherit;text-decoration:none}
+a:focus-visible,button:focus-visible,.row:focus-visible,textarea:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+/* the phone screen: never wider than a phone, centred on a laptop */
+.app{position:relative;max-width:480px;min-height:100dvh;margin:0 auto;background:var(--bg);padding-bottom:calc(var(--tab) + env(safe-area-inset-bottom,0px));box-shadow:0 0 0 1px var(--line),0 40px 90px -40px rgba(26,11,46,.5)}
+
+/* ===== TOP BAR + THE CLEAR BACK ARROW ===== */
+.top{position:sticky;top:0;z-index:20;display:flex;align-items:center;gap:12px;height:60px;padding:env(safe-area-inset-top,0px) 16px 0;background:rgba(255,255,255,.96);backdrop-filter:blur(8px);border-bottom:1px solid var(--line)}
+.back{flex:none;display:grid;place-items:center;width:44px;height:44px;border:0;border-radius:14px;background:var(--field);color:var(--ink);cursor:pointer}
+.back:hover{background:#ECE4F7}
+.back svg{width:24px;height:24px}
+.top h1{margin:0;font-size:1.5rem;letter-spacing:-.03em;font-weight:800}
+
+/* ===== FILTERS: All, Unread, Favorites ===== */
+.filters{position:sticky;top:60px;z-index:15;display:flex;gap:8px;padding:12px 16px;background:rgba(255,255,255,.96);backdrop-filter:blur(8px);border-bottom:1px solid var(--line)}
+.filters button{display:inline-flex;align-items:center;gap:6px;height:38px;padding:0 16px;border:1.5px solid var(--line);border-radius:999px;background:var(--bg);font-weight:700;font-size:.95rem;cursor:pointer}
+.filters button.on{background:var(--accent);border-color:var(--accent);color:#fff}
+.filters i{font-style:normal;min-width:20px;height:20px;padding:0 6px;border-radius:99px;background:var(--accent);color:#fff;font-size:.78rem;line-height:20px;text-align:center}
+.filters .on i{background:#fff;color:var(--accent)}
+
+/* ===== THE ROOM LIST ===== */
+.note{margin:12px 16px 0;padding:9px 14px;border-radius:12px;background:var(--field);color:var(--muted);font-size:.88rem}
+.row{display:grid;grid-template-columns:54px 1fr auto 40px;gap:12px;align-items:center;padding:14px 12px 14px 16px;border-bottom:1px solid var(--line);cursor:pointer}
+.row:hover{background:var(--field)}
+.av{display:grid;place-items:center;width:54px;height:54px;border-radius:50%;background:var(--field);font-size:1.7rem}
+.mid{min-width:0}
+.mid b{display:block;font-size:1.05rem;letter-spacing:-.01em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pre{display:block;color:var(--muted);font-size:.93rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pre em{font-style:normal;font-weight:600}
+.end{display:flex;flex-direction:column;align-items:flex-end;gap:6px;min-width:44px}
+.end time{font-size:.8rem;color:var(--muted)}
+.badge{min-width:22px;height:22px;padding:0 7px;border-radius:99px;background:var(--accent);color:#fff;font-size:.8rem;font-weight:700;line-height:22px;text-align:center}
+.row.unread .mid b,.row.unread .pre{color:var(--ink);font-weight:700}
+.row.unread .end time{color:var(--accent);font-weight:700}
+.star{display:grid;place-items:center;width:40px;height:40px;border:0;border-radius:12px;background:none;color:#B8AECB;cursor:pointer}
+.star:hover{background:#ECE4F7}
+.star svg{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linejoin:round}
+.star.on{color:var(--gold)}.star.on svg{fill:currentColor}
+.empty{padding:56px 28px;text-align:center;color:var(--muted)}
+.empty .big{font-size:2.6rem;line-height:1}
+.empty b{display:block;margin:10px 0 4px;color:var(--ink);font-size:1.2rem}
+
+/* ===== THE CHAT VIEW ===== */
+#chat{display:flex;flex-direction:column;height:100dvh}
+.chead{flex:none;display:flex;align-items:center;gap:12px;padding:env(safe-area-inset-top,0px) 12px 0 14px;height:64px;border-bottom:1px solid var(--line);background:var(--bg)}
+.chead .av{width:42px;height:42px;font-size:1.35rem}
+.chead .t{flex:1;min-width:0}
+.chead .t b{display:block;font-size:1.1rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.chead .t span{display:block;color:var(--muted);font-size:.85rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.msgs{flex:1;overflow-y:auto;overscroll-behavior:contain;padding:14px 14px 8px;background:var(--field)}
+.dsep{text-align:center;margin:14px 0 10px}
+.dsep span{display:inline-block;padding:4px 12px;border-radius:99px;background:#fff;color:var(--muted);font-size:.8rem;font-weight:600}
+.msg{max-width:80%;width:fit-content;margin:2px 0;padding:8px 13px 6px;border-radius:18px 18px 18px 6px;background:#fff;box-shadow:0 1px 0 rgba(26,11,46,.06)}
+.msg.first{margin-top:10px}
+.msg.mine{margin-left:auto;background:var(--accent);color:#fff;border-radius:18px 18px 6px 18px}
+.msg .who{display:block;color:var(--accent);font-size:.85rem;margin-bottom:1px}
+.msg p{margin:0;white-space:pre-wrap;overflow-wrap:anywhere}
+.msg time{display:block;text-align:right;margin-top:2px;font-size:.7rem;opacity:.65}
+.compose{flex:none;display:flex;align-items:flex-end;gap:10px;padding:10px 12px calc(10px + env(safe-area-inset-bottom,0px));border-top:1px solid var(--line);background:var(--bg)}
+.compose textarea{flex:1;min-height:46px;max-height:120px;resize:none;padding:12px 16px;border:1.5px solid transparent;border-radius:23px;background:var(--field);font:inherit;font-size:1rem;color:var(--ink);line-height:1.3}
+.compose textarea:focus{outline:none;border-color:var(--accent);background:#fff}
+.send{flex:none;display:grid;place-items:center;width:46px;height:46px;border:0;border-radius:50%;background:var(--accent);color:#fff;cursor:pointer}
+.send:hover{background:var(--accent-hi)}
+.send:disabled{opacity:.4;cursor:default}
+.send svg{width:22px;height:22px;fill:currentColor}
+.only{flex:none;padding:16px 20px calc(16px + env(safe-area-inset-bottom,0px));border-top:1px solid var(--line);text-align:center;color:var(--muted);background:var(--bg)}
+body.chatting .app{padding-bottom:0;height:100dvh;overflow:hidden}
+body.chatting .tabs{display:none}
+
+/* ===== BOTTOM TAB BAR ===== */
+.tabs{position:fixed;left:50%;bottom:0;transform:translateX(-50%);z-index:40;width:100%;max-width:480px;display:grid;grid-template-columns:repeat(4,1fr);padding:6px 6px calc(6px + env(safe-area-inset-bottom,0px));background:rgba(255,255,255,.97);backdrop-filter:blur(10px);border-top:1px solid var(--line)}
+.tabs a{display:flex;flex-direction:column;align-items:center;gap:2px;padding:7px 2px 6px;border-radius:16px;font-size:.75rem;font-weight:600;color:var(--muted)}
+.tabs .e{font-size:1.5rem;line-height:1.1}
+.tabs a:hover{background:var(--field);color:var(--ink)}
+.tabs a.on{background:var(--field);color:var(--accent)}
+
+/* small message that appears for a moment, e.g. "Couldn't send" */
+.toast{position:fixed;left:50%;bottom:90px;transform:translateX(-50%);z-index:80;max-width:min(90vw,420px);padding:12px 18px;border-radius:14px;background:var(--ink);color:#fff;font-weight:600;box-shadow:0 14px 40px -12px rgba(26,11,46,.6)}
+@media (max-width:380px){.tabs a{font-size:.7rem}.filters button{padding:0 12px}}
+
+/* ----- 3-dash menu (same as the homepage) ----- */
+.menu,.scrim,.burger{--bg:#FFFFFF;--ink:#1A0B2E;--muted:#6A5F7C;--line:#DDD4EA;--field:#F6F2FB;--accent:#5E3C88;--pline:#C2B2D6}
+[hidden]{display:none!important}
+.burger{flex:none;width:44px;height:44px;margin-left:auto;border:0;border-radius:14px;background:var(--field);cursor:pointer;position:relative}
+.burger span,.burger span::before,.burger span::after{position:absolute;left:12px;width:20px;height:2.5px;border-radius:2px;background:var(--ink);content:""}
+.burger span{top:20px}.burger span::before{left:0;top:-7px}.burger span::after{left:0;top:7px}
+.scrim{position:fixed;inset:0;z-index:150;background:rgba(26,11,46,.45)}
+.menu{position:fixed;z-index:160;top:12px;left:50%;transform:translateX(-50%);width:calc(100% - 24px);max-width:456px;max-height:calc(100dvh - 24px);overflow-y:auto;padding:8px 14px 14px;background:var(--bg);color:var(--ink);border-radius:28px;box-shadow:0 30px 70px -26px rgba(26,11,46,.55);font-family:"Bricolage Grotesque",system-ui,-apple-system,"Segoe UI",sans-serif;line-height:1.4}
+.menu a{color:inherit;text-decoration:none}
+.mhead{display:flex;align-items:center;justify-content:space-between;padding:8px 6px 12px}
+.mbrand{font-weight:800;font-size:1.35rem;letter-spacing:-.03em}
+.mclose{display:grid;place-items:center;width:42px;height:42px;border:0;border-radius:14px;background:var(--field);color:var(--ink);cursor:pointer}
+.mclose svg{width:22px;height:22px}
+.mprofile{display:flex;align-items:center;gap:14px;padding:14px;border-radius:22px;background:var(--field)}
+.mav{flex:none;display:grid;place-items:center;width:52px;height:52px;border-radius:50%;background:linear-gradient(135deg,#7A5AAA,var(--accent));color:#fff;font-weight:800;font-size:1.3rem}
+.mav svg{width:26px;height:26px}
+.mwho{flex:1;min-width:0}.mwho b{display:block;font-size:1.1rem;letter-spacing:-.01em;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.mwho small{color:var(--muted)}
+.mgrp{margin:16px 10px 2px;font-size:.74rem;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
+.mlist{display:grid;gap:2px;margin:6px 0 0}
+.mlist a{display:flex;align-items:center;gap:14px;padding:10px 8px;border-radius:16px;font-weight:700;font-size:1.05rem;cursor:pointer}
+.mlist a:hover{background:var(--field)}.mlist a>span:nth-child(2){flex:1}
+.mlist a.danger{color:#C0213F}.mlist a.danger .mi{background:#FDE7EA;color:#C0213F}
+.mi{flex:none;display:grid;place-items:center;width:42px;height:42px;border-radius:13px;background:var(--field);color:var(--accent)}
+.mi svg{width:22px;height:22px}
+.chev{flex:none;width:18px;height:18px;color:#B8AECB}
+@media (prefers-reduced-motion:no-preference){.menu{animation:mdrop .22s ease-out}}
+@keyframes mdrop{from{opacity:0;transform:translate(-50%,-10px)}}
+</style>
+<style id="cx-dark">
+/* Dark mode. Applies when <html data-theme="dark"> (set from Settings > Preferences > Appearance). */
+html[data-theme="dark"]{color-scheme:dark;--bg:#131114;--ink:#EDE8F3;--muted:#9A92A8;--line:#2A252F;--field:#1B181E;--accent:#8A68C2;--accent-hi:#9A7CCF;--pline:#3B3342;--stage:#0C0B0D;--btn:#5B3C94}
+html[data-theme="dark"] body{background:var(--stage);color:var(--ink)}
+html[data-theme="dark"] .top,html[data-theme="dark"] .tabs{background:rgba(19,17,20,.97)}
+html[data-theme="dark"] .top{border-bottom:1px solid var(--line)}
+html[data-theme="dark"] .wal:hover,html[data-theme="dark"] .mclose:hover,html[data-theme="dark"] .mprofile:hover{background:#26212B}
+html[data-theme="dark"] .tabs a:hover,html[data-theme="dark"] .tabs a.on{background:#241F29}
+html[data-theme="dark"] .scrim{background:rgba(0,0,0,.6)}
+html[data-theme="dark"] .sheet,html[data-theme="dark"] .menu{background:#18151B;border:1px solid var(--line);box-shadow:0 30px 60px -30px #000}
+html[data-theme="dark"] .mav{background:var(--btn)}
+html[data-theme="dark"] .chev{color:#5E566A}
+html[data-theme="dark"] .mlist a.danger{color:#F0788E}
+html[data-theme="dark"] .mlist a.danger .mi{background:#3A1A22;color:#F0788E}
+html[data-theme="dark"] dialog{background:#18151B;border:1px solid var(--line);color:var(--ink)}
+html[data-theme="dark"] dialog::backdrop{background:rgba(0,0,0,.7)}
+html[data-theme="dark"] .cta .go,html[data-theme="dark"] .row a.main{background:var(--btn);border-color:var(--btn);box-shadow:none}
+html[data-theme="dark"] .cta .gh,html[data-theme="dark"] .row a,html[data-theme="dark"] .more{border-color:var(--pline)}
+html[data-theme="dark"] .hero{background:none}
+html[data-theme="dark"] .chip{background:var(--field);box-shadow:none}
+html[data-theme="dark"] .game{box-shadow:none;border:1px solid var(--line)}
+html[data-theme="dark"] .pick{background:var(--ink);color:#131114}
+html[data-theme="dark"] .sec.alt{background:#0F0D11}
+html[data-theme="dark"] .ev{box-shadow:none;background:var(--field)}
+html[data-theme="dark"] .tba,html[data-theme="dark"] .cd div{background:#131114}
+html[data-theme="dark"] input,html[data-theme="dark"] select,html[data-theme="dark"] textarea{color:var(--ink);background:var(--field)}
+html[data-theme="dark"] .app{box-shadow:0 0 0 1px var(--line)}
+/* pages with their own token names (wallet, notifications) */
+html[data-theme="dark"]{--purple:#5B3C94;--purple-dark:#8A68C2;--purple-soft:#241F29;--white:#18151B;--green:#3FCB92;--red:#F0788E}
+html[data-theme="dark"] .content{background:var(--bg)}
+html[data-theme="dark"] .chip:not(.active),html[data-theme="dark"] .sheet,html[data-theme="dark"] .tx,html[data-theme="dark"] .stat,html[data-theme="dark"] .nav,html[data-theme="dark"] .sheet input{background:var(--white);color:var(--ink)}
+html[data-theme="dark"] .btn-ghost,html[data-theme="dark"] .topbar .burger{color:#B8A2DC}
+/* the menu kit re-declares light colours on .menu/.scrim/.burger */
+html[data-theme="dark"] .menu,html[data-theme="dark"] .scrim,html[data-theme="dark"] .burger{--bg:#131114;--ink:#EDE8F3;--muted:#9A92A8;--line:#2A252F;--field:#1B181E;--accent:#8A68C2;--pline:#3B3342}
+html[data-theme="dark"] .burger span,html[data-theme="dark"] .burger span::before,html[data-theme="dark"] .burger span::after{background:var(--ink)}
+html[data-theme="dark"] .bottom-nav{background:#131114}
+/* login, signup */
+html[data-theme="dark"]{--panel:#131114;--pslot:#1F1B23;--glow:#8A68C2;--ring:rgba(138,104,194,.28);--err:#F0788E;--ok:#3FCB92}
+html[data-theme="dark"] .btn{background:var(--btn)}
+html[data-theme="dark"] .btn:hover{background:#6A48A6}
+html[data-theme="dark"] .nm{fill:#C9BFD8}
+html[data-theme="dark"] .nm.you,html[data-theme="dark"] #you.on .nm{fill:#fff}
+html[data-theme="dark"] ::placeholder{color:#7C7389}
+html[data-theme="dark"] .ghost{border-color:var(--pline)}
+html[data-theme="dark"] .ghost:hover{background:var(--ink);color:var(--bg)}
+html[data-theme="dark"] .tut{background:var(--field)}
+/* community, leaderboard */
+html[data-theme="dark"] .filters{background:rgba(19,17,20,.97)}
+html[data-theme="dark"] .filters button,html[data-theme="dark"] .chips button,html[data-theme="dark"] .fchips button{background:var(--field);color:var(--ink)}
+html[data-theme="dark"] .filters button.on{background:var(--btn);color:#fff}
+html[data-theme="dark"] .msgs .msg{background:#241F29;color:var(--ink);box-shadow:none}
+html[data-theme="dark"] .msgs .msg.mine{background:var(--btn);color:#fff}
+html[data-theme="dark"] .dsep span{background:#241F29;color:var(--muted)}
+html[data-theme="dark"] .compose textarea:focus{background:var(--field)}
+html[data-theme="dark"] .star:hover{background:#26212B}
+html[data-theme="dark"] .skel{background:linear-gradient(90deg,#1B181E,#26212B,#1B181E);background-size:200% 100%}
+html[data-theme="dark"] .seg button[aria-selected="true"]{background:var(--btn);color:#fff;box-shadow:none}
+html[data-theme="dark"] .head{background:linear-gradient(180deg,#1B181E 0,#131114 220px)}
+html[data-theme="dark"] .me{background:linear-gradient(135deg,#241F29,var(--btn))}
+html[data-theme="dark"] .chat,html[data-theme="dark"] .chead,html[data-theme="dark"] .compose,html[data-theme="dark"] .only{background:var(--bg)}
+html[data-theme="dark"] .toast{background:#EDE8F3;color:#131114}
+</style>
+<script>(function(){try{var t=(JSON.parse(localStorage.getItem("countrex_settings")||"{}").theme)||"light";if(t==="system")t=matchMedia("(prefers-color-scheme:dark)").matches?"dark":"light";if(t==="dark")document.documentElement.setAttribute("data-theme","dark")}catch(e){}})();</script>
+</head>
+<body>
+<div class="app">
+
+<!-- 1. LIST VIEW -->
+<div id="listview">
+  <header class="top">
+    <!-- the back arrow: a clear arrow in a button, takes you to the homepage -->
+    <a class="back" href="index.html" aria-label="Back to home"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19 12H5M11 5l-7 7 7 7"/></svg></a>
+    <h1>Community</h1>
+    <button class="burger" id="burger" type="button" aria-label="Menu" aria-expanded="false" aria-controls="sheet"><span></span></button>
+  </header>
+  <div class="filters" role="tablist" aria-label="Filter chats">
+    <button type="button" data-f="all" class="on" role="tab" aria-selected="true">All</button>
+    <button type="button" data-f="unread" role="tab" aria-selected="false">Unread <i id="uc" hidden>0</i></button>
+    <button type="button" data-f="fav" role="tab" aria-selected="false">Favorites</button>
+  </div>
+  <div class="note" id="pnote" hidden>Preview mode: these are sample chats. Nothing is saved.</div>
+  <main id="list" aria-live="polite"><div class="empty"><b>Loading chats…</b></div></main>
+</div>
+
+<!-- 2. CHAT VIEW -->
+<section id="chat" hidden aria-label="Chat">
+  <header class="chead">
+    <button class="back" id="cback" type="button" aria-label="Back to all chats"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19 12H5M11 5l-7 7 7 7"/></svg></button>
+    <span class="av" id="cav">💬</span>
+    <div class="t"><b id="ctitle"></b><span id="csub"></span></div>
+    <button class="star" id="cstar" type="button" aria-label="Favorite" aria-pressed="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3.5l2.6 5.4 5.9.8-4.3 4.1 1 5.9L12 16.9l-5.2 2.8 1-5.9-4.3-4.1 5.9-.8z"/></svg></button>
+  </header>
+  <div class="msgs" id="msgs" aria-live="polite"></div>
+  <form class="compose" id="compose" autocomplete="off">
+    <textarea id="ta" rows="1" maxlength="1000" placeholder="Message" aria-label="Message" enterkeyhint="send"></textarea>
+    <button class="send" id="send" type="submit" aria-label="Send" disabled><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3.4 20.4 21 12 3.4 3.6l-.1 6.5L15 12 3.3 13.9z"/></svg></button>
+  </form>
+  <div class="only" id="only" hidden>Only admins can post in this room.</div>
+</section>
+
+</div>
+
+<!-- 3. BOTTOM TAB BAR (Community is the open page) -->
+<nav class="tabs" aria-label="Main">
+  <a href="index.html"><span class="e" aria-hidden="true">🏠</span><span class="l">Home</span></a>
+  <a href="events.html"><span class="e" aria-hidden="true">📅</span><span class="l">Events</span></a>
+  <a href="leaderboard.html"><span class="e" aria-hidden="true">🏆</span><span class="l">Leaderboard</span></a>
+  <a class="on" href="community.html"><span class="e" aria-hidden="true">👥</span><span class="l">Community</span></a>
+</nav>
+<div class="toast" id="toast" hidden></div>
+
+<script>
+(function(){
+  "use strict";
+  var $=function(i){return document.getElementById(i)};
+  // Coming BACK with the back button can show a frozen old copy of the page: reload it so everything is fresh.
+  window.addEventListener("pageshow",function(e){ if(e.persisted) location.reload() });
+
+  // ===== THE SWITCH. true = sample chats, nothing is saved (to see the design). false = the real chats from Supabase. =====
+  var PREVIEW=true;
+
+  var me={id:"",name:"",admin:false};   // who is using the page
+  var rooms=[], filter="all", current=null, seen={}, names={}, lastDay="", lastUser="", sending=false;
+  var STAR='<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3.5l2.6 5.4 5.9.8-4.3 4.1 1 5.9L12 16.9l-5.2 2.8 1-5.9-4.3-4.1 5.9-.8z"/></svg>';
+
+  // ---------- small helpers ----------
+  function esc(t){return String(t==null?"":t).replace(/[&<>"']/g,function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]})}
+  function hm(iso){return new Date(iso).toLocaleTimeString([],{hour:"2-digit",minute:"2-digit"})}
+  function when(iso){var d=new Date(iso),n=new Date();if(d.toDateString()===n.toDateString())return hm(iso);if(d.toDateString()===new Date(n-864e5).toDateString())return "Yesterday";return d.toLocaleDateString([],{day:"2-digit",month:"2-digit"})}
+  function dayName(iso){var d=new Date(iso),n=new Date();if(d.toDateString()===n.toDateString())return "Today";if(d.toDateString()===new Date(n-864e5).toDateString())return "Yesterday";return d.toLocaleDateString([],{weekday:"long",day:"numeric",month:"long"})}
+  function toast(t){var e=$("toast");e.textContent=t;e.hidden=false;clearTimeout(toast.t);toast.t=setTimeout(function(){e.hidden=true},2600)}
+
+  // ===== THE DATA LAYER: everything the page asks of the database goes through these functions =====
+  // realApi() = Supabase. sampleApi() = made-up chats in memory (PREVIEW).
+  function realApi(){
+    var sb=supabaseClient;
+    function norm(m){m.username=(m.profiles&&m.profiles.username)||"player";names[m.user_id]=m.username;return m}
+    return {
+      async init(){
+        var s=(await sb.auth.getSession()).data.session; me.id=s.user.id;
+        var r=await sb.from("profiles").select("username,role").eq("id",me.id).single();
+        me.name=(r.data&&r.data.username)||""; me.admin=!!(r.data&&r.data.role==="admin"); names[me.id]=me.name;
+      },
+      async rooms(){var r=await sb.rpc("community_rooms");if(r.error)throw r.error;return r.data},
+      async messages(id){
+        var r=await sb.from("messages").select("id,room_id,user_id,body,created_at,profiles(username)").eq("room_id",id).order("created_at",{ascending:false}).limit(60);
+        if(r.error)throw r.error; return r.data.reverse().map(norm);
+      },
+      async send(id,body){
+        var r=await sb.from("messages").insert({room_id:id,body:body}).select("id,room_id,user_id,body,created_at").single();
+        if(r.error)throw r.error; r.data.username=me.name; return r.data;
+      },
+      async markRead(id){await sb.from("room_state").upsert({user_id:me.id,room_id:id,last_read_at:new Date().toISOString()},{onConflict:"user_id,room_id"})},
+      async fav(id,v){var r=await sb.from("room_state").upsert({user_id:me.id,room_id:id,favorite:v},{onConflict:"user_id,room_id"});if(r.error)throw r.error},
+      subscribe(cb){   // live: a new message anywhere in the community arrives here
+        var ch=sb.channel("community").on("postgres_changes",{event:"INSERT",schema:"public",table:"messages"},async function(p){
+          var m=p.new;
+          if(!names[m.user_id]){var r=await sb.from("profiles").select("username").eq("id",m.user_id).single();names[m.user_id]=(r.data&&r.data.username)||"player"}
+          m.username=names[m.user_id]; cb(m);
+        }).subscribe();
+        return function(){sb.removeChannel(ch)};
+      }
+    };
+  }
+  function sampleApi(){
+    var t=function(min){return new Date(Date.now()-min*60000).toISOString()};
+    var R=[
+      {id:"r1",name:"Announcements",emoji:"📢",description:"News from the Countrex team",admin_only:true},
+      {id:"r2",name:"General",emoji:"💬",description:"Chat about anything",admin_only:false},
+      {id:"r3",name:"Call of Duty: Mobile",emoji:"🔫",description:"Squads, tips and matches",admin_only:false},
+      {id:"r4",name:"EA SPORTS FC",emoji:"⚽",description:"Squads, tips and matches",admin_only:false},
+      {id:"r5",name:"eFootball",emoji:"🏟️",description:"Squads, tips and matches",admin_only:false}];
+    var M={
+      r1:[{id:1,user_id:"u0",username:"Countrex Team",body:"Welcome to the Countrex community. Be kind and play fair.",created_at:t(2900)},{id:2,user_id:"u0",username:"Countrex Team",body:"Tournaments open soon. Watch this room for the dates.",created_at:t(190)}],
+      r2:[{id:3,user_id:"u1",username:"nova",body:"Anyone up for a practice match tonight?",created_at:t(95)},{id:4,user_id:"u2",username:"kairo",body:"I'm in. What time?",created_at:t(60)},{id:5,user_id:"u1",username:"nova",body:"Around 8?",created_at:t(58)},{id:6,user_id:"u3",username:"blitz",body:"Count me in too.",created_at:t(41)},{id:7,user_id:"u2",username:"kairo",body:"Perfect, see you then.",created_at:t(12)}],
+      r3:[{id:8,user_id:"u3",username:"blitz",body:"New season looks good.",created_at:t(1500)}],
+      r4:[{id:9,user_id:"u4",username:"vex",body:"Anyone trying the new squad builder?",created_at:t(300)}],
+      r5:[{id:10,user_id:"u2",username:"kairo",body:"Who is entering the first eFootball cup?",created_at:t(2000)},{id:11,user_id:"u1",username:"nova",body:"Me!",created_at:t(1990)}]};
+    var S={r1:{u:2,f:false},r2:{u:5,f:false},r3:{u:0,f:false},r4:{u:1,f:true},r5:{u:0,f:true}};
+    var nid=100, subs=[];
+    return {
+      async init(){me.id="me";me.name="you";me.admin=false},
+      async rooms(){return R.map(function(r){var l=M[r.id][M[r.id].length-1]||{};return Object.assign({},r,{last_body:l.body,last_user:l.username,last_at:l.created_at||new Date().toISOString(),unread:S[r.id].u,favorite:S[r.id].f})})},
+      async messages(id){return M[id].slice()},
+      async send(id,body){var m={id:++nid,room_id:id,user_id:me.id,username:me.name,body:body,created_at:new Date().toISOString()};M[id].push(m);return m},
+      async markRead(id){S[id].u=0},
+      async fav(id,v){S[id].f=v},
+      subscribe(cb){subs.push(cb);return function(){}}
+    };
+  }
+  var api=PREVIEW?sampleApi():realApi();
+
+  // ===== LIST VIEW =====
+  function sortRooms(){rooms.sort(function(a,b){return new Date(b.last_at||0)-new Date(a.last_at||0)})}
+  function rowHtml(r){
+    var pre=r.last_body?'<em>'+esc(r.last_user||"")+(r.last_user?': ':'')+'</em>'+esc(r.last_body):'No messages yet';
+    return '<div class="row'+(r.unread>0?' unread':'')+'" role="button" tabindex="0" data-id="'+esc(r.id)+'">'
+      +'<span class="av" aria-hidden="true">'+esc(r.emoji)+'</span>'
+      +'<span class="mid"><b>'+esc(r.name)+'</b><span class="pre">'+pre+'</span></span>'
+      +'<span class="end"><time>'+(r.last_body?esc(when(r.last_at)):'')+'</time>'+(r.unread>0?'<span class="badge">'+r.unread+'</span>':'')+'</span>'
+      +'<button class="star'+(r.favorite?' on':'')+'" type="button" data-fav="'+esc(r.id)+'" aria-pressed="'+!!r.favorite+'" aria-label="'+(r.favorite?'Remove from favorites':'Add to favorites')+'">'+STAR+'</button></div>';
+  }
+  function drawList(){
+    var n=rooms.filter(function(r){return r.unread>0}).length;
+    $("uc").textContent=n; $("uc").hidden=!n;
+    var items=rooms.filter(function(r){return filter==="all"||(filter==="unread"&&r.unread>0)||(filter==="fav"&&r.favorite)});
+    if(items.length){$("list").innerHTML=items.map(rowHtml).join("");return}
+    var e={all:["💬","No chats yet","Chat rooms will appear here."],unread:["✅","You're all caught up","No unread messages."],fav:["⭐","No favorites yet","Tap the star on a chat to keep it here."]}[filter];
+    $("list").innerHTML='<div class="empty"><div class="big">'+e[0]+'</div><b>'+e[1]+'</b>'+e[2]+'</div>';
+  }
+  async function loadRooms(){
+    try{rooms=await api.rooms();sortRooms();if(!current)drawList()}
+    catch(e){console.error(e);$("list").innerHTML='<div class="empty"><div class="big">😕</div><b>Couldn\'t load the chats</b>Check your connection and try again. (Setting up? Run backend/02_community.sql in Supabase.)</div>'}
+  }
+  document.querySelector(".filters").addEventListener("click",function(e){
+    var b=e.target.closest("button[data-f]"); if(!b)return; filter=b.dataset.f;
+    document.querySelectorAll(".filters button").forEach(function(x){var on=x===b;x.classList.toggle("on",on);x.setAttribute("aria-selected",on)});
+    drawList();
+  });
+  async function toggleFav(id){
+    var r=rooms.find(function(x){return x.id===id}); if(!r)return;
+    r.favorite=!r.favorite; drawList(); syncStar();
+    try{await api.fav(id,r.favorite)}catch(e){console.error(e);r.favorite=!r.favorite;drawList();syncStar();toast("Couldn't save that. Try again.")}
+  }
+  $("list").addEventListener("click",function(e){
+    var s=e.target.closest("[data-fav]"); if(s){e.stopPropagation();toggleFav(s.dataset.fav);return}
+    var r=e.target.closest(".row"); if(r)location.hash="room-"+encodeURIComponent(r.dataset.id);
+  });
+  $("list").addEventListener("keydown",function(e){
+    if((e.key==="Enter"||e.key===" ")&&e.target.classList.contains("row")){e.preventDefault();location.hash="room-"+encodeURIComponent(e.target.dataset.id)}
+  });
+
+  // ===== CHAT VIEW =====
+  function syncStar(){if(!current)return;var b=$("cstar");b.classList.toggle("on",!!current.favorite);b.setAttribute("aria-pressed",!!current.favorite)}
+  function addMsg(m){
+    if(seen[m.id])return; seen[m.id]=1;
+    var box=$("msgs"),mine=m.user_id===me.id,d=dayName(m.created_at),h="";
+    if(d!==lastDay){h+='<div class="dsep"><span>'+esc(d)+'</span></div>';lastDay=d;lastUser=""}
+    var first=lastUser!==m.user_id; lastUser=m.user_id;
+    h+='<div class="msg'+(mine?' mine':'')+(first?' first':'')+'">'+(!mine&&first?'<b class="who">'+esc(m.username||"player")+'</b>':'')+'<p>'+esc(m.body)+'</p><time>'+hm(m.created_at)+'</time></div>';
+    var near=box.scrollHeight-box.scrollTop-box.clientHeight<140;
+    box.insertAdjacentHTML("beforeend",h);
+    if(near||mine)box.scrollTop=box.scrollHeight;
+  }
+  function showList(){current=null;$("chat").hidden=true;$("listview").hidden=false;document.body.classList.remove("chatting");loadRooms()}
+  async function openRoom(id){
+    var r=rooms.find(function(x){return x.id===id});
+    if(!r){await loadRooms();r=rooms.find(function(x){return x.id===id});if(!r){location.hash="";return}}
+    current=r; seen={}; lastDay=""; lastUser="";
+    $("listview").hidden=true; $("chat").hidden=false; document.body.classList.add("chatting");
+    $("cav").textContent=r.emoji; $("ctitle").textContent=r.name; $("csub").textContent=r.description||""; syncStar();
+    var canPost=!r.admin_only||me.admin; $("compose").hidden=!canPost; $("only").hidden=canPost;
+    var box=$("msgs"); box.innerHTML="";
+    try{(await api.messages(id)).forEach(addMsg)}catch(e){console.error(e);box.innerHTML='<div class="empty"><b>Couldn\'t load the messages</b>Try again in a moment.</div>'}
+    box.scrollTop=box.scrollHeight;
+    if(!box.children.length)box.innerHTML='<div class="empty"><div class="big">'+esc(r.emoji)+'</div><b>No messages yet</b>Say hello.</div>';
+    if(r.unread>0){r.unread=0;try{await api.markRead(id)}catch(e){console.error(e)}}
+    if(canPost&&window.matchMedia("(hover:hover)").matches)$("ta").focus();
+  }
+  function route(){var m=/^#room-(.+)$/.exec(location.hash);if(m)openRoom(decodeURIComponent(m[1]));else showList()}
+  window.addEventListener("hashchange",route);
+  $("cback").onclick=function(){location.hash=""};
+  $("cstar").onclick=function(){if(current)toggleFav(current.id)};
+
+  // ----- writing a message -----
+  var ta=$("ta"),sendBtn=$("send");
+  function grow(){ta.style.height="auto";ta.style.height=Math.min(ta.scrollHeight,120)+"px";sendBtn.disabled=!ta.value.trim()||sending}
+  ta.addEventListener("input",grow);
+  ta.addEventListener("keydown",function(e){   // Enter sends on a computer. On a phone Enter makes a new line.
+    if(e.key==="Enter"&&!e.shiftKey&&window.matchMedia("(hover:hover)").matches){e.preventDefault();$("compose").requestSubmit()}
+  });
+  $("compose").addEventListener("submit",async function(e){
+    e.preventDefault();
+    var body=ta.value.trim(); if(!body||!current||sending)return;
+    sending=true; sendBtn.disabled=true;
+    try{
+      var m=await api.send(current.id,body);
+      ta.value=""; addMsg(m);
+      current.last_body=body; current.last_user=me.name; current.last_at=m.created_at;
+    }catch(err){console.error(err);toast("Couldn't send. Try again.")}
+    sending=false; grow(); ta.focus();
+  });
+
+  // ----- live messages from other people -----
+  function onNew(m){
+    if(seen[m.id])return;   // already on screen (it was mine)
+    var r=rooms.find(function(x){return x.id===m.room_id}); if(!r)return;
+    r.last_body=m.body; r.last_user=m.username; r.last_at=m.created_at;
+    if(current&&current.id===r.id){addMsg(m);api.markRead(r.id).catch(function(){})}
+    else if(m.user_id!==me.id){r.unread=(r.unread||0)+1}
+    sortRooms(); if(!current)drawList();
+  }
+
+  // ===== START =====
+  if(PREVIEW)$("pnote").hidden=false;
+  (async function(){
+    try{await api.init()}catch(e){console.error(e)}
+    api.subscribe(onNew);
+    route();
+  })();
+})();
+</script>
+<aside class="menu" id="sheet" aria-label="Menu" hidden>
+  <div class="mhead"><span class="mbrand">Countrex</span><button class="mclose" id="mclose" type="button" aria-label="Close menu"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button></div>
+  <a class="mprofile" href="profile.html" data-gate="My Profile">
+    <span class="mav" id="mav" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 20c1.5-4 5-5.5 8-5.5s6.5 1.5 8 5.5"/></svg></span>
+    <span class="mwho"><b id="mname">Guest</b><small id="msub">Log in or create an account</small></span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" class="chev" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg>
+  </a>
+  <p class="mgrp">You</p>
+  <nav class="mlist" aria-label="Your account">
+    <a href="profile.html" data-gate="My Profile"><span class="mi"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 20c1.5-4 5-5.5 8-5.5s6.5 1.5 8 5.5"/></svg></span><span>My Profile</span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" class="chev" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg></a>
+    <a href="wallet.html" data-gate="Wallet"><span class="mi"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 6.2 16.2 3.6a1.5 1.5 0 0 1 1.8 1.1l.3 1.3"/><rect x="2.5" y="6" width="19" height="13.5" rx="3"/><path d="M21.5 11.2h-4a2.2 2.2 0 0 0 0 4.4h4z"/><circle cx="17.9" cy="13.4" r=".9" fill="currentColor" stroke="none"/></svg></span><span>Wallet</span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" class="chev" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg></a>
+    <a href="notifications.html" data-gate="Notifications"><span class="mi"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9.5a6 6 0 0 1 12 0c0 4.6 2 6.2 2 6.2H4s2-1.6 2-6.2z"/><path d="M10 19a2.1 2.1 0 0 0 4 0"/></svg></span><span>Notifications</span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" class="chev" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg></a>
+    <a href="news.html"><span class="mi"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3.5" y="4" width="13" height="16" rx="2"/><path d="M16.5 8H20a1 1 0 0 1 1 1v9a2 2 0 0 1-2 2"/><path d="M7 8.5h6M7 12h6M7 15.5h4"/></svg></span><span>News</span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" class="chev" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg></a>
+  </nav>
+  <p class="mgrp">More</p>
+  <nav class="mlist" aria-label="More">
+    <a href="settings.html" data-gate="Settings"><span class="mi"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg></span><span>Settings</span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" class="chev" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg></a>
+    <a href="help.html"><span class="mi"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 14v-2a8 8 0 0 1 16 0v2"/><rect x="3" y="14" width="4" height="6" rx="1.5"/><rect x="17" y="14" width="4" height="6" rx="1.5"/><path d="M19 20c0 1.5-2 2-5 2"/></svg></span><span>Help &amp; Support</span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" class="chev" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg></a>
+    <a href="about.html"><span class="mi"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 8h.01"/></svg></span><span>About</span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" class="chev" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg></a>
+    <a id="msign" href="signup.html" hidden><span class="mi"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="10" cy="8" r="4"/><path d="M2.5 20c1.3-3.6 4.2-5 7.5-5M18 14v6M15 17h6"/></svg></span><span>Sign up</span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" class="chev" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg></a>
+    <a id="mauth" href="login.html"><span class="mi" id="mai"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 4h3a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2h-3"/><path d="M10 8l4 4-4 4M14 12H4"/></svg></span><span id="mal">Log in</span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" class="chev" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg></a>
+  </nav>
+</aside>
+<div class="scrim" id="scrim" hidden></div>
+<script>
+/* 3-DASH MENU (same as the homepage): opens, closes, and shows who is logged in. */
+(function () {
+  var $ = function (i) { return document.getElementById(i) };
+  var burger = $("burger"), sheet = $("sheet"), scrim = $("scrim");
+  function setMenu(o) { sheet.hidden = !o; scrim.hidden = !o; burger.setAttribute("aria-expanded", o) }
+  burger.onclick = function () { setMenu(sheet.hidden) };
+  scrim.onclick = $("mclose").onclick = function () { setMenu(false) };
+  sheet.addEventListener("click", function (e) { if (e.target.closest("a")) setMenu(false) });
+  document.addEventListener("keydown", function (e) { if (e.key === "Escape") setMenu(false) });
+  (async function () {
+    var session = null, nm = "";
+    try {
+      if (typeof supabaseClient !== "undefined") {
+        session = (await supabaseClient.auth.getSession()).data.session;
+        if (session) {
+          nm = (session.user.user_metadata || {}).username || "";
+          if (!nm) { var r = await supabaseClient.from("profiles").select("username").eq("id", session.user.id).single(); nm = (r.data && r.data.username) || "" }
+        }
+      }
+    } catch (e) { console.error(e) }
+    if (session) {
+      nm = nm || "Player";
+      $("mav").textContent = nm.charAt(0).toUpperCase(); $("mname").textContent = nm; $("msub").textContent = "View your profile";
+      $("mai").innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 4H6a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h3"/><path d="M16 8l4 4-4 4M20 12H9"/></svg>'; $("mal").textContent = "Log out";
+      var t = $("mauth"); t.classList.add("danger"); t.removeAttribute("href"); t.setAttribute("role", "button"); t.setAttribute("tabindex", "0");
+      t.onclick = async function () { try { await supabaseClient.auth.signOut() } catch (e) { } location.href = "index.html" };
+      t.onkeydown = function (e) { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); t.onclick() } };
+    } else { $("msign").hidden = false }
+  })();
+})();
+</script>
+</body>
+</html>

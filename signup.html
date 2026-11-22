@@ -1,0 +1,982 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<!--
+  COUNTREX SIGN UP (invitation code removed)
+  Journey: 1 phone + OTP -> 2 username + password -> 3 welcome + tutorial.
+  Email verification is NOT part of signup. It happens later, before sensitive actions such as withdrawing money.
+  Layout: <style> = looks, <body> = the 3 steps + the side panel, <script> = logic.
+-->
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="color-scheme" content="light">
+  <meta name="theme-color" content="#FFFFFF">
+  <title>Join Countrex</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link
+    href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,500;12..96,700;12..96,800&display=swap"
+    rel="stylesheet">
+  <style>
+    /* COLOURS: edit these to restyle the page. --accent is the main purple. */
+    :root {
+      --bg: #FFFFFF;
+      --ink: #1A0B2E;
+      --muted: #3A2E52;
+      --line: #DDD4EA;
+      --field: #F6F2FB;
+      --accent: #5E3C88;
+      --accent-hi: #70509A;
+      --accent-ink: #FFFFFF;
+      --ring: rgba(94,60,136,.2);
+      --err: #C0213F;
+      --ok: #2E7D4F;
+      --pline: #C2B2D6;
+      --pslot: #F5F1F9;
+      --glow: #5E3C88;
+      box-sizing: border-box;
+      padding-top: env(safe-area-inset-top, 0px);
+      padding-bottom: env(safe-area-inset-bottom, 0px)
+    }
+
+    html {
+      height: 100%;
+      scroll-padding-top: env(safe-area-inset-top, 0px)
+    }
+
+    *,
+    *::before,
+    *::after {
+      box-sizing: border-box
+    }
+
+    body {
+      margin: 0;
+      min-height: 100%;
+      background: var(--bg);
+      color: var(--ink);
+      font-family: "Bricolage Grotesque", Arial, Helvetica, sans-serif;
+      line-height: 1.5;
+      -webkit-font-smoothing: antialiased;
+      -webkit-tap-highlight-color: transparent
+    }
+
+    /* PAGE LAYOUT: two columns on desktop (form left, bracket picture right) */
+    .wrap {
+      min-height: 100vh;
+      min-height: 100dvh;
+      display: grid;
+      grid-template-columns: minmax(380px, 5fr) 6fr
+    }
+
+    .form-side {
+      display: flex;
+      flex-direction: column;
+      padding: 36px clamp(24px, 6vw, 88px) 48px
+    }
+
+    .brand {
+      font-weight: 800;
+      font-size: 1.7rem;
+      letter-spacing: -.03em
+    }
+
+    .brand a {
+      color: var(--ink);
+      text-decoration: none
+    }
+
+    .center {
+      flex: 1;
+      display: flex;
+      align-items: center
+    }
+
+    .box {
+      width: 100%;
+      max-width: 400px;
+      margin: 32px 0
+    }
+
+    /* journey stepper */
+    .steps {
+      list-style: none;
+      display: flex;
+      margin: 0 0 36px;
+      padding: 0
+    }
+
+    .steps li {
+      flex: 1;
+      position: relative;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      font-size: .8rem;
+      font-weight: 600;
+      color: var(--muted)
+    }
+
+    .steps li::before {
+      content: attr(data-n);
+      width: 30px;
+      height: 30px;
+      border-radius: 50%;
+      border: 2px solid var(--line);
+      background: var(--bg);
+      display: grid;
+      place-items: center;
+      font-size: .85rem;
+      position: relative;
+      z-index: 1
+    }
+
+    .steps li::after {
+      content: "";
+      position: absolute;
+      top: 14px;
+      left: 38px;
+      right: 8px;
+      height: 2px;
+      background: var(--line)
+    }
+
+    .steps li:last-child::after {
+      display: none
+    }
+
+    .steps li.done::after {
+      background: var(--accent)
+    }
+
+    .steps li.done::before {
+      content: "✓";
+      background: var(--accent);
+      border-color: var(--accent);
+      color: var(--accent-ink)
+    }
+
+    .steps li.now {
+      color: var(--ink)
+    }
+
+    .steps li.now::before {
+      border-color: var(--accent);
+      color: var(--accent);
+      box-shadow: 0 0 0 4px var(--ring)
+    }
+
+    .kicker {
+      font-size: .8rem;
+      font-weight: 700;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+      color: var(--accent);
+      margin: 0 0 10px
+    }
+
+    h1 {
+      font-size: clamp(2.2rem, 4vw, 3rem);
+      line-height: 1;
+      letter-spacing: -.035em;
+      margin: 0 0 12px;
+      font-weight: 800;
+      outline: none
+    }
+
+    .sub {
+      color: var(--muted);
+      margin: 0 0 28px;
+      font-size: 1.05rem;
+      max-width: 36ch
+    }
+
+    label {
+      display: block;
+      font-weight: 600;
+      font-size: .92rem;
+      margin-bottom: 8px
+    }
+
+    .field {
+      margin-bottom: 20px
+    }
+
+    /* INPUT BOXES */
+    input {
+      width: 100%;
+      height: 54px;
+      padding: 0 18px;
+      font: inherit;
+      font-size: 1rem;
+      color: var(--ink);
+      background: var(--field);
+      border: 1.5px solid transparent;
+      border-radius: 14px
+    }
+
+    input:focus {
+      outline: none;
+      border-color: var(--accent);
+      box-shadow: 0 0 0 4px var(--ring);
+      background: var(--bg)
+    }
+
+    input[aria-invalid=true] {
+      border-color: var(--err)
+    }
+
+    button {
+      touch-action: manipulation;
+      font: inherit
+    }
+
+    button:focus-visible,
+    a:focus-visible {
+      outline: 3px solid var(--accent);
+      outline-offset: 3px
+    }
+
+    a {
+      color: var(--accent);
+      font-weight: 600;
+      text-decoration: none
+    }
+
+    a:hover {
+      text-decoration: underline;
+      text-underline-offset: 3px
+    }
+
+    /* MAIN BUTTON */
+    .btn {
+      display: block;
+      width: 100%;
+      height: 56px;
+      border: 0;
+      border-radius: 999px;
+      background: var(--accent);
+      color: var(--accent-ink);
+      font-weight: 700;
+      font-size: 1.05rem;
+      cursor: pointer;
+      box-shadow:0 6px 16px -10px rgba(40,20,70,.45);
+      text-align: center;
+      line-height: 56px;
+      text-decoration: none
+    }
+
+    .btn:hover {
+      background: var(--accent-hi);
+      text-decoration: none
+    }
+
+    .btn[disabled] {
+      opacity: .5;
+      cursor: not-allowed;
+      box-shadow: none
+    }
+
+    /* ERROR MESSAGE line, password show/hide button, strength meter and hints */
+    .msg {
+      min-height: 1.4em;
+      margin: 0 0 14px;
+      font-size: .92rem;
+      color: var(--err)
+    }
+
+    .pw {
+      position: relative
+    }
+
+    .pw input {
+      padding-right: 76px
+    }
+
+    .pw button {
+      position: absolute;
+      right: 8px;
+      top: 9px;
+      height: 36px;
+      padding: 0 12px;
+      border: 0;
+      background: transparent;
+      color: var(--accent);
+      font-weight: 700;
+      cursor: pointer
+    }
+
+    .meter {
+      display: flex;
+      gap: 4px;
+      margin-top: 10px
+    }
+
+    .meter i {
+      flex: 1;
+      height: 5px;
+      border-radius: 3px;
+      background: var(--line)
+    }
+
+    .meter i.on {
+      background: var(--accent)
+    }
+
+    .hint {
+      font-size: .85rem;
+      color: var(--muted);
+      margin-top: 6px;
+      min-height: 1.3em
+    }
+
+    .hint.bad {
+      color: var(--err)
+    }
+
+    .hint.ok {
+      color: var(--ok)
+    }
+
+    .back {
+      display: inline-block;
+      margin-top: 18px;
+      background: none;
+      border: 0;
+      padding: 0;
+      color: var(--muted);
+      font-weight: 600;
+      cursor: pointer
+    }
+
+    .back:hover {
+      color: var(--ink)
+    }
+
+    .join {
+      margin-top: 28px;
+      padding-top: 22px;
+      border-top: 1px solid var(--line);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      color: var(--muted);
+      font-size: .92rem
+    }
+
+    .ghost {
+      flex: none;
+      height: 44px;
+      line-height: 41px;
+      padding: 0 20px;
+      border-radius: 999px;
+      border: 1.5px solid var(--ink);
+      color: var(--ink);
+      font-weight: 600;
+      white-space: nowrap
+    }
+
+    .ghost:hover {
+      background: var(--ink);
+      color: var(--bg);
+      text-decoration: none
+    }
+
+    /* STEP 3 green tick */
+    .tick {
+      width: 64px;
+      height: 64px;
+      border-radius: 50%;
+      background: var(--accent);
+      color: var(--accent-ink);
+      display: grid;
+      place-items: center;
+      font-size: 2rem;
+      margin-bottom: 20px
+    }
+
+    [hidden] {
+      display: none !important
+    }
+
+    /* panel */
+    .panel {
+      border-left: 1px solid var(--line);
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      padding: 48px clamp(28px, 5vw, 80px);
+      overflow: hidden
+    }
+
+    .bracket {
+      width: 100%;
+      max-width: 640px;
+      margin: auto 0;
+      height: auto;
+      overflow: visible
+    }
+
+    .ln {
+      fill: none;
+      stroke: var(--pline);
+      stroke-width: 2.5;
+      stroke-linecap: round;
+      stroke-linejoin: round
+    }
+
+    .slot {
+      fill: var(--pslot);
+      stroke: var(--pline);
+      stroke-width: 2
+    }
+
+    .slot.empty {
+      fill: none;
+      stroke-dasharray: 5 5
+    }
+
+    #you .slot {
+      fill: none;
+      stroke: var(--glow);
+      stroke-dasharray: 5 5
+    }
+
+    #you.on .slot {
+      fill: var(--glow);
+      stroke-dasharray: none
+    }
+
+    .nm {
+      font-size: 15px;
+      font-weight: 600;
+      fill: #4A3C63
+    }
+
+    #you .nm {
+      font-size: 17px;
+      font-weight: 800;
+      fill: var(--glow)
+    }
+
+    #you.on .nm {
+      fill: #fff
+    }
+
+    .tag {
+      font-size: clamp(2.6rem, 4.6vw, 4.4rem);
+      font-weight: 800;
+      line-height: .98;
+      letter-spacing: -.04em;
+      margin: 0
+    }
+
+    .tag b {
+      color: var(--glow);
+      font-weight: 800
+    }
+
+    .cap {
+      margin: 16px 0 0;
+      color: var(--muted);
+      max-width: 36ch
+    }
+
+    /* PHONES: one column, the right-side picture panel is hidden */
+    @media (max-width:900px) {
+      .wrap {
+        grid-template-columns: 1fr
+      }
+
+      .panel {
+        display: none
+      }
+
+      .form-side {
+        padding: 20px 22px calc(28px + env(safe-area-inset-bottom, 0px))
+      }
+
+      .brand {
+        font-size: 1.5rem
+      }
+
+      .center {
+        align-items: flex-start
+      }
+
+      .box {
+        margin: 28px 0 0;
+        max-width: none
+      }
+
+      h1 {
+        font-size: 2.4rem
+      }
+
+      .sub {
+        max-width: none
+      }
+
+      .join {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 14px
+      }
+
+      .ghost {
+        text-align: center;
+        height: 50px;
+        line-height: 47px
+      }
+    }
+
+    @media (min-width:901px) and (max-width:1100px) {
+      .wrap {
+        grid-template-columns: minmax(380px, 1fr) 1fr
+      }
+
+      .tag {
+        font-size: 2.6rem
+      }
+    }
+
+    .sub,
+    .hint,
+    .steps li,
+    .cap,
+    .join,
+    .back {
+      font-weight: 600
+    }
+
+    ::placeholder {
+      color: #5A4D73;
+      opacity: 1
+    }
+    /* OTP box: big centred digits */
+    #otp { letter-spacing: .5em; text-align: center; font-size: 1.4rem; font-weight: 700 }
+
+    /* STEP 4 tutorial card, dots and Back/Next row */
+    .tut { background: var(--field); border-radius: 18px; padding: 20px; margin: 0 0 16px; min-height: 160px }
+    .tut h2 { margin: 0 0 8px; font-size: 1.3rem; letter-spacing: -.02em }
+    .tut p:last-child { margin: 0 }
+    .dots { display: flex; gap: 6px; margin-bottom: 16px }
+    .dots i { width: 8px; height: 8px; border-radius: 50%; background: var(--line) }
+    .dots i.on { background: var(--accent) }
+    .row { display: flex; gap: 12px; align-items: center }
+    .row .btn { flex: 1; width: auto }
+    .row .ghost { height: 56px; line-height: 53px }
+    button.ghost { background: none; cursor: pointer }
+    #f1b .back, #sent .back { margin-right: 18px }
+    .or { display: flex; align-items: center; gap: 14px; margin: 22px 0 16px; color: var(--muted); font-size: .85rem }
+    .or::before, .or::after { content: ""; flex: 1; height: 1px; background: var(--line) }
+    .gbtn { width: 100%; height: 56px; border-radius: 999px; border: 1.5px solid var(--line); background: var(--bg); color: var(--ink); font-weight: 700; font-size: 1.02rem; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 12px; transition: background .15s, border-color .15s }
+    .gbtn:hover { background: var(--field); border-color: var(--pline) }
+  </style>
+<style id="cx-dark">
+/* Dark mode. Applies when <html data-theme="dark"> (set from Settings > Preferences > Appearance). */
+html[data-theme="dark"]{color-scheme:dark;--bg:#131114;--ink:#EDE8F3;--muted:#9A92A8;--line:#2A252F;--field:#1B181E;--accent:#8A68C2;--accent-hi:#9A7CCF;--pline:#3B3342;--stage:#0C0B0D;--btn:#5B3C94}
+html[data-theme="dark"] body{background:var(--stage);color:var(--ink)}
+html[data-theme="dark"] .top,html[data-theme="dark"] .tabs{background:rgba(19,17,20,.97)}
+html[data-theme="dark"] .top{border-bottom:1px solid var(--line)}
+html[data-theme="dark"] .wal:hover,html[data-theme="dark"] .mclose:hover,html[data-theme="dark"] .mprofile:hover{background:#26212B}
+html[data-theme="dark"] .tabs a:hover,html[data-theme="dark"] .tabs a.on{background:#241F29}
+html[data-theme="dark"] .scrim{background:rgba(0,0,0,.6)}
+html[data-theme="dark"] .sheet,html[data-theme="dark"] .menu{background:#18151B;border:1px solid var(--line);box-shadow:0 30px 60px -30px #000}
+html[data-theme="dark"] .mav{background:var(--btn)}
+html[data-theme="dark"] .chev{color:#5E566A}
+html[data-theme="dark"] .mlist a.danger{color:#F0788E}
+html[data-theme="dark"] .mlist a.danger .mi{background:#3A1A22;color:#F0788E}
+html[data-theme="dark"] dialog{background:#18151B;border:1px solid var(--line);color:var(--ink)}
+html[data-theme="dark"] dialog::backdrop{background:rgba(0,0,0,.7)}
+html[data-theme="dark"] .cta .go,html[data-theme="dark"] .row a.main{background:var(--btn);border-color:var(--btn);box-shadow:none}
+html[data-theme="dark"] .cta .gh,html[data-theme="dark"] .row a,html[data-theme="dark"] .more{border-color:var(--pline)}
+html[data-theme="dark"] .hero{background:none}
+html[data-theme="dark"] .chip{background:var(--field);box-shadow:none}
+html[data-theme="dark"] .game{box-shadow:none;border:1px solid var(--line)}
+html[data-theme="dark"] .pick{background:var(--ink);color:#131114}
+html[data-theme="dark"] .sec.alt{background:#0F0D11}
+html[data-theme="dark"] .ev{box-shadow:none;background:var(--field)}
+html[data-theme="dark"] .tba,html[data-theme="dark"] .cd div{background:#131114}
+html[data-theme="dark"] input,html[data-theme="dark"] select,html[data-theme="dark"] textarea{color:var(--ink);background:var(--field)}
+html[data-theme="dark"] .app{box-shadow:0 0 0 1px var(--line)}
+/* pages with their own token names (wallet, notifications) */
+html[data-theme="dark"]{--purple:#5B3C94;--purple-dark:#8A68C2;--purple-soft:#241F29;--white:#18151B;--green:#3FCB92;--red:#F0788E}
+html[data-theme="dark"] .content{background:var(--bg)}
+html[data-theme="dark"] .chip:not(.active),html[data-theme="dark"] .sheet,html[data-theme="dark"] .tx,html[data-theme="dark"] .stat,html[data-theme="dark"] .nav,html[data-theme="dark"] .sheet input{background:var(--white);color:var(--ink)}
+html[data-theme="dark"] .btn-ghost,html[data-theme="dark"] .topbar .burger{color:#B8A2DC}
+/* the menu kit re-declares light colours on .menu/.scrim/.burger */
+html[data-theme="dark"] .menu,html[data-theme="dark"] .scrim,html[data-theme="dark"] .burger{--bg:#131114;--ink:#EDE8F3;--muted:#9A92A8;--line:#2A252F;--field:#1B181E;--accent:#8A68C2;--pline:#3B3342}
+html[data-theme="dark"] .burger span,html[data-theme="dark"] .burger span::before,html[data-theme="dark"] .burger span::after{background:var(--ink)}
+html[data-theme="dark"] .bottom-nav{background:#131114}
+/* login, signup */
+html[data-theme="dark"]{--panel:#131114;--pslot:#1F1B23;--glow:#8A68C2;--ring:rgba(138,104,194,.28);--err:#F0788E;--ok:#3FCB92}
+html[data-theme="dark"] .btn{background:var(--btn);box-shadow:none}
+html[data-theme="dark"] .btn:hover{background:#6A48A6}
+html[data-theme="dark"] .nm{fill:#C9BFD8}
+html[data-theme="dark"] .nm.you,html[data-theme="dark"] #you.on .nm{fill:#fff}
+html[data-theme="dark"] ::placeholder{color:#7C7389}
+html[data-theme="dark"] .ghost{border-color:var(--pline)}
+html[data-theme="dark"] .ghost:hover{background:var(--ink);color:var(--bg)}
+html[data-theme="dark"] .tut{background:var(--field)}
+/* community, leaderboard */
+html[data-theme="dark"] .filters{background:rgba(19,17,20,.97)}
+html[data-theme="dark"] .filters button,html[data-theme="dark"] .chips button,html[data-theme="dark"] .fchips button{background:var(--field);color:var(--ink)}
+html[data-theme="dark"] .filters button.on{background:var(--btn);color:#fff}
+html[data-theme="dark"] .msgs .msg{background:#241F29;color:var(--ink);box-shadow:none}
+html[data-theme="dark"] .msgs .msg.mine{background:var(--btn);color:#fff}
+html[data-theme="dark"] .dsep span{background:#241F29;color:var(--muted)}
+html[data-theme="dark"] .compose textarea:focus{background:var(--field)}
+html[data-theme="dark"] .star:hover{background:#26212B}
+html[data-theme="dark"] .skel{background:linear-gradient(90deg,#1B181E,#26212B,#1B181E);background-size:200% 100%}
+html[data-theme="dark"] .seg button[aria-selected="true"]{background:var(--btn);color:#fff;box-shadow:none}
+html[data-theme="dark"] .head{background:linear-gradient(180deg,#1B181E 0,#131114 220px)}
+html[data-theme="dark"] .me{background:linear-gradient(135deg,#241F29,var(--btn))}
+html[data-theme="dark"] .chat,html[data-theme="dark"] .chead,html[data-theme="dark"] .compose,html[data-theme="dark"] .only{background:var(--bg)}
+html[data-theme="dark"] .toast{background:#EDE8F3;color:#131114}
+</style>
+<script>(function(){try{var t=(JSON.parse(localStorage.getItem("countrex_settings")||"{}").theme)||"light";if(t==="system")t=matchMedia("(prefers-color-scheme:dark)").matches?"dark":"light";if(t==="dark")document.documentElement.setAttribute("data-theme","dark")}catch(e){}})();</script>
+</head>
+
+<body>
+  <!-- WRAP: holds the form column (left) and the picture panel (right) -->
+  <div class="wrap">
+    <main class="form-side">
+      <div class="brand"><a href="index.html">Countrex</a></div>
+      <div class="center">
+        <div class="box">
+          <!-- STEP TRACKER: the 1-2-3-4 circles. show() in the script updates them. -->
+          <ol class="steps" id="steps" aria-label="Sign up progress">
+            <li data-n="1" class="now">Phone</li>
+            <li data-n="2">Profile</li>
+            <li data-n="3">Welcome</li>
+          </ol>
+
+          <!-- STEP 1: phone number, then the OTP box (two forms in one section) -->
+          <section id="s1" aria-labelledby="h1">
+            <p class="kicker">Step 1 of 3</p>
+            <h1 id="h1" tabindex="-1">Join Countrex.</h1>
+            <p class="sub" id="s1sub">Enter your phone number. We will text you a code to confirm it is you.</p>
+
+            <!-- 1a. phone number form -->
+            <form id="f1" novalidate>
+              <div class="field">
+                <label for="phone">Phone number</label>
+                <input id="phone" type="tel" autocomplete="tel" inputmode="tel" enterkeyhint="go"
+                  placeholder="024 123 4567">
+              </div>
+              <p class="msg" id="m1" role="alert"></p>
+              <button class="btn" type="submit">Send code</button>
+            </form>
+
+            <!-- 1b. OTP SPACE (hidden until the code is sent). Your OTP backend plugs in through
+                 sendOtp() and verifyOtp() in the script. This form needs no other change. -->
+            <form id="f1b" novalidate hidden>
+              <div class="field">
+                <label for="otp">Verification code</label>
+                <input id="otp" type="text" inputmode="numeric" autocomplete="one-time-code" maxlength="6"
+                  enterkeyhint="go" placeholder="······">
+              </div>
+              <p class="msg" id="m1b" role="alert"></p>
+              <button class="btn" type="submit">Verify code</button>
+              <button class="back" id="resendOtp" type="button">Resend code</button>
+              <button class="back" id="chgPhone" type="button">Change number</button>
+            </form>
+
+            <div id="gwrap">
+              <div class="or"><span>or</span></div>
+              <button class="gbtn" id="google" type="button">
+                <svg width="18" height="18" viewBox="0 0 48 48" aria-hidden="true"><path fill="#EA4335" d="M24 9.5c3.5 0 6.6 1.2 9.1 3.6l6.8-6.8C35.8 2.4 30.3 0 24 0 14.6 0 6.5 5.4 2.6 13.2l7.9 6.1C12.4 13.6 17.7 9.5 24 9.5z"/><path fill="#4285F4" d="M46.5 24.5c0-1.6-.1-3.1-.4-4.5H24v9h12.7c-.6 3-2.3 5.5-4.8 7.2l7.6 5.9c4.4-4.1 7-10.1 7-17.6z"/><path fill="#FBBC05" d="M10.5 28.7c-.5-1.4-.8-3-.8-4.7s.3-3.2.8-4.7l-7.9-6.1C.9 16.4 0 20.1 0 24s.9 7.6 2.6 10.8l7.9-6.1z"/><path fill="#34A853" d="M24 48c6.5 0 11.9-2.1 15.9-5.8l-7.6-5.9c-2.1 1.4-4.9 2.3-8.3 2.3-6.3 0-11.6-4.1-13.5-9.8l-7.9 6.1C6.5 42.6 14.6 48 24 48z"/></svg>
+                Continue with Google
+              </button>
+            </div>
+
+            <div class="join">
+              <span>Already have an account?</span>
+              <a class="ghost" id="toLogin" href="login.html">Log in</a>
+            </div>
+          </section>
+
+          <!-- STEP 2: username + password. The button stays disabled until both are valid. -->
+          <section id="s2" aria-labelledby="h2" hidden>
+            <p class="kicker">Step 2 of 3</p>
+            <h1 id="h2" tabindex="-1">Create your profile.</h1>
+            <p class="sub">Your number is confirmed. Choose a username and a strong password.</p>
+            <form id="f2" novalidate>
+              <div class="field">
+                <label for="un">Username</label>
+                <input id="un" autocomplete="username" autocapitalize="none" spellcheck="false" maxlength="16"
+                  placeholder="e.g. NightFox_09">
+                <div class="hint" id="unh">3–16 characters. Letters, numbers and underscores.</div>
+              </div>
+              <div class="field">
+                <label for="pw">Password</label>
+                <div class="pw">
+                  <input id="pw" type="password" autocomplete="new-password" placeholder="Create a strong password">
+                  <button type="button" id="tg">Show</button>
+                </div>
+                <div class="meter" id="meter"><i></i><i></i><i></i><i></i><i></i></div>
+                <div class="hint" id="pwh">Use 10+ characters with upper and lower case, a number and a symbol.</div>
+              </div>
+              <!-- CONFIRM PASSWORD: must match the password above before the button unlocks -->
+              <div class="field">
+                <label for="pw2">Confirm password</label>
+                <input id="pw2" type="password" autocomplete="new-password" placeholder="Enter the password again">
+                <div class="hint" id="cph"></div>
+              </div>
+              <p class="msg" id="m2" role="alert"></p>
+              <button class="btn" id="go" type="submit" disabled>Create account</button>
+            </form>
+            <button class="back" id="back" type="button">← Back</button>
+          </section>
+
+          <!-- STEP 3: welcome message + quick tutorial (text lives in the TUT list in the script) -->
+          <section id="s3" aria-labelledby="h3" hidden>
+            <div class="tick" aria-hidden="true">✓</div>
+            <h1 id="h3" tabindex="-1">Welcome to Countrex.</h1>
+            <p class="sub" id="wel">Your account is ready. Here is a quick tour.</p>
+            <div class="tut">
+              <p class="kicker" id="tc"></p>
+              <h2 id="tt"></h2>
+              <p id="tp"></p>
+            </div>
+            <div class="dots" id="dots"></div>
+            <div class="row">
+              <button class="ghost" id="tprev" type="button">Back</button>
+              <button class="btn" id="tnext" type="button">Next</button>
+            </div>
+          </section>
+        </div>
+      </div>
+    </main>
+    <!-- RIGHT PANEL: decorative tournament bracket. Your name appears in the last slot at step 3. -->
+    <aside class="panel" aria-hidden="true">
+      <svg class="bracket" viewBox="0 0 550 320" preserveAspectRatio="xMinYMid meet" role="img" aria-label="">
+        <path class="ln" d="M130 40H170V120M130 120H170M170 80H210" />
+        <path class="ln" d="M130 200H170V280M130 280H170M170 240H210" />
+        <path class="ln" d="M330 80H370V240M330 240H370M370 160H410" />
+        <rect class="slot" x="10" y="20" width="120" height="40" rx="10" /><text class="nm" x="26" y="45">nova</text>
+        <rect class="slot" x="10" y="100" width="120" height="40" rx="10" /><text class="nm" x="26" y="125">kairo</text>
+        <rect class="slot" x="10" y="180" width="120" height="40" rx="10" /><text class="nm" x="26" y="205">blitz</text>
+        <rect class="slot" x="10" y="260" width="120" height="40" rx="10" /><text class="nm" x="26" y="285">vex</text>
+        <rect class="slot empty" x="210" y="60" width="120" height="40" rx="10" />
+        <rect class="slot empty" x="210" y="220" width="120" height="40" rx="10" />
+        <g id="you">
+          <rect class="slot" x="410" y="140" width="130" height="40" rx="10" /><text class="nm" x="430" y="166"
+            id="youn">You</text>
+        </g>
+      </svg>
+      <div>
+        <p class="tag">Game good.<br><b>Win.</b><br>Win safe.</p>
+        <p class="cap" id="cap">Sign up to get your spot in the bracket.</p>
+      </div>
+    </aside>
+  </div>
+  <!-- Supabase library, then js/supabase.js which creates supabaseClient -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
+  <script src="js/supabase.js"></script>
+  <script>
+    (function () {
+      var $ = function (i) { return document.getElementById(i) };
+      var OTP_LEN = 6;        // how many digits the OTP has
+      // After signup the player goes back to the game they chose (?next=...), else the homepage
+      var nq = new URLSearchParams(location.search).get("next");
+      var NEXT = ["index.html", "efootball.html", "codm.html", "eafc.html", "community.html", "events.html", "wallet.html", "settings.html", "about.html"].indexOf(nq) > -1 ? nq : "index.html";
+      $("toLogin").href = "login.html" + location.search;   // keep the same destination if they log in instead
+
+      // GOOGLE: ?google=1 means the player came back from Google and only needs to pick a username
+      var GOOGLE = new URLSearchParams(location.search).get("google") === "1";
+      $("google").onclick = async function () {
+        if (typeof supabaseClient === "undefined") return err(null, "Setup problem: js/supabase.js did not load.");
+        try { sessionStorage.setItem("cx_next", NEXT) } catch (e) { }
+        var r = await supabaseClient.auth.signInWithOAuth({ provider: "google", options: { redirectTo: location.origin + location.pathname.replace(/[^/]*$/, "") + "auth-done.html" } });
+        if (r.error) { console.error(r.error); err(null, "Could not start Google sign-in. Try again.") }
+      };
+
+      // ===== PREVIEW SWITCH =====
+      // true  = demo mode: every server call is faked so you can click through all 4 steps with no backend. Nothing is saved.
+      // false = real mode: uses Supabase. SET THIS TO false WHEN YOUR BACKEND IS READY.
+      var PREVIEW = false;
+      if (PREVIEW) {
+        var tag = document.createElement("div");
+        tag.textContent = "PREVIEW MODE: no backend, nothing is saved";
+        tag.style.cssText = "position:fixed;left:50%;transform:translateX(-50%);bottom:calc(10px + env(safe-area-inset-bottom,0px));background:#1A0B2E;color:#fff;font:600 12px/1 Arial,sans-serif;padding:8px 14px;border-radius:99px;z-index:99;opacity:.9;pointer-events:none";
+        document.body.appendChild(tag);
+      }
+
+      // ===== SERVER CALL (Supabase function "complete-signup") =====
+      // Runs AFTER the phone code is verified. The server checks the player's verified-phone session itself.
+      // Sends data and returns {ok:true} or {ok:false, msg} with a readable error.
+      async function callSignup(payload) {
+        if (PREVIEW) return { ok: true };   // demo mode: pretend the server said yes
+        if (typeof supabaseClient === "undefined") return { ok: false, msg: "Setup problem: js/supabase.js did not load." };
+        var res = await supabaseClient.functions.invoke(GOOGLE ? "complete-google-profile" : "complete-signup", { body: payload });
+        if (res.error) {
+          console.error(res.error);
+          var msg = "Something went wrong. Try again.";
+          try { var j = await res.error.context.json(); if (j && j.error) msg = j.error } catch (e) { }
+          return { ok: false, msg: msg };
+        }
+        return { ok: true };
+      }
+
+      // ===== OTP (Supabase phone login) =====
+      // Supabase texts the code and checks it ON THE SERVER. A correct code gives a session for that phone,
+      // and complete-signup only accepts a session that came from a verified phone.
+      var DEFAULT_CC = "233";   // country code used when a number is typed without one (233 = Ghana). Change for another country.
+      function e164(raw) {
+        var t = String(raw).trim(), d = t.replace(/\D/g, "");
+        if (t.charAt(0) === "+") return "+" + d;
+        if (d.indexOf("00") === 0) return "+" + d.slice(2);
+        if (d.indexOf("0" + DEFAULT_CC) === 0 && d.length >= 12) return "+" + d.slice(1);
+        if (d.charAt(0) === "0") return "+" + DEFAULT_CC + d.slice(1);
+        if (d.indexOf(DEFAULT_CC) === 0 && d.length >= 11) return "+" + d;
+        return "+" + DEFAULT_CC + d;
+      }
+      async function sendOtp(phone) {
+        if (PREVIEW) return { ok: true };
+        if (typeof supabaseClient === "undefined") return { ok: false, msg: "Setup problem: js/supabase.js did not load." };
+        var r = await supabaseClient.auth.signInWithOtp({ phone: e164(phone), options: { shouldCreateUser: true } });
+        if (r.error) {
+          console.error(r.error);
+          return { ok: false, msg: r.error.status === 429 ? "Too many codes requested. Wait a minute and try again." : "Could not send the code. Check the number and try again." };
+        }
+        return { ok: true };
+      }
+      async function verifyOtp(phone, code) {
+        if (PREVIEW) return { ok: true };
+        var r = await supabaseClient.auth.verifyOtp({ phone: e164(phone), token: code, type: "sms" });
+        if (r.error || !r.data || !r.data.session) { console.error(r.error); return { ok: false, msg: "That code is wrong or has expired." } }
+        if ((r.data.user.user_metadata || {}).signup_done) {          // this number already has a finished account
+          try { await supabaseClient.auth.signOut() } catch (x) { }
+          return { ok: false, msg: "This number already has an account. Log in instead." };
+        }
+        return { ok: true };
+      }
+
+      // ===== STEP SWITCHER =====
+      // show(n) shows section n, hides the rest, updates the tracker, caption and bracket picture.
+      var CAP = ["Sign up to get your spot in the bracket.", "Almost there. Lock in your name.", "You're in the bracket."];
+      function show(n) {
+        [1, 2, 3].forEach(function (i) { $("s" + i).hidden = i !== n });
+        var li = $("steps").children;
+        for (var i = 0; i < 3; i++) { li[i].className = i + 1 < n ? "done" : (i + 1 === n ? "now" : "") }
+        $("cap").textContent = CAP[n - 1];
+        $("you").setAttribute("class", n === 3 ? "on" : "");
+        $("h" + n).focus(); window.scrollTo(0, 0);
+      }
+
+      /* ===== STEP 1: phone number, then OTP ===== */
+      var ph = $("phone"), otp = $("otp"), m1 = $("m1"), m1b = $("m1b");
+      function err(el, t) { ph.removeAttribute("aria-invalid"); m1.textContent = t; if (el) { el.setAttribute("aria-invalid", "true"); el.focus() } }
+      function openOtpBox() {
+        $("f1").hidden = true; $("f1b").hidden = false;
+        $("s1sub").textContent = "We sent a " + OTP_LEN + "-digit code to " + ph.value + ".";
+        otp.value = ""; m1b.textContent = ""; otp.focus();
+      }
+      // 1a. send the code
+      $("f1").addEventListener("submit", async function (e) {
+        e.preventDefault();
+        var d = ph.value.replace(/\D/g, "");
+        if (d.length < 9 || d.length > 15) return err(ph, "Enter a valid phone number.");
+        err(null, "");
+        var btn = e.target.querySelector(".btn"); btn.disabled = true; btn.textContent = "Sending…";
+        var r = await sendOtp(ph.value);
+        btn.disabled = false; btn.textContent = "Send code";
+        if (!r.ok) return err(ph, r.msg);
+        openOtpBox();
+      });
+      // 1b. check the code
+      $("f1b").addEventListener("submit", async function (e) {
+        e.preventDefault();
+        var code = otp.value.replace(/\D/g, "");
+        if (code.length !== OTP_LEN) { m1b.textContent = "Enter the " + OTP_LEN + "-digit code."; return }
+        m1b.textContent = "";
+        var btn = e.target.querySelector(".btn"); btn.disabled = true; btn.textContent = "Checking…";
+        var r = await verifyOtp(ph.value, code);
+        btn.disabled = false; btn.textContent = "Verify code";
+        if (!r.ok) { m1b.textContent = r.msg; return }
+        show(2);
+      });
+      $("resendOtp").onclick = async function () { var r = await sendOtp(ph.value); m1b.textContent = r.ok ? "A new code was sent." : r.msg };
+      $("chgPhone").onclick = function () { $("f1b").hidden = true; $("f1").hidden = false; $("s1sub").textContent = "Enter your phone number. We will text you a code to confirm it is you."; ph.focus() };
+
+      /* ===== STEP 2: username + password ===== */
+      var un = $("un"), pw = $("pw"), pw2 = $("pw2"), go = $("go");
+      // username rule: 3-16 letters, numbers or _
+      function unOK() { return /^[A-Za-z0-9_]{3,16}$/.test(un.value) }
+      // password score out of 5 (length, lower, upper, number, symbol)
+      function score(p) { var s = 0; if (p.length >= 10) s++; if (/[a-z]/.test(p)) s++; if (/[A-Z]/.test(p)) s++; if (/\d/.test(p)) s++; if (/[^A-Za-z0-9]/.test(p)) s++; return s }
+      // check(): updates hints and the strength meter, and enables the button when both are valid
+      function check() {
+        var v = un.value, h = $("unh");
+        if (!v) { h.className = "hint"; h.textContent = "3–16 characters. Letters, numbers and underscores." }
+        else if (unOK()) { h.className = "hint ok"; h.textContent = "Looks good." }
+        else { h.className = "hint bad"; h.textContent = v.length < 3 ? "At least 3 characters." : "Use only letters, numbers and underscores." }
+        var s = score(pw.value);
+        Array.prototype.forEach.call($("meter").children, function (b, i) { b.className = i < s ? "on" : "" });
+        var p = $("pwh"); p.className = "hint " + (s === 5 ? "ok" : "");
+        p.textContent = pw.value ? ["", "Very weak", "Weak", "Fair", "Almost there", "Strong"][s] : "Use 10+ characters with upper and lower case, a number and a symbol.";
+        // confirm password: show a hint, and only unlock the button when both passwords match
+        var c = $("cph"), same = pw2.value === pw.value;
+        if (!pw2.value) { c.className = "hint"; c.textContent = "" }
+        else if (same) { c.className = "hint ok"; c.textContent = "Passwords match." }
+        else { c.className = "hint bad"; c.textContent = "Passwords do not match." }
+        go.disabled = GOOGLE ? !unOK() : !(unOK() && s === 5 && pw2.value && same);
+      }
+      un.addEventListener("input", check); pw.addEventListener("input", check); pw2.addEventListener("input", check);
+      $("tg").onclick = function () { var t = pw.type === "password"; pw.type = pw2.type = t ? "text" : "password"; this.textContent = t ? "Hide" : "Show" };
+      $("back").onclick = function () { show(1) };
+      // Create account: sends phone + username + password, signs the user in, then goes to step 3
+      $("f2").addEventListener("submit", async function (e) {
+        e.preventDefault(); if (go.disabled) return;
+        $("m2").textContent = ""; go.disabled = true; go.textContent = "Creating account…";
+        var r = await callSignup(GOOGLE ? { username: un.value } : { username: un.value, password: pw.value });
+        go.textContent = "Create account";
+        if (!r.ok) { $("m2").textContent = r.msg; check(); return }
+        // the player is already logged in from the code step; refresh so the new username is in the session
+        if (!PREVIEW) try { await supabaseClient.auth.refreshSession() } catch (x) { console.error(x) }
+        finish(un.value);   // account created: go straight to the welcome + tutorial
+      });
+      if (GOOGLE) {
+        // Google player: phone step and password fields are not needed, just a username
+        $("pw").closest(".field").hidden = true;
+        $("pw2").closest(".field").hidden = true;
+        document.querySelector("#s2 .sub").textContent = "You're signed in with Google. Choose a username to finish.";
+        $("steps").children[0].textContent = "Google";
+        $("back").onclick = async function () { try { await supabaseClient.auth.signOut() } catch (e) { } location.href = "login.html" };
+        supabaseClient.auth.getSession().then(function (r) { if (!r.data.session) location.href = "login.html"; else show(2) });
+      }
+      check();
+
+      /* ===== STEP 3: welcome + tutorial ===== */
+      // EDIT THE TUTORIAL TEXT HERE: each item is [title, text]. Add or remove items freely.
+      var TUT = [
+        ["Pick your game", "From the homepage choose your game. Each game has its own page with its own rankings."],
+        ["Join a tournament", "Open a game page and join a tournament before its countdown ends. You can also create your own with a player limit and rules."],
+        ["Climb the leaderboard", "Play your matches and move up the leaderboard and its tiers."],
+        ["Stay in the loop", "Check news and announcements, and your messages from the Countrex team."]
+      ];
+      var ti = 0;
+      function drawTut() {
+        $("tc").textContent = "Tip " + (ti + 1) + " of " + TUT.length;
+        $("tt").textContent = TUT[ti][0]; $("tp").textContent = TUT[ti][1];
+        $("dots").innerHTML = TUT.map(function (_, i) { return "<i" + (i === ti ? ' class="on"' : "") + "></i>" }).join("");
+        $("tprev").style.visibility = ti ? "visible" : "hidden";
+        $("tnext").textContent = ti === TUT.length - 1 ? "Enter Countrex" : "Next";
+      }
+      $("tprev").onclick = function () { if (ti) { ti--; drawTut() } };
+      $("tnext").onclick = function () { if (ti < TUT.length - 1) { ti++; drawTut() } else location.href = NEXT };
+      function finish(name) {
+        $("wel").textContent = (name ? "Welcome, " + name + ". " : "") + "Your account is ready. Here is a quick tour.";
+        $("youn").textContent = name || "You";
+        ti = 0; drawTut(); show(3);
+      }
+
+    })();
+  </script>
+</body>
+
+</html>

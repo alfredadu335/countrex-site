@@ -1,0 +1,432 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#FFFFFF">
+<meta name="color-scheme" content="light">
+<title>Leaderboard · Countrex</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,600;12..96,700;12..96,800&display=swap" rel="stylesheet">
+<!--
+  LEADERBOARD PAGE. Same phone-screen look as the homepage.
+  Three views: My rank (personal), Global (everyone), Country (players from the same country as you).
+  It reads the "profiles" table in Supabase. It expects these columns:
+      id (uuid), username (text), country (text), points (integer, default 0)
+  If "country" or "points" do not exist yet, run this once in the Supabase SQL editor:
+      alter table profiles add column if not exists country text;
+      alter table profiles add column if not exists points integer not null default 0;
+  Ranking = most points first. Ties are broken by username so the order is stable.
+-->
+<style>
+:root{--bg:#FFFFFF;--ink:#1A0B2E;--muted:#6A5F7C;--line:#DDD4EA;--field:#F6F2FB;--accent:#5E3C88;--accent-hi:#70509A;--pline:#C2B2D6;--stage:#E9E2F4;--tab:70px;--gold:#C98A00;--silver:#7B8794;--bronze:#A85F2A}
+*,*::before,*::after{box-sizing:border-box}
+html{background:var(--stage)}
+body{margin:0;background:var(--stage);color:var(--ink);font-family:"Bricolage Grotesque",Arial,sans-serif;line-height:1.5;-webkit-font-smoothing:antialiased;-webkit-tap-highlight-color:transparent}
+[hidden]{display:none!important}
+a{color:inherit;text-decoration:none}
+a:focus-visible,button:focus-visible{outline:3px solid var(--accent);outline-offset:3px}
+.app{position:relative;max-width:480px;min-height:100dvh;margin:0 auto;background:var(--bg);padding-bottom:calc(var(--tab) + env(safe-area-inset-bottom,0px));box-shadow:0 0 0 1px var(--line),0 40px 90px -40px rgba(26,11,46,.5)}
+
+/* top bar */
+.top{position:sticky;top:0;z-index:20;display:flex;align-items:center;justify-content:space-between;height:60px;padding:env(safe-area-inset-top,0px) 20px 0;background:rgba(255,255,255,.94);backdrop-filter:blur(8px);border-bottom:1px solid var(--line)}
+.brand{font-weight:800;font-size:1.5rem;letter-spacing:-.03em}
+.back{display:grid;place-items:center;width:44px;height:44px;border-radius:14px;background:var(--field);color:var(--ink)}
+.back:hover{background:#ECE4F7}
+.back svg{width:22px;height:22px}
+
+/* heading */
+.head{padding:26px 20px 8px;background:linear-gradient(180deg,var(--field) 0,var(--bg) 220px)}
+.head h1{margin:0 0 4px;font-size:2.2rem;letter-spacing:-.045em;line-height:1;font-weight:800}
+.head p{margin:0;color:var(--muted)}
+
+/* the three view tabs */
+.seg{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin:18px 20px 0;padding:5px;border-radius:999px;background:var(--field);border:1px solid var(--line)}
+.seg button{border:0;border-radius:999px;padding:10px 4px;background:none;font:inherit;font-weight:700;font-size:.95rem;color:var(--muted);cursor:pointer}
+.seg button[aria-selected="true"]{background:var(--accent);color:#fff;box-shadow:0 6px 14px -10px rgba(40,20,70,.45)}
+.seg button:not([aria-selected="true"]):hover{color:var(--ink)}
+
+/* game filter chips */
+.chips{display:flex;gap:8px;overflow-x:auto;padding:14px 20px 4px;scrollbar-width:none}
+.chips::-webkit-scrollbar{display:none}
+.chips button{flex:none;border:1.5px solid var(--line);border-radius:999px;padding:7px 14px;background:var(--bg);font:inherit;font-weight:600;font-size:.88rem;color:var(--muted);cursor:pointer}
+.chips button[aria-pressed="true"]{border-color:var(--accent);background:var(--field);color:var(--accent)}
+
+.panel{padding:16px 20px 28px}
+
+/* my rank card */
+.me{border-radius:26px;padding:20px;background:linear-gradient(135deg,#1A0B2E,var(--accent));color:#fff;box-shadow:0 18px 40px -26px rgba(26,11,46,.8)}
+.me small{display:block;opacity:.8;font-weight:600}
+.me .who{display:flex;align-items:center;gap:12px;margin-bottom:16px}
+.av{flex:none;display:grid;place-items:center;width:46px;height:46px;border-radius:50%;background:rgba(255,255,255,.18);font-weight:800;font-size:1.2rem}
+.me b.nm{display:block;font-size:1.2rem;letter-spacing:-.02em;line-height:1.1}
+.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.stats div{padding:12px 6px;border-radius:16px;background:rgba(255,255,255,.12);text-align:center}
+.stats b{display:block;font-size:1.55rem;line-height:1.1;letter-spacing:-.03em;font-variant-numeric:tabular-nums}
+.stats span{font-size:.75rem;opacity:.85}
+.note{margin:14px 2px 0;color:var(--muted);font-size:.92rem}
+
+/* list rows */
+.list{list-style:none;margin:0;padding:0;border-top:1px solid var(--line)}
+.row{display:grid;grid-template-columns:42px 40px 1fr auto;align-items:center;gap:10px;padding:12px 4px;border-bottom:1px solid var(--line)}
+.rk{font-weight:800;font-size:1.05rem;color:var(--muted);text-align:center;font-variant-numeric:tabular-nums}
+.row:nth-child(1) .rk{color:var(--gold)}.row:nth-child(2) .rk{color:var(--silver)}.row:nth-child(3) .rk{color:var(--bronze)}
+.row .av{width:40px;height:40px;font-size:1rem;background:var(--field);color:var(--accent)}
+.pn{min-width:0}
+.pn b{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.pn small{color:var(--muted)}
+.pt{font-weight:800;font-variant-numeric:tabular-nums;color:var(--accent);text-align:right}
+.pt small{display:block;font-weight:600;color:var(--muted);font-size:.72rem}
+.row.you{margin:6px -8px;padding:12px 12px;border:0;border-radius:18px;background:var(--field);box-shadow:inset 0 0 0 1.5px var(--pline)}
+.gap{padding:8px 0;text-align:center;color:var(--pline);letter-spacing:.3em;font-weight:800}
+
+/* states */
+.state{text-align:center;padding:46px 20px;color:var(--muted)}
+.state b{display:block;color:var(--ink);font-size:1.15rem;margin-bottom:6px}
+.state a,.state button{display:inline-flex;align-items:center;justify-content:center;height:46px;padding:0 22px;margin-top:16px;border-radius:999px;border:0;background:var(--accent);color:#fff;font:inherit;font-weight:700;cursor:pointer}
+.skel{height:64px;margin:8px 0;border-radius:16px;background:linear-gradient(90deg,var(--field),#EFE8FA,var(--field));background-size:200% 100%}
+@media (prefers-reduced-motion:no-preference){.skel{animation:sh 1.2s linear infinite}}
+@keyframes sh{to{background-position:-200% 0}}
+
+/* bottom tab bar (same as homepage) */
+.tabs{position:fixed;left:50%;bottom:0;transform:translateX(-50%);z-index:40;width:100%;max-width:480px;display:grid;grid-template-columns:repeat(4,1fr);padding:6px 6px calc(6px + env(safe-area-inset-bottom,0px));background:rgba(255,255,255,.97);backdrop-filter:blur(10px);border-top:1px solid var(--line)}
+.tabs a{display:flex;flex-direction:column;align-items:center;gap:2px;padding:7px 2px 6px;border-radius:16px;font-size:.75rem;font-weight:600;color:var(--muted)}
+.tabs .e{font-size:1.5rem;line-height:1.1}
+.tabs a:hover{background:var(--field);color:var(--ink)}
+.tabs a.on{background:var(--field);color:var(--accent)}
+@media (max-width:380px){.tabs a{font-size:.68rem}.head h1{font-size:1.9rem}}
+
+/* ----- 3-dash menu (same as the homepage) ----- */
+.menu,.scrim,.burger{--bg:#FFFFFF;--ink:#1A0B2E;--muted:#6A5F7C;--line:#DDD4EA;--field:#F6F2FB;--accent:#5E3C88;--pline:#C2B2D6}
+[hidden]{display:none!important}
+.burger{flex:none;width:44px;height:44px;margin-left:auto;border:0;border-radius:14px;background:var(--field);cursor:pointer;position:relative}
+.burger span,.burger span::before,.burger span::after{position:absolute;left:12px;width:20px;height:2.5px;border-radius:2px;background:var(--ink);content:""}
+.burger span{top:20px}.burger span::before{left:0;top:-7px}.burger span::after{left:0;top:7px}
+.scrim{position:fixed;inset:0;z-index:150;background:rgba(26,11,46,.45)}
+.menu{position:fixed;z-index:160;top:12px;left:50%;transform:translateX(-50%);width:calc(100% - 24px);max-width:456px;max-height:calc(100dvh - 24px);overflow-y:auto;padding:8px 14px 14px;background:var(--bg);color:var(--ink);border-radius:28px;box-shadow:0 30px 70px -26px rgba(26,11,46,.55);font-family:"Bricolage Grotesque",system-ui,-apple-system,"Segoe UI",sans-serif;line-height:1.4}
+.menu a{color:inherit;text-decoration:none}
+.mhead{display:flex;align-items:center;justify-content:space-between;padding:8px 6px 12px}
+.mbrand{font-weight:800;font-size:1.35rem;letter-spacing:-.03em}
+.mclose{display:grid;place-items:center;width:42px;height:42px;border:0;border-radius:14px;background:var(--field);color:var(--ink);cursor:pointer}
+.mclose svg{width:22px;height:22px}
+.mprofile{display:flex;align-items:center;gap:14px;padding:14px;border-radius:22px;background:var(--field)}
+.mav{flex:none;display:grid;place-items:center;width:52px;height:52px;border-radius:50%;background:linear-gradient(135deg,#7A5AAA,var(--accent));color:#fff;font-weight:800;font-size:1.3rem}
+.mav svg{width:26px;height:26px}
+.mwho{flex:1;min-width:0}.mwho b{display:block;font-size:1.1rem;letter-spacing:-.01em;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.mwho small{color:var(--muted)}
+.mgrp{margin:16px 10px 2px;font-size:.74rem;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
+.mlist{display:grid;gap:2px;margin:6px 0 0}
+.mlist a{display:flex;align-items:center;gap:14px;padding:10px 8px;border-radius:16px;font-weight:700;font-size:1.05rem;cursor:pointer}
+.mlist a:hover{background:var(--field)}.mlist a>span:nth-child(2){flex:1}
+.mlist a.danger{color:#C0213F}.mlist a.danger .mi{background:#FDE7EA;color:#C0213F}
+.mi{flex:none;display:grid;place-items:center;width:42px;height:42px;border-radius:13px;background:var(--field);color:var(--accent)}
+.mi svg{width:22px;height:22px}
+.chev{flex:none;width:18px;height:18px;color:#B8AECB}
+@media (prefers-reduced-motion:no-preference){.menu{animation:mdrop .22s ease-out}}
+@keyframes mdrop{from{opacity:0;transform:translate(-50%,-10px)}}
+</style>
+<style id="cx-dark">
+/* Dark mode. Applies when <html data-theme="dark"> (set from Settings > Preferences > Appearance). */
+html[data-theme="dark"]{color-scheme:dark;--bg:#131114;--ink:#EDE8F3;--muted:#9A92A8;--line:#2A252F;--field:#1B181E;--accent:#8A68C2;--accent-hi:#9A7CCF;--pline:#3B3342;--stage:#0C0B0D;--btn:#5B3C94}
+html[data-theme="dark"] body{background:var(--stage);color:var(--ink)}
+html[data-theme="dark"] .top,html[data-theme="dark"] .tabs{background:rgba(19,17,20,.97)}
+html[data-theme="dark"] .top{border-bottom:1px solid var(--line)}
+html[data-theme="dark"] .wal:hover,html[data-theme="dark"] .mclose:hover,html[data-theme="dark"] .mprofile:hover{background:#26212B}
+html[data-theme="dark"] .tabs a:hover,html[data-theme="dark"] .tabs a.on{background:#241F29}
+html[data-theme="dark"] .scrim{background:rgba(0,0,0,.6)}
+html[data-theme="dark"] .sheet,html[data-theme="dark"] .menu{background:#18151B;border:1px solid var(--line);box-shadow:0 30px 60px -30px #000}
+html[data-theme="dark"] .mav{background:var(--btn)}
+html[data-theme="dark"] .chev{color:#5E566A}
+html[data-theme="dark"] .mlist a.danger{color:#F0788E}
+html[data-theme="dark"] .mlist a.danger .mi{background:#3A1A22;color:#F0788E}
+html[data-theme="dark"] dialog{background:#18151B;border:1px solid var(--line);color:var(--ink)}
+html[data-theme="dark"] dialog::backdrop{background:rgba(0,0,0,.7)}
+html[data-theme="dark"] .cta .go,html[data-theme="dark"] .row a.main{background:var(--btn);border-color:var(--btn);box-shadow:none}
+html[data-theme="dark"] .cta .gh,html[data-theme="dark"] .row a,html[data-theme="dark"] .more{border-color:var(--pline)}
+html[data-theme="dark"] .hero{background:none}
+html[data-theme="dark"] .chip{background:var(--field);box-shadow:none}
+html[data-theme="dark"] .game{box-shadow:none;border:1px solid var(--line)}
+html[data-theme="dark"] .pick{background:var(--ink);color:#131114}
+html[data-theme="dark"] .sec.alt{background:#0F0D11}
+html[data-theme="dark"] .ev{box-shadow:none;background:var(--field)}
+html[data-theme="dark"] .tba,html[data-theme="dark"] .cd div{background:#131114}
+html[data-theme="dark"] input,html[data-theme="dark"] select,html[data-theme="dark"] textarea{color:var(--ink);background:var(--field)}
+html[data-theme="dark"] .app{box-shadow:0 0 0 1px var(--line)}
+/* pages with their own token names (wallet, notifications) */
+html[data-theme="dark"]{--purple:#5B3C94;--purple-dark:#8A68C2;--purple-soft:#241F29;--white:#18151B;--green:#3FCB92;--red:#F0788E}
+html[data-theme="dark"] .content{background:var(--bg)}
+html[data-theme="dark"] .chip:not(.active),html[data-theme="dark"] .sheet,html[data-theme="dark"] .tx,html[data-theme="dark"] .stat,html[data-theme="dark"] .nav,html[data-theme="dark"] .sheet input{background:var(--white);color:var(--ink)}
+html[data-theme="dark"] .btn-ghost,html[data-theme="dark"] .topbar .burger{color:#B8A2DC}
+/* the menu kit re-declares light colours on .menu/.scrim/.burger */
+html[data-theme="dark"] .menu,html[data-theme="dark"] .scrim,html[data-theme="dark"] .burger{--bg:#131114;--ink:#EDE8F3;--muted:#9A92A8;--line:#2A252F;--field:#1B181E;--accent:#8A68C2;--pline:#3B3342}
+html[data-theme="dark"] .burger span,html[data-theme="dark"] .burger span::before,html[data-theme="dark"] .burger span::after{background:var(--ink)}
+html[data-theme="dark"] .bottom-nav{background:#131114}
+/* login, signup */
+html[data-theme="dark"]{--panel:#131114;--pslot:#1F1B23;--glow:#8A68C2;--ring:rgba(138,104,194,.28);--err:#F0788E;--ok:#3FCB92}
+html[data-theme="dark"] .btn{background:var(--btn)}
+html[data-theme="dark"] .btn:hover{background:#6A48A6}
+html[data-theme="dark"] .nm{fill:#C9BFD8}
+html[data-theme="dark"] .nm.you,html[data-theme="dark"] #you.on .nm{fill:#fff}
+html[data-theme="dark"] ::placeholder{color:#7C7389}
+html[data-theme="dark"] .ghost{border-color:var(--pline)}
+html[data-theme="dark"] .ghost:hover{background:var(--ink);color:var(--bg)}
+html[data-theme="dark"] .tut{background:var(--field)}
+/* community, leaderboard */
+html[data-theme="dark"] .filters{background:rgba(19,17,20,.97)}
+html[data-theme="dark"] .filters button,html[data-theme="dark"] .chips button,html[data-theme="dark"] .fchips button{background:var(--field);color:var(--ink)}
+html[data-theme="dark"] .filters button.on{background:var(--btn);color:#fff}
+html[data-theme="dark"] .msgs .msg{background:#241F29;color:var(--ink);box-shadow:none}
+html[data-theme="dark"] .msgs .msg.mine{background:var(--btn);color:#fff}
+html[data-theme="dark"] .dsep span{background:#241F29;color:var(--muted)}
+html[data-theme="dark"] .compose textarea:focus{background:var(--field)}
+html[data-theme="dark"] .star:hover{background:#26212B}
+html[data-theme="dark"] .skel{background:linear-gradient(90deg,#1B181E,#26212B,#1B181E);background-size:200% 100%}
+html[data-theme="dark"] .seg button[aria-selected="true"]{background:var(--btn);color:#fff;box-shadow:none}
+html[data-theme="dark"] .head{background:linear-gradient(180deg,#1B181E 0,#131114 220px)}
+html[data-theme="dark"] .me{background:linear-gradient(135deg,#241F29,var(--btn))}
+html[data-theme="dark"] .chat,html[data-theme="dark"] .chead,html[data-theme="dark"] .compose,html[data-theme="dark"] .only{background:var(--bg)}
+html[data-theme="dark"] .toast{background:#EDE8F3;color:#131114}
+</style>
+<script>(function(){try{var t=(JSON.parse(localStorage.getItem("countrex_settings")||"{}").theme)||"light";if(t==="system")t=matchMedia("(prefers-color-scheme:dark)").matches?"dark":"light";if(t==="dark")document.documentElement.setAttribute("data-theme","dark")}catch(e){}})();</script>
+</head>
+<body>
+<div class="app">
+<header class="top">
+  <a class="back" href="index.html" aria-label="Back to home"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 6l-6 6 6 6"/></svg></a>
+  <a class="brand" href="index.html">Countrex</a>
+  <button class="burger" id="burger" type="button" aria-label="Menu" aria-expanded="false" aria-controls="sheet"><span></span></button>
+</header>
+
+<main>
+  <section class="head">
+    <h1>Leaderboard</h1>
+    <p>See where you stand, at home and around the world.</p>
+  </section>
+
+  <div class="seg" role="tablist" aria-label="Leaderboard view">
+    <button type="button" role="tab" id="t-me" aria-selected="true" data-view="me">My rank</button>
+    <button type="button" role="tab" id="t-global" aria-selected="false" data-view="global">Global</button>
+    <button type="button" role="tab" id="t-country" aria-selected="false" data-view="country">Country</button>
+  </div>
+
+  <!-- Game filter. Only shows if your database has per-game points (see GAMES in the script). -->
+  <div class="chips" id="chips" aria-label="Filter by game" hidden></div>
+
+  <section class="panel" id="panel" aria-live="polite"></section>
+</main>
+</div>
+
+<nav class="tabs" aria-label="Main">
+  <a href="index.html"><span class="e" aria-hidden="true">🏠</span><span class="l">Home</span></a>
+  <a href="events.html"><span class="e" aria-hidden="true">📅</span><span class="l">Events</span></a>
+  <a class="on" href="leaderboard.html" aria-current="page"><span class="e" aria-hidden="true">🏆</span><span class="l">Leaderboard</span></a>
+  <a href="community.html"><span class="e" aria-hidden="true">👥</span><span class="l">Community</span></a>
+</nav>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
+<script src="js/supabase.js"></script>
+<script>
+(function(){
+  var $=function(i){return document.getElementById(i)};
+  window.addEventListener("pageshow",function(e){ if(e.persisted) location.reload() });
+
+  // ===== SETTINGS =====
+  var TABLE="profiles";          // the table that holds players
+  var LIMIT=50;                  // how many players the Global / Country lists show
+  // PER-GAME POINTS (optional). To rank by game, add one integer column per game in "profiles"
+  // (for example points_codm) and list it here. Leave the list empty to show one overall ranking.
+  var GAMES=[
+    // {key:"points_codm",    label:"Call of Duty: Mobile"},
+    // {key:"points_eafc",    label:"EA SPORTS FC"},
+    // {key:"points_efootball",label:"eFootball"}
+  ];
+
+  var panel=$("panel"),chips=$("chips");
+  var state={view:"me",col:"points",session:null,me:null,err:null};
+
+  function esc(s){return String(s==null?"":s).replace(/[&<>"']/g,function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]})}
+  function fmt(n){return Number(n||0).toLocaleString("en-US")}
+  function ini(n){return (n||"P").charAt(0).toUpperCase()}
+  function skeleton(){panel.innerHTML='<div class="skel"></div><div class="skel"></div><div class="skel"></div><div class="skel"></div>'}
+  function message(title,text,btn){
+    panel.innerHTML='<div class="state"><b>'+esc(title)+'</b><span>'+esc(text)+'</span>'+(btn||"")+'</div>';
+    var r=panel.querySelector("[data-retry]"); if(r) r.onclick=load;
+  }
+
+  // ===== DATA =====
+  // Works out my rank for a given filter (all players, or only my country) by counting players with MORE points.
+  async function rankOf(points,country){
+    var q=supabaseClient.from(TABLE).select("id",{count:"exact",head:true}).gt(state.col,points);
+    if(country) q=q.eq("country",country);
+    var r=await q; if(r.error) throw r.error;
+    return (r.count||0)+1;
+  }
+  async function totalOf(country){
+    var q=supabaseClient.from(TABLE).select("id",{count:"exact",head:true});
+    if(country) q=q.eq("country",country);
+    var r=await q; if(r.error) throw r.error;
+    return r.count||0;
+  }
+  async function topList(country){
+    var q=supabaseClient.from(TABLE).select("id,username,country,"+state.col)
+      .order(state.col,{ascending:false}).order("username",{ascending:true}).limit(LIMIT);
+    if(country) q=q.eq("country",country);
+    var r=await q; if(r.error) throw r.error; return r.data||[];
+  }
+
+  async function loadMe(){
+    var uid=state.session.user.id;
+    var r=await supabaseClient.from(TABLE).select("id,username,country,"+state.col).eq("id",uid).single();
+    if(r.error) throw r.error;
+    var d=r.data, pts=d[state.col]||0;
+    var out={name:d.username||"Player",country:d.country||"",points:pts};
+    var jobs=[rankOf(pts,null),totalOf(null)];
+    if(out.country){ jobs.push(rankOf(pts,out.country),totalOf(out.country)) }
+    var v=await Promise.all(jobs);
+    out.gRank=v[0]; out.gTotal=v[1];
+    if(out.country){ out.cRank=v[2]; out.cTotal=v[3] }
+    state.me=out;
+  }
+
+  // ===== DRAWING =====
+  function rowHtml(p,i,you){
+    return '<li class="row'+(you?' you':'')+'"><span class="rk">'+(i+1)+'</span><span class="av" aria-hidden="true">'+esc(ini(p.username))+'</span>'+
+      '<span class="pn"><b>'+esc(p.username||"Player")+(you?' (you)':'')+'</b><small>'+esc(p.country||"Country not set")+'</small></span>'+
+      '<span class="pt">'+fmt(p[state.col])+'<small>pts</small></span></li>';
+  }
+  function listHtml(rows,myId,myRank,myRow){
+    if(!rows.length) return '<div class="state"><b>No players yet</b><span>Be the first on the board.</span></div>';
+    var h='<ol class="list">'+rows.map(function(p,i){return rowHtml(p,i,p.id===myId)}).join("")+'</ol>';
+    // If I am below the visible list, pin my row at the bottom so I can always see my place.
+    if(myRank&&myRank>rows.length&&myRow){
+      h+='<div class="gap" aria-hidden="true">···</div><ol class="list" style="border:0">'+
+        rowHtml(myRow,myRank-1,true).replace('<span class="rk">'+myRank+'</span>','<span class="rk">'+myRank+'</span>')+'</ol>';
+    }
+    return h;
+  }
+
+  function drawMe(){
+    var m=state.me;
+    var h='<div class="me"><div class="who"><span class="av" aria-hidden="true">'+esc(ini(m.name))+'</span><div><b class="nm">'+esc(m.name)+'</b><small>'+esc(m.country||"Country not set")+'</small></div></div>'+
+      '<div class="stats"><div><b>'+fmt(m.points)+'</b><span>Points</span></div>'+
+      '<div><b>#'+fmt(m.gRank)+'</b><span>Global</span></div>'+
+      '<div><b>'+(m.cRank?'#'+fmt(m.cRank):'–')+'</b><span>Country</span></div></div></div>';
+    h+='<p class="note">Top '+Math.max(1,Math.ceil(m.gRank/m.gTotal*100))+'% of '+fmt(m.gTotal)+' players worldwide'+
+      (m.cRank?' and #'+fmt(m.cRank)+' of '+fmt(m.cTotal)+' in '+esc(m.country)+'.':'.')+'</p>';
+    if(!m.country) h+='<p class="note">Add your country in Settings to see your country ranking.</p>';
+    if(!m.points) h+='<p class="note">Join a tournament and win matches to earn points and climb the board.</p>';
+    panel.innerHTML=h;
+  }
+
+  async function drawBoard(country){
+    var m=state.me, rows=await topList(country);
+    var rank=country?m.cRank:m.gRank;
+    var myRow={id:state.session.user.id,username:m.name,country:m.country}; myRow[state.col]=m.points;
+    var head=country?'<p class="note" style="margin:0 0 10px">Players in <b>'+esc(m.country)+'</b>. You are #'+fmt(rank)+'.</p>':
+      '<p class="note" style="margin:0 0 10px">Top players worldwide. You are #'+fmt(rank)+'.</p>';
+    panel.innerHTML=head+listHtml(rows,state.session.user.id,rank,myRow);
+  }
+
+  async function load(){
+    skeleton();
+    try{
+      if(typeof supabaseClient==="undefined") throw new Error("no client");
+      if(!state.session){
+        state.session=(await supabaseClient.auth.getSession()).data.session;
+      }
+      if(!state.session){
+        panel.innerHTML='<div class="state"><b>Log in to see your rank</b><span>Create an account to track your points and see where you stand.</span>'+
+          '<a href="login.html?next=leaderboard.html">Log in</a></div>'; return;
+      }
+      await loadMe();
+      if(state.view==="me") drawMe();
+      else if(state.view==="global") await drawBoard(null);
+      else if(!state.me.country){
+        message("Set your country","Add your country in Settings to see the players near you.",'<a href="settings.html">Open Settings</a>');
+      } else await drawBoard(state.me.country);
+    }catch(e){
+      console.error(e);
+      message("Could not load the leaderboard","Check your connection and try again.",'<button type="button" data-retry>Try again</button>');
+    }
+  }
+
+  // ===== CONTROLS =====
+  document.querySelectorAll(".seg button").forEach(function(b){
+    b.onclick=function(){
+      state.view=b.dataset.view;
+      document.querySelectorAll(".seg button").forEach(function(x){x.setAttribute("aria-selected",x===b)});
+      load();
+    };
+  });
+  if(GAMES.length){
+    chips.hidden=false;
+    var all=[{key:"points",label:"All games"}].concat(GAMES);
+    chips.innerHTML=all.map(function(g,i){return '<button type="button" data-col="'+g.key+'" aria-pressed="'+(i===0)+'">'+esc(g.label)+'</button>'}).join("");
+    chips.querySelectorAll("button").forEach(function(b){
+      b.onclick=function(){
+        state.col=b.dataset.col;
+        chips.querySelectorAll("button").forEach(function(x){x.setAttribute("aria-pressed",x===b)});
+        load();
+      };
+    });
+  }
+  load();
+})();
+</script>
+<aside class="menu" id="sheet" aria-label="Menu" hidden>
+  <div class="mhead"><span class="mbrand">Countrex</span><button class="mclose" id="mclose" type="button" aria-label="Close menu"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button></div>
+  <a class="mprofile" href="profile.html" data-gate="My Profile">
+    <span class="mav" id="mav" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 20c1.5-4 5-5.5 8-5.5s6.5 1.5 8 5.5"/></svg></span>
+    <span class="mwho"><b id="mname">Guest</b><small id="msub">Log in or create an account</small></span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" class="chev" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg>
+  </a>
+  <p class="mgrp">You</p>
+  <nav class="mlist" aria-label="Your account">
+    <a href="profile.html" data-gate="My Profile"><span class="mi"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 20c1.5-4 5-5.5 8-5.5s6.5 1.5 8 5.5"/></svg></span><span>My Profile</span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" class="chev" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg></a>
+    <a href="wallet.html" data-gate="Wallet"><span class="mi"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 6.2 16.2 3.6a1.5 1.5 0 0 1 1.8 1.1l.3 1.3"/><rect x="2.5" y="6" width="19" height="13.5" rx="3"/><path d="M21.5 11.2h-4a2.2 2.2 0 0 0 0 4.4h4z"/><circle cx="17.9" cy="13.4" r=".9" fill="currentColor" stroke="none"/></svg></span><span>Wallet</span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" class="chev" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg></a>
+    <a href="notifications.html" data-gate="Notifications"><span class="mi"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9.5a6 6 0 0 1 12 0c0 4.6 2 6.2 2 6.2H4s2-1.6 2-6.2z"/><path d="M10 19a2.1 2.1 0 0 0 4 0"/></svg></span><span>Notifications</span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" class="chev" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg></a>
+    <a href="news.html"><span class="mi"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3.5" y="4" width="13" height="16" rx="2"/><path d="M16.5 8H20a1 1 0 0 1 1 1v9a2 2 0 0 1-2 2"/><path d="M7 8.5h6M7 12h6M7 15.5h4"/></svg></span><span>News</span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" class="chev" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg></a>
+  </nav>
+  <p class="mgrp">More</p>
+  <nav class="mlist" aria-label="More">
+    <a href="settings.html" data-gate="Settings"><span class="mi"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg></span><span>Settings</span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" class="chev" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg></a>
+    <a href="help.html"><span class="mi"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 14v-2a8 8 0 0 1 16 0v2"/><rect x="3" y="14" width="4" height="6" rx="1.5"/><rect x="17" y="14" width="4" height="6" rx="1.5"/><path d="M19 20c0 1.5-2 2-5 2"/></svg></span><span>Help &amp; Support</span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" class="chev" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg></a>
+    <a href="about.html"><span class="mi"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 8h.01"/></svg></span><span>About</span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" class="chev" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg></a>
+    <a id="msign" href="signup.html" hidden><span class="mi"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="10" cy="8" r="4"/><path d="M2.5 20c1.3-3.6 4.2-5 7.5-5M18 14v6M15 17h6"/></svg></span><span>Sign up</span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" class="chev" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg></a>
+    <a id="mauth" href="login.html"><span class="mi" id="mai"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 4h3a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2h-3"/><path d="M10 8l4 4-4 4M14 12H4"/></svg></span><span id="mal">Log in</span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" class="chev" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg></a>
+  </nav>
+</aside>
+<div class="scrim" id="scrim" hidden></div>
+<script>
+/* 3-DASH MENU (same as the homepage): opens, closes, and shows who is logged in. */
+(function () {
+  var $ = function (i) { return document.getElementById(i) };
+  var burger = $("burger"), sheet = $("sheet"), scrim = $("scrim");
+  function setMenu(o) { sheet.hidden = !o; scrim.hidden = !o; burger.setAttribute("aria-expanded", o) }
+  burger.onclick = function () { setMenu(sheet.hidden) };
+  scrim.onclick = $("mclose").onclick = function () { setMenu(false) };
+  sheet.addEventListener("click", function (e) { if (e.target.closest("a")) setMenu(false) });
+  document.addEventListener("keydown", function (e) { if (e.key === "Escape") setMenu(false) });
+  (async function () {
+    var session = null, nm = "";
+    try {
+      if (typeof supabaseClient !== "undefined") {
+        session = (await supabaseClient.auth.getSession()).data.session;
+        if (session) {
+          nm = (session.user.user_metadata || {}).username || "";
+          if (!nm) { var r = await supabaseClient.from("profiles").select("username").eq("id", session.user.id).single(); nm = (r.data && r.data.username) || "" }
+        }
+      }
+    } catch (e) { console.error(e) }
+    if (session) {
+      nm = nm || "Player";
+      $("mav").textContent = nm.charAt(0).toUpperCase(); $("mname").textContent = nm; $("msub").textContent = "View your profile";
+      $("mai").innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 4H6a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h3"/><path d="M16 8l4 4-4 4M20 12H9"/></svg>'; $("mal").textContent = "Log out";
+      var t = $("mauth"); t.classList.add("danger"); t.removeAttribute("href"); t.setAttribute("role", "button"); t.setAttribute("tabindex", "0");
+      t.onclick = async function () { try { await supabaseClient.auth.signOut() } catch (e) { } location.href = "index.html" };
+      t.onkeydown = function (e) { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); t.onclick() } };
+    } else { $("msign").hidden = false }
+  })();
+})();
+</script>
+</body>
+</html>

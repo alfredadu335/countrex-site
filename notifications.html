@@ -1,0 +1,404 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Countrex · Notifications</title>
+
+  <style>
+    /* ---------- 1. DESIGN TOKENS (colours reused everywhere) ---------- */
+    :root {
+      --purple: #5E3C88;
+      --purple-soft: #F3EEF8;
+      --ink: #1a0b2e;
+      --muted: #6b6478;
+      --bg: #f7f3fc;
+      --white: #ffffff;
+      --line: #ebe5f4;
+      --green: #1fa971;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: "Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
+      background: var(--bg);
+      color: var(--ink);
+    }
+
+    /* ---------- 2. PHONE-WIDTH CONTAINER (same as your home page) ---------- */
+    .app {
+      max-width: 600px;
+      margin: 0 auto;
+      min-height: 100vh;
+      background: var(--white);
+      padding-bottom: 90px; /* room for the bottom nav */
+    }
+
+    /* ---------- 3. TOP BAR ---------- */
+    .topbar {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 16px 24px;
+      border-bottom: 1px solid var(--line);
+    }
+    .icon-btn {
+      width: 54px; height: 54px;
+      border-radius: 16px;
+      background: var(--purple-soft);
+      border: none;
+      display: grid; place-items: center;
+      font-size: 22px;
+      color: var(--purple);
+      cursor: pointer;
+      text-decoration: none;
+    }
+    .topbar h1 { font-size: 26px; letter-spacing: -0.5px; flex: 1; }
+
+    /* ---------- 4. PAGE BODY ---------- */
+    .content { padding: 24px; background: linear-gradient(#f7f3fc, #fff 220px); }
+
+    .row-between {
+      display: flex; justify-content: space-between; align-items: center;
+      margin-bottom: 16px;
+    }
+    .unread-count { color: var(--muted); font-size: 15px; }
+    .link-btn {
+      background: none; border: none;
+      color: var(--purple); font-weight: 700; font-size: 15px;
+      cursor: pointer;
+    }
+
+    /* Filter chips */
+    .chips { display: flex; gap: 8px; overflow-x: auto; margin-bottom: 20px; }
+    .chip {
+      padding: 10px 18px;
+      border-radius: 999px;
+      border: 1.5px solid var(--line);
+      background: var(--white);
+      font-weight: 600; font-size: 14px;
+      color: var(--ink);
+      cursor: pointer;
+      white-space: nowrap;
+    }
+    .chip.active { background: var(--purple); border-color: var(--purple); color: #fff; }
+
+    /* ---------- 5. NOTIFICATION CARD ---------- */
+    .list { display: flex; flex-direction: column; gap: 12px; }
+
+    .notif {
+      display: flex; gap: 14px;
+      padding: 16px;
+      border-radius: 20px;
+      border: 1px solid var(--line);
+      background: var(--white);
+      cursor: pointer;
+      position: relative;
+      transition: transform .1s;
+    }
+    .notif:active { transform: scale(.98); }
+    .notif.unread { background: var(--purple-soft); border-color: #DDD3EA; }
+
+    .notif .ico {
+      width: 46px; height: 46px; flex-shrink: 0;
+      border-radius: 14px;
+      background: var(--white);
+      display: grid; place-items: center;
+      font-size: 22px;
+    }
+    .notif h3 { font-size: 16px; margin-bottom: 4px; }
+    .notif p  { font-size: 14px; color: var(--muted); line-height: 1.4; }
+    .notif time { display: block; margin-top: 6px; font-size: 12px; color: var(--muted); }
+
+    /* the little green dot on unread items */
+    .notif.unread::after {
+      content: "";
+      position: absolute; top: 18px; right: 16px;
+      width: 10px; height: 10px; border-radius: 50%;
+      background: var(--green);
+    }
+
+    .empty { text-align: center; color: var(--muted); padding: 48px 0; display: none; }
+
+    /* ---------- 6. BOTTOM NAV ---------- */
+    .bottom-nav {
+      position: fixed; bottom: 0; left: 50%; transform: translateX(-50%);
+      width: 100%; max-width: 600px;
+      display: flex; background: var(--white);
+      border-top: 1px solid var(--line);
+      padding: 8px;
+    }
+    .bottom-nav a {
+      flex: 1; text-align: center; padding: 8px 0;
+      border-radius: 16px; text-decoration: none;
+      font-size: 13px; font-weight: 600; color: var(--muted);
+    }
+    .bottom-nav a span { display: block; font-size: 22px; }
+    .bottom-nav a.active { background: var(--purple-soft); color: var(--purple); }
+  
+/* ----- 3-dash menu (same as the homepage) ----- */
+.menu,.scrim,.burger{--bg:#FFFFFF;--ink:#1A0B2E;--muted:#6A5F7C;--line:#DDD4EA;--field:#F6F2FB;--accent:#5E3C88;--pline:#C2B2D6}
+[hidden]{display:none!important}
+.burger{flex:none;width:44px;height:44px;margin-left:auto;border:0;border-radius:14px;background:var(--field);cursor:pointer;position:relative}
+.burger span,.burger span::before,.burger span::after{position:absolute;left:12px;width:20px;height:2.5px;border-radius:2px;background:var(--ink);content:""}
+.burger span{top:20px}.burger span::before{left:0;top:-7px}.burger span::after{left:0;top:7px}
+.scrim{position:fixed;inset:0;z-index:150;background:rgba(26,11,46,.45)}
+.menu{position:fixed;z-index:160;top:12px;left:50%;transform:translateX(-50%);width:calc(100% - 24px);max-width:456px;max-height:calc(100dvh - 24px);overflow-y:auto;padding:8px 14px 14px;background:var(--bg);color:var(--ink);border-radius:28px;box-shadow:0 30px 70px -26px rgba(26,11,46,.55);font-family:"Bricolage Grotesque",system-ui,-apple-system,"Segoe UI",sans-serif;line-height:1.4}
+.menu a{color:inherit;text-decoration:none}
+.mhead{display:flex;align-items:center;justify-content:space-between;padding:8px 6px 12px}
+.mbrand{font-weight:800;font-size:1.35rem;letter-spacing:-.03em}
+.mclose{display:grid;place-items:center;width:42px;height:42px;border:0;border-radius:14px;background:var(--field);color:var(--ink);cursor:pointer}
+.mclose svg{width:22px;height:22px}
+.mprofile{display:flex;align-items:center;gap:14px;padding:14px;border-radius:22px;background:var(--field)}
+.mav{flex:none;display:grid;place-items:center;width:52px;height:52px;border-radius:50%;background:linear-gradient(135deg,#7A5AAA,var(--accent));color:#fff;font-weight:800;font-size:1.3rem}
+.mav svg{width:26px;height:26px}
+.mwho{flex:1;min-width:0}.mwho b{display:block;font-size:1.1rem;letter-spacing:-.01em;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.mwho small{color:var(--muted)}
+.mgrp{margin:16px 10px 2px;font-size:.74rem;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
+.mlist{display:grid;gap:2px;margin:6px 0 0}
+.mlist a{display:flex;align-items:center;gap:14px;padding:10px 8px;border-radius:16px;font-weight:700;font-size:1.05rem;cursor:pointer}
+.mlist a:hover{background:var(--field)}.mlist a>span:nth-child(2){flex:1}
+.mlist a.danger{color:#C0213F}.mlist a.danger .mi{background:#FDE7EA;color:#C0213F}
+.mi{flex:none;display:grid;place-items:center;width:42px;height:42px;border-radius:13px;background:var(--field);color:var(--accent)}
+.mi svg{width:22px;height:22px}
+.chev{flex:none;width:18px;height:18px;color:#B8AECB}
+@media (prefers-reduced-motion:no-preference){.menu{animation:mdrop .22s ease-out}}
+@keyframes mdrop{from{opacity:0;transform:translate(-50%,-10px)}}
+.topbar .burger{width:54px;height:54px;border-radius:16px;background:var(--purple-soft);margin-left:0}
+.topbar .burger span,.topbar .burger span::before,.topbar .burger span::after{left:17px;width:20px}
+.topbar .burger span{top:26px}.topbar .burger span::before{left:0}.topbar .burger span::after{left:0}
+</style>
+<style id="cx-dark">
+/* Dark mode. Applies when <html data-theme="dark"> (set from Settings > Preferences > Appearance). */
+html[data-theme="dark"]{color-scheme:dark;--bg:#131114;--ink:#EDE8F3;--muted:#9A92A8;--line:#2A252F;--field:#1B181E;--accent:#8A68C2;--accent-hi:#9A7CCF;--pline:#3B3342;--stage:#0C0B0D;--btn:#5B3C94}
+html[data-theme="dark"] body{background:var(--stage);color:var(--ink)}
+html[data-theme="dark"] .top,html[data-theme="dark"] .tabs{background:rgba(19,17,20,.97)}
+html[data-theme="dark"] .top{border-bottom:1px solid var(--line)}
+html[data-theme="dark"] .wal:hover,html[data-theme="dark"] .mclose:hover,html[data-theme="dark"] .mprofile:hover{background:#26212B}
+html[data-theme="dark"] .tabs a:hover,html[data-theme="dark"] .tabs a.on{background:#241F29}
+html[data-theme="dark"] .scrim{background:rgba(0,0,0,.6)}
+html[data-theme="dark"] .sheet,html[data-theme="dark"] .menu{background:#18151B;border:1px solid var(--line);box-shadow:0 30px 60px -30px #000}
+html[data-theme="dark"] .mav{background:var(--btn)}
+html[data-theme="dark"] .chev{color:#5E566A}
+html[data-theme="dark"] .mlist a.danger{color:#F0788E}
+html[data-theme="dark"] .mlist a.danger .mi{background:#3A1A22;color:#F0788E}
+html[data-theme="dark"] dialog{background:#18151B;border:1px solid var(--line);color:var(--ink)}
+html[data-theme="dark"] dialog::backdrop{background:rgba(0,0,0,.7)}
+html[data-theme="dark"] .cta .go,html[data-theme="dark"] .row a.main{background:var(--btn);border-color:var(--btn);box-shadow:none}
+html[data-theme="dark"] .cta .gh,html[data-theme="dark"] .row a,html[data-theme="dark"] .more{border-color:var(--pline)}
+html[data-theme="dark"] .hero{background:none}
+html[data-theme="dark"] .chip{background:var(--field);box-shadow:none}
+html[data-theme="dark"] .game{box-shadow:none;border:1px solid var(--line)}
+html[data-theme="dark"] .pick{background:var(--ink);color:#131114}
+html[data-theme="dark"] .sec.alt{background:#0F0D11}
+html[data-theme="dark"] .ev{box-shadow:none;background:var(--field)}
+html[data-theme="dark"] .tba,html[data-theme="dark"] .cd div{background:#131114}
+html[data-theme="dark"] input,html[data-theme="dark"] select,html[data-theme="dark"] textarea{color:var(--ink);background:var(--field)}
+html[data-theme="dark"] .app{box-shadow:0 0 0 1px var(--line)}
+/* pages with their own token names (wallet, notifications) */
+html[data-theme="dark"]{--purple:#5B3C94;--purple-dark:#8A68C2;--purple-soft:#241F29;--white:#18151B;--green:#3FCB92;--red:#F0788E}
+html[data-theme="dark"] .content{background:var(--bg)}
+html[data-theme="dark"] .chip:not(.active),html[data-theme="dark"] .sheet,html[data-theme="dark"] .tx,html[data-theme="dark"] .stat,html[data-theme="dark"] .nav,html[data-theme="dark"] .sheet input{background:var(--white);color:var(--ink)}
+html[data-theme="dark"] .btn-ghost,html[data-theme="dark"] .topbar .burger{color:#B8A2DC}
+/* the menu kit re-declares light colours on .menu/.scrim/.burger */
+html[data-theme="dark"] .menu,html[data-theme="dark"] .scrim,html[data-theme="dark"] .burger{--bg:#131114;--ink:#EDE8F3;--muted:#9A92A8;--line:#2A252F;--field:#1B181E;--accent:#8A68C2;--pline:#3B3342}
+html[data-theme="dark"] .burger span,html[data-theme="dark"] .burger span::before,html[data-theme="dark"] .burger span::after{background:var(--ink)}
+html[data-theme="dark"] .bottom-nav{background:#131114}
+/* login, signup */
+html[data-theme="dark"]{--panel:#131114;--pslot:#1F1B23;--glow:#8A68C2;--ring:rgba(138,104,194,.28);--err:#F0788E;--ok:#3FCB92}
+html[data-theme="dark"] .btn{background:var(--btn)}
+html[data-theme="dark"] .btn:hover{background:#6A48A6}
+html[data-theme="dark"] .nm{fill:#C9BFD8}
+html[data-theme="dark"] .nm.you,html[data-theme="dark"] #you.on .nm{fill:#fff}
+html[data-theme="dark"] ::placeholder{color:#7C7389}
+html[data-theme="dark"] .ghost{border-color:var(--pline)}
+html[data-theme="dark"] .ghost:hover{background:var(--ink);color:var(--bg)}
+html[data-theme="dark"] .tut{background:var(--field)}
+/* community, leaderboard */
+html[data-theme="dark"] .filters{background:rgba(19,17,20,.97)}
+html[data-theme="dark"] .filters button,html[data-theme="dark"] .chips button,html[data-theme="dark"] .fchips button{background:var(--field);color:var(--ink)}
+html[data-theme="dark"] .filters button.on{background:var(--btn);color:#fff}
+html[data-theme="dark"] .msgs .msg{background:#241F29;color:var(--ink);box-shadow:none}
+html[data-theme="dark"] .msgs .msg.mine{background:var(--btn);color:#fff}
+html[data-theme="dark"] .dsep span{background:#241F29;color:var(--muted)}
+html[data-theme="dark"] .compose textarea:focus{background:var(--field)}
+html[data-theme="dark"] .star:hover{background:#26212B}
+html[data-theme="dark"] .skel{background:linear-gradient(90deg,#1B181E,#26212B,#1B181E);background-size:200% 100%}
+html[data-theme="dark"] .seg button[aria-selected="true"]{background:var(--btn);color:#fff;box-shadow:none}
+html[data-theme="dark"] .head{background:linear-gradient(180deg,#1B181E 0,#131114 220px)}
+html[data-theme="dark"] .me{background:linear-gradient(135deg,#241F29,var(--btn))}
+html[data-theme="dark"] .chat,html[data-theme="dark"] .chead,html[data-theme="dark"] .compose,html[data-theme="dark"] .only{background:var(--bg)}
+html[data-theme="dark"] .toast{background:#EDE8F3;color:#131114}
+</style>
+<script>(function(){try{var t=(JSON.parse(localStorage.getItem("countrex_settings")||"{}").theme)||"light";if(t==="system")t=matchMedia("(prefers-color-scheme:dark)").matches?"dark":"light";if(t==="dark")document.documentElement.setAttribute("data-theme","dark")}catch(e){}})();</script>
+</head>
+
+<body>
+  <div class="app">
+
+    <!-- TOP BAR: back button + title -->
+    <header class="topbar">
+      <a href="index.html" class="icon-btn" aria-label="Back">←</a>
+      <h1>Notifications</h1>
+      <button class="burger" id="burger" type="button" aria-label="Menu" aria-expanded="false" aria-controls="sheet"><span></span></button>
+    </header>
+
+    <main class="content">
+      <!-- unread counter + mark-all button -->
+      <div class="row-between">
+        <span class="unread-count" id="unreadCount"></span>
+        <button class="link-btn" id="markAll">Mark all as read</button>
+      </div>
+
+      <!-- filter chips -->
+      <div class="chips" id="chips">
+        <button class="chip active" data-filter="all">All</button>
+        <button class="chip" data-filter="events">Events</button>
+        <button class="chip" data-filter="wallet">Wallet</button>
+        <button class="chip" data-filter="community">Community</button>
+      </div>
+
+      <!-- notifications get inserted here by JavaScript -->
+      <div class="list" id="list"></div>
+      <p class="empty" id="empty">🎉 You're all caught up!</p>
+    </main>
+
+    <nav class="bottom-nav">
+      <a href="index.html"><span>🏠</span>Home</a>
+      <a href="events.html"><span>📅</span>Events</a>
+      <a href="leaderboard.html"><span>🏆</span>Leaderboard</a>
+      <a href="community.html"><span>👥</span>Community</a>
+    </nav>
+  </div>
+
+  <script>
+    // ---------- A. THE DATA ----------
+    // Later you can replace this array with data from a server.
+    const notifications = [
+      { id: 1, type: "events",    icon: "🏆", title: "Tournament opening soon",  text: "FC27 Weekend Cup registration opens tomorrow at 6:00 PM.", time: "5 min ago",  read: false },
+      { id: 2, type: "wallet",    icon: "💰", title: "Deposit successful",       text: "Your wallet was topped up with $20.00.",                   time: "1 hour ago", read: false },
+      { id: 3, type: "community", icon: "💬", title: "New reply",                text: "Kwame replied to your post in the FC27 lobby.",            time: "3 hours ago",read: false },
+      { id: 4, type: "events",    icon: "⏰", title: "Match reminder",           text: "Your match starts in 30 minutes. Get ready!",              time: "Yesterday",  read: true  },
+      { id: 5, type: "wallet",    icon: "🎁", title: "Prize received",           text: "You won $15.00 in the Friday Night Showdown.",             time: "2 days ago", read: true  }
+    ];
+
+    let currentFilter = "all";
+
+    // ---------- B. GRAB THE HTML ELEMENTS WE NEED ----------
+    const listEl  = document.getElementById("list");
+    const emptyEl = document.getElementById("empty");
+    const countEl = document.getElementById("unreadCount");
+
+    // ---------- C. DRAW THE LIST ----------
+    function render() {
+      // keep only the notifications that match the active chip
+      const shown = notifications.filter(n => currentFilter === "all" || n.type === currentFilter);
+
+      // build one card of HTML per notification
+      listEl.innerHTML = shown.map(n => `
+        <article class="notif ${n.read ? "" : "unread"}" data-id="${n.id}">
+          <div class="ico">${n.icon}</div>
+          <div>
+            <h3>${n.title}</h3>
+            <p>${n.text}</p>
+            <time>${n.time}</time>
+          </div>
+        </article>
+      `).join("");
+
+      // show the empty message when there is nothing to display
+      emptyEl.style.display = shown.length ? "none" : "block";
+
+      // update "3 unread" text
+      const unread = notifications.filter(n => !n.read).length;
+      countEl.textContent = unread ? `${unread} unread` : "No unread notifications";
+    }
+
+    // ---------- D. INTERACTIONS ----------
+    // Tap a card -> mark that one as read
+    listEl.addEventListener("click", e => {
+      const card = e.target.closest(".notif");
+      if (!card) return;
+      const item = notifications.find(n => n.id === Number(card.dataset.id));
+      item.read = true;
+      render();
+    });
+
+    // "Mark all as read" button
+    document.getElementById("markAll").addEventListener("click", () => {
+      notifications.forEach(n => n.read = true);
+      render();
+    });
+
+    // Filter chips
+    document.getElementById("chips").addEventListener("click", e => {
+      const chip = e.target.closest(".chip");
+      if (!chip) return;
+      document.querySelectorAll(".chip").forEach(c => c.classList.remove("active"));
+      chip.classList.add("active");
+      currentFilter = chip.dataset.filter;
+      render();
+    });
+
+    // first draw when the page loads
+    render();
+  </script>
+<aside class="menu" id="sheet" aria-label="Menu" hidden>
+  <div class="mhead"><span class="mbrand">Countrex</span><button class="mclose" id="mclose" type="button" aria-label="Close menu"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button></div>
+  <a class="mprofile" href="profile.html" data-gate="My Profile">
+    <span class="mav" id="mav" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 20c1.5-4 5-5.5 8-5.5s6.5 1.5 8 5.5"/></svg></span>
+    <span class="mwho"><b id="mname">Guest</b><small id="msub">Log in or create an account</small></span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" class="chev" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg>
+  </a>
+  <p class="mgrp">You</p>
+  <nav class="mlist" aria-label="Your account">
+    <a href="profile.html" data-gate="My Profile"><span class="mi"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 20c1.5-4 5-5.5 8-5.5s6.5 1.5 8 5.5"/></svg></span><span>My Profile</span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" class="chev" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg></a>
+    <a href="wallet.html" data-gate="Wallet"><span class="mi"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 6.2 16.2 3.6a1.5 1.5 0 0 1 1.8 1.1l.3 1.3"/><rect x="2.5" y="6" width="19" height="13.5" rx="3"/><path d="M21.5 11.2h-4a2.2 2.2 0 0 0 0 4.4h4z"/><circle cx="17.9" cy="13.4" r=".9" fill="currentColor" stroke="none"/></svg></span><span>Wallet</span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" class="chev" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg></a>
+    <a href="notifications.html" data-gate="Notifications"><span class="mi"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9.5a6 6 0 0 1 12 0c0 4.6 2 6.2 2 6.2H4s2-1.6 2-6.2z"/><path d="M10 19a2.1 2.1 0 0 0 4 0"/></svg></span><span>Notifications</span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" class="chev" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg></a>
+    <a href="news.html"><span class="mi"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3.5" y="4" width="13" height="16" rx="2"/><path d="M16.5 8H20a1 1 0 0 1 1 1v9a2 2 0 0 1-2 2"/><path d="M7 8.5h6M7 12h6M7 15.5h4"/></svg></span><span>News</span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" class="chev" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg></a>
+  </nav>
+  <p class="mgrp">More</p>
+  <nav class="mlist" aria-label="More">
+    <a href="settings.html" data-gate="Settings"><span class="mi"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg></span><span>Settings</span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" class="chev" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg></a>
+    <a href="help.html"><span class="mi"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 14v-2a8 8 0 0 1 16 0v2"/><rect x="3" y="14" width="4" height="6" rx="1.5"/><rect x="17" y="14" width="4" height="6" rx="1.5"/><path d="M19 20c0 1.5-2 2-5 2"/></svg></span><span>Help &amp; Support</span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" class="chev" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg></a>
+    <a href="about.html"><span class="mi"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 8h.01"/></svg></span><span>About</span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" class="chev" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg></a>
+    <a id="msign" href="signup.html" hidden><span class="mi"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="10" cy="8" r="4"/><path d="M2.5 20c1.3-3.6 4.2-5 7.5-5M18 14v6M15 17h6"/></svg></span><span>Sign up</span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" class="chev" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg></a>
+    <a id="mauth" href="login.html"><span class="mi" id="mai"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 4h3a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2h-3"/><path d="M10 8l4 4-4 4M14 12H4"/></svg></span><span id="mal">Log in</span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" class="chev" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg></a>
+  </nav>
+</aside>
+<div class="scrim" id="scrim" hidden></div>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
+<script src="js/supabase.js"></script>
+<script>
+/* 3-DASH MENU (same as the homepage): opens, closes, and shows who is logged in. */
+(function () {
+  var $ = function (i) { return document.getElementById(i) };
+  var burger = $("burger"), sheet = $("sheet"), scrim = $("scrim");
+  function setMenu(o) { sheet.hidden = !o; scrim.hidden = !o; burger.setAttribute("aria-expanded", o) }
+  burger.onclick = function () { setMenu(sheet.hidden) };
+  scrim.onclick = $("mclose").onclick = function () { setMenu(false) };
+  sheet.addEventListener("click", function (e) { if (e.target.closest("a")) setMenu(false) });
+  document.addEventListener("keydown", function (e) { if (e.key === "Escape") setMenu(false) });
+  (async function () {
+    var session = null, nm = "";
+    try {
+      if (typeof supabaseClient !== "undefined") {
+        session = (await supabaseClient.auth.getSession()).data.session;
+        if (session) {
+          nm = (session.user.user_metadata || {}).username || "";
+          if (!nm) { var r = await supabaseClient.from("profiles").select("username").eq("id", session.user.id).single(); nm = (r.data && r.data.username) || "" }
+        }
+      }
+    } catch (e) { console.error(e) }
+    if (session) {
+      nm = nm || "Player";
+      $("mav").textContent = nm.charAt(0).toUpperCase(); $("mname").textContent = nm; $("msub").textContent = "View your profile";
+      $("mai").innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 4H6a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h3"/><path d="M16 8l4 4-4 4M20 12H9"/></svg>'; $("mal").textContent = "Log out";
+      var t = $("mauth"); t.classList.add("danger"); t.removeAttribute("href"); t.setAttribute("role", "button"); t.setAttribute("tabindex", "0");
+      t.onclick = async function () { try { await supabaseClient.auth.signOut() } catch (e) { } location.href = "index.html" };
+      t.onkeydown = function (e) { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); t.onclick() } };
+    } else { $("msign").hidden = false }
+  })();
+})();
+</script>
+</body>
+</html>

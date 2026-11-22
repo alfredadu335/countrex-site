@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Countrex Admin</title>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,500;12..96,600;12..96,700;12..96,800&display=swap" rel="stylesheet">
+<style>
+:root{--accent:#5E3C88;--r:14px;--deep:#fff;--side:#F6F2FB;--card:#fff;--field:#F6F2FB;--line:#DDD4EA;--text:#1A0B2E;--muted:#6A5F7C;--ok:#1E8E5A;--warn:#A8620A;--bad:#C0213F;--tint:var(--accent);--hover:color-mix(in srgb,var(--accent),#fff 14%);--pad:16px}
+[data-theme=dark]{--deep:#120720;--side:#1A0B2E;--card:#21113A;--field:#2B1950;--line:#3B2862;--text:#fff;--muted:#BDB2D4;--ok:#5FD39A;--warn:#F2B84B;--bad:#FF6B86;--tint:color-mix(in srgb,var(--accent),#fff 50%)}
+[data-dense=compact]{--pad:10px;font-size:14px}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:"Bricolage Grotesque",system-ui,sans-serif;background:var(--deep);color:var(--text);line-height:1.45;-webkit-font-smoothing:antialiased}
+button{font-family:inherit;cursor:pointer;color:inherit}
+:focus-visible{outline:3px solid var(--tint);outline-offset:2px}
+.app{display:grid;grid-template-columns:1fr;min-height:100vh}
+.side{position:fixed;inset:0 20% 0 0;max-width:270px;background:var(--side);border-right:1px solid var(--line);padding:18px 14px;overflow:auto;z-index:20;transform:translateX(-100%)}
+.side.open{transform:none}
+.logo{display:flex;align-items:center;gap:10px;font-weight:800;font-size:22px;letter-spacing:-.02em;padding:4px 8px 14px}
+.mark{width:34px;height:34px;border-radius:9px;background:var(--accent);display:grid;place-items:center;flex:none}
+.mark svg{width:22px;height:22px;fill:#fff}
+.grp{margin-top:14px;padding:0 10px 6px;font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted)}
+.nav{display:flex;align-items:center;gap:12px;width:100%;padding:10px;border:0;border-radius:calc(var(--r)*.7);background:none;font-size:15px;font-weight:500;color:var(--muted);text-align:left}
+.ic,.nav svg{width:20px;height:20px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;flex:none}
+.nav:hover{color:var(--text);background:var(--field)}
+.nav[aria-current=page]{background:var(--accent);color:#fff}
+.top{position:sticky;top:0;z-index:10;display:flex;align-items:center;gap:12px;padding:12px 16px;background:var(--deep);border-bottom:1px solid var(--line)}
+.top h1{font-size:20px;font-weight:700;letter-spacing:-.01em;margin-right:auto}
+.ib{width:40px;height:40px;border-radius:calc(var(--r)*.7);border:1px solid var(--line);background:none;display:grid;place-items:center}
+.me{display:none;align-items:center;gap:10px;font-size:14px;color:var(--muted)}
+.av{width:34px;height:34px;border-radius:50%;background:var(--accent);display:grid;place-items:center;font-weight:700;color:#fff}
+main{padding:16px;max-width:1200px;width:100%}
+.grid{display:grid;gap:14px}
+.stats{grid-template-columns:1fr 1fr}
+.two{grid-template-columns:1fr}
+.box{background:var(--card);border:1px solid var(--line);border-radius:var(--r);padding:var(--pad);min-width:0;box-shadow:0 1px 3px rgba(26,11,46,.06)}
+.box h2{font-size:17px;font-weight:700;margin-bottom:10px}
+.stat b{display:block;font-size:30px;font-weight:800;letter-spacing:-.02em}
+.stat span{color:var(--muted);font-size:14px}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;border:0;border-radius:calc(var(--r)*.7);padding:10px 18px;font-size:15px;font-weight:600;background:var(--accent);color:#fff}
+.btn:hover{background:var(--hover)}
+.btn.sec{background:var(--field);color:var(--text);border:1px solid var(--line)}
+.btn.sm{padding:6px 12px;font-size:13px}
+.btn.bad{background:none;border:1px solid var(--bad);color:var(--bad)}
+.hd{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:12px;flex-wrap:wrap}
+.q{display:flex;gap:10px;margin-bottom:12px}
+.qk{display:flex;gap:10px;flex-wrap:wrap}
+form{display:grid;gap:12px}
+label{display:block;font-size:13px;font-weight:600;margin-bottom:5px;color:var(--muted)}
+input,select,textarea{width:100%;padding:11px 12px;border:1px solid var(--line);border-radius:calc(var(--r)*.7);background:var(--field);color:var(--text);font-family:inherit;font-size:15px}
+textarea{min-height:90px;resize:vertical}
+input[type=color]{padding:2px;height:42px;width:56px}
+input:focus,select:focus,textarea:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px color-mix(in srgb,var(--accent),transparent 78%)}
+.chk{display:flex;align-items:center;gap:10px;font-size:15px;color:var(--text)}
+.chk input{width:20px;height:20px;accent-color:var(--accent)}
+.bd{display:inline-block;padding:2px 10px;border-radius:99px;font-size:12px;font-weight:600;border:1px solid;white-space:nowrap}
+.ok{color:var(--ok)}.warn{color:var(--warn)}.bad{color:var(--bad)}.mut{color:var(--muted)}
+.bar{height:8px;border-radius:99px;background:var(--field);overflow:hidden;margin-top:8px}
+.bar i{display:block;height:100%;background:var(--accent)}
+.item{padding:calc(var(--pad) - 2px) 0;border-bottom:1px solid var(--line)}
+.item:last-child{border-bottom:0}
+.item .t{display:flex;justify-content:space-between;gap:10px;font-weight:600}
+.item small{color:var(--muted);font-size:13px;display:block}
+.acts{margin-top:8px;display:flex;gap:8px;flex-wrap:wrap}
+.empty{color:var(--muted);padding:18px 0;text-align:center;font-size:15px}
+.sw{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.sw button{width:34px;height:34px;border-radius:50%;border:2px solid var(--line)}
+.mrow{display:grid;grid-template-columns:auto 1fr auto auto;gap:8px;align-items:center;margin-bottom:8px}
+dialog{border:1px solid var(--line);border-radius:var(--r);background:var(--card);color:var(--text);padding:20px;width:min(520px,calc(100% - 24px));margin:auto;max-height:92vh;overflow:auto}
+dialog::backdrop{background:rgba(26,11,46,.55)}
+dialog h2{margin-bottom:14px;font-size:19px}
+.fa{display:flex;gap:10px;justify-content:flex-end;margin-top:4px}
+.toast{position:fixed;left:50%;bottom:20px;transform:translateX(-50%);background:var(--accent);color:#fff;padding:10px 18px;border-radius:10px;font-weight:600;z-index:50}
+@media(min-width:640px){.stats{grid-template-columns:repeat(4,1fr)}main{padding:24px}}
+@media(min-width:1000px){.app{grid-template-columns:260px 1fr}.side{position:sticky;top:0;height:100vh;inset:auto;max-width:none;transform:none}.ib.m{display:none}.me{display:flex}.two{grid-template-columns:1fr 1fr}}
+</style>
+</head>
+<body>
+<div class="app">
+  <aside class="side" id="side" aria-label="Admin menu">
+    <div class="logo"><span class="mark"><svg viewBox="0 0 24 24"><path d="M7.5 6h9c2.6 0 4.2 2 4.9 5.6l.8 4.6c.3 1.9-.7 3.3-2.3 3.3-1 0-1.7-.5-2.4-1.5l-1-1.5H9.5l-1 1.5c-.7 1-1.4 1.5-2.4 1.5-1.6 0-2.6-1.4-2.3-3.3l.8-4.6C3.3 8 4.9 6 7.5 6Z"/></svg></span><span id="brand">Countrex</span></div>
+    <nav id="nav"></nav>
+  </aside>
+  <div>
+    <header class="top">
+      <button class="ib m" id="menu" aria-label="Menu"><svg class="ic" viewBox="0 0 24 24"><path d="M4 7h16M4 12h16M4 17h16"/></svg></button>
+      <h1 id="title">Dashboard</h1>
+      <div class="me"><span>Admin</span><span class="av">A</span></div>
+    </header>
+    <main id="main"></main>
+  </div>
+</div>
+<dialog id="dlg"><h2 id="dt"></h2><form id="df"></form></dialog>
+<div id="toast" class="toast" hidden></div>
+
+<script>
+var H=36e5,KEY='cx_admin_v2_',PLUS='<svg class="ic" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>';
+// TODO: replace localStorage (load/save) with Supabase reads and writes.
+var DEF={
+ dash:{g:'Overview',l:'Dashboard',i:'M3 12 12 4l9 8v8a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1v-8Z'},
+ chats:{g:'Community',l:'Chats',i:'M4 5h16v11H9l-5 4V5Z'},
+ players:{g:'Community',l:'Players',i:'M9 11a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7ZM2.5 20a6.5 6.5 0 0 1 13 0M17 4.6a3.5 3.5 0 0 1 0 6.8M19 14a6.5 6.5 0 0 1 2.5 6'},
+ invites:{g:'Community',l:'Invitations',i:'M15 7a4 4 0 1 1-3.5 5.9L4 20.5V17h3v-2h2v-2h2.1A4 4 0 0 1 15 7Z'},
+ tours:{g:'Competitions',l:'Tournaments',i:'M8 4h8v5a4 4 0 0 1-8 0V4ZM8 6H4v1a4 4 0 0 0 4 4M16 6h4v1a4 4 0 0 1-4 4M12 13v4M8 21h8'},
+ fixtures:{g:'Competitions',l:'Fixtures',i:'M4 5h16v15H4V5ZM4 10h16M9 3v4M15 3v4'},
+ events:{g:'Competitions',l:'Events',i:'M12 3l2.7 5.6 6.1.9-4.4 4.3 1 6.1L12 17l-5.4 2.9 1-6.1L3.2 9.5l6.1-.9L12 3Z'},
+ posts:{g:'Communication',l:'News & Announcements',i:'M4 5h12v14H4V5ZM7 9h6M7 13h6M16 9h4v8a2 2 0 0 1-4 0'},
+ msgs:{g:'Communication',l:'Messages',i:'M3 6h18v12H3V6Zm0 0 9 7 9-7'},
+ settings:{g:'System',l:'Settings',i:'M4 6h9M17 6h3M4 12h3M11 12h9M4 18h11M19 18h1M15 4v4M9 10v4M17 16v4'}
+};
+var ORDER=['dash','chats','players','invites','tours','fixtures','events','posts','msgs'];
+function load(n,d){try{return JSON.parse(localStorage.getItem(KEY+n))||d}catch(e){return d}}
+function save(){try{localStorage.setItem(KEY+'d',JSON.stringify(D));localStorage.setItem(KEY+'s',JSON.stringify(st))}catch(e){}}
+function fresh(){return{chats:[],players:[],invites:[],tours:[],fixtures:[],events:[],posts:[],msgs:[]}}
+function freshSt(){return{name:'Countrex',theme:'light',acc:'#5E3C88',r:14,dense:'comfortable',start:'dash',auto:{on:true,n:4,hrs:24,days:14},games:['eFootball','Call of Duty','EA FC'],cats:['Community','Giveaway','Watch party','Training'],menu:ORDER.map(function(k){return{k:k,show:true,l:''}})}}
+var D=Object.assign(fresh(),load('d',{})),st=Object.assign(freshSt(),load('s',{}));
+
+// ---------- helpers ----------
+function $(s){return document.querySelector(s)}
+function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]})}
+var SC={active:'ok',inactive:'mut',suspended:'bad',open:'ok',muted:'warn',flagged:'bad',live:'ok',closed:'mut',used:'ok',unused:'warn',revoked:'bad',expired:'mut'};
+function bd(t){return '<span class="bd '+(SC[t]||'mut')+'">'+esc(t)+'</span>'}
+function cd(end){return '<span class="cd" data-end="'+end+'"></span>'}
+function fmt(ms){if(ms<=0)return 'ended';var s=Math.floor(ms/1e3),d=Math.floor(s/86400),h=Math.floor(s%86400/3600),m=Math.floor(s%3600/60);s%=60;return (d?d+'d ':'')+h+'h '+m+'m'+(d?'':' '+s+'s')}
+function tick(){[].forEach.call(document.querySelectorAll('.cd'),function(e){e.textContent=fmt(+e.dataset.end-Date.now())})}
+function toast(t){var e=$('#toast');e.textContent=t;e.hidden=false;clearTimeout(toast.t);toast.t=setTimeout(function(){e.hidden=true},2200)}
+function code(){var a='ABCDEFGHJKLMNPQRSTUVWXYZ23456789',b=new Uint8Array(8),s='';crypto.getRandomValues(b);b.forEach(function(x,i){s+=a[x%a.length];if(i===3)s+='-'});return s}
+function lt(ts){var d=new Date(ts-new Date(ts).getTimezoneOffset()*6e4);return d.toISOString().slice(0,16)}
+function dt(v){var d=new Date(v);return isNaN(d)?esc(v):d.toLocaleString()}
+function lab(k){var m=st.menu.filter(function(x){return x.k===k})[0];return (m&&m.l)||DEF[k].l}
+function games(){return st.games.length?st.games:['Other']}
+
+// ---------- section definitions: [name,label,type,options,optional] ----------
+var CFG={
+ chats:{add:'New chat room',one:'chat room',f:[['n','Room name','text'],['topic','Topic or game','text',0,1],['st','Status','select',['open','muted','flagged']]],
+  line:function(x){return{t:x.n,m:esc(x.topic),b:x.st}}},
+ players:{add:'Add player',one:'player',f:[['n','Username','text'],['ph','Phone number','tel',0,1],['g','Main game','select',games],['st','Status','select',['active','inactive','suspended']],['j','Joined on','dts'],['doing','What they are doing','text',0,1]],
+  line:function(x){var a=st.auto,own=D.invites.filter(function(i){return i.own===x.n}).length,nx=!x.gift&&a.on&&x.j&&x.st!=='suspended'?' · codes in '+cd(x.j+a.hrs*H):'';return{t:x.n,b:x.st,m:esc([x.g,x.doing,x.ph].filter(Boolean).join(' · '))+(x.j?'<br>Joined '+new Date(x.j).toLocaleDateString():'')+' · '+own+' invitation codes'+(x.gift?' (sent automatically)':nx)}}},
+ invites:{add:'Generate codes',one:'invitation',noedit:1,f:[['note','Note (who is it for?)','text',0,1],['qty','How many codes','number'],['days','Expires after (days)','number']],
+  line:function(x){var s=x.s==='unused'&&x.exp<Date.now()?'expired':x.s;return{t:x.c,m:esc(x.note||'No note')+(x.own?' · for '+esc(x.own):'')+' · expires '+new Date(x.exp).toLocaleDateString(),b:s,x:s==='unused'?'<button class="btn sm sec" data-cp="'+esc(x.c)+'">Copy</button><button class="btn sm sec" data-rv="'+x.c+'">Revoke</button>':''}}},
+ tours:{add:'New tournament',one:'tournament',f:[['n','Name','text'],['g','Game','select',games],['lim','Player limit','number'],['p','Players joined','number',0,1],['pr','Progress (%)','number',0,1],['end','Join countdown (hours)','hrs'],['fee','Entry fee (e.g. 5)','text',0,1],['prize','Prize (e.g. 60)','text',0,1],['rules','Rules','area',0,1],['bet','Allow betting','check']],
+  line:function(x){var on=x.end>Date.now();return{t:x.n,b:!on?'closed':x.pr>0?'live':'open',m:esc(x.g)+' · '+x.p+'/'+x.lim+' players'+(x.bet?' · betting on':'')+' · '+(on?'closes in '+cd(x.end):'closed'),bar:x.pr}}},
+ fixtures:{add:'Add fixture',one:'fixture',f:[['t','Tournament','text'],['a','Player A','text'],['b','Player B','text'],['w','Date and time','datetime-local'],['sc','Result','text',0,1]],
+  line:function(x){return{t:x.a+' vs '+x.b,m:esc(x.t)+' · '+dt(x.w)+(x.sc?' · '+esc(x.sc):'')}}},
+ events:{add:'New event',one:'event',f:[['n','Event name','text'],['t','Category','select',function(){return st.cats.length?st.cats:['General']}],['lim','Join limit','number'],['p','Joined so far','number',0,1],['end','Countdown (hours)','hrs'],['prize','Prize','text',0,1]],
+  line:function(x){return{t:x.n,b:x.t,m:x.p+'/'+x.lim+' joined · starts in '+cd(x.end),bar:x.lim?x.p/x.lim*100:0}}},
+ posts:{add:'New post',one:'post',f:[['k','Type','select',['News','Announcement']],['t','Title','text'],['b','Message','area']],
+  line:function(x){return{t:x.t,b:x.k,m:esc(x.b)+' · '+esc(x.d)}}},
+ msgs:{add:'New message',one:'message',f:[['to','Send to','select',['All players','All active players','All inactive players','One player']],['who','Username (if one player)','text',0,1],['s','Subject','text'],['b','Message','area']],
+  line:function(x){return{t:x.s,m:'To: '+esc(x.to==='One player'?x.who:x.to)+' · '+esc(x.d)}}}
+};
+
+// ---------- generic list views ----------
+function item(k,x,i){var l=CFG[k].line(x),h='<div class="item"><div class="t"><span>'+esc(l.t)+'</span>'+(l.b?bd(l.b):'')+'</div>';
+ if(l.m)h+='<small>'+l.m+'</small>';
+ if(l.bar!=null)h+='<div class="bar"><i style="width:'+Math.min(100,Math.max(0,l.bar))+'%"></i></div>';
+ return h+'<div class="acts">'+(l.x||'')+(CFG[k].noedit?'':'<button class="btn sm sec" data-ed="'+k+':'+i+'">Edit</button>')+'<button class="btn sm bad" data-del="'+k+':'+i+'">Delete</button></div></div>'}
+function fill(k){var q=($('#q').value||'').toLowerCase(),a=D[k],h=a.map(function(x,i){return JSON.stringify(x).toLowerCase().indexOf(q)>-1?item(k,x,i):''}).join('');
+ $('#lst').innerHTML=h||'<p class="empty">'+(a.length?'No results.':'Nothing here yet. Use the + button to add the first one.')+'</p>'}
+function listView(k){return (k==='invites'?'<div class="box" style="margin-bottom:12px"><b>Automatic codes: '+(st.auto.on?'ON':'OFF')+'</b><small class="mut" style="display:block">Every player who has been on the site for '+st.auto.hrs+'+ hours gets '+st.auto.n+' codes automatically. Change this in Settings.</small></div>':'')+'<div class="hd"><span class="mut">'+D[k].length+' total</span><button class="btn" data-add="'+k+'">'+PLUS+CFG[k].add+'</button></div><div class="q"><input id="q" type="search" placeholder="Search" aria-label="Search"></div><div class="box" id="lst"></div>'}
+var V={};
+function dash(){
+ var now=Date.now(),n=function(a,f){return a.filter(f).length};
+ var s=[[n(D.players,function(p){return p.st==='active'}),'Active players'],[n(D.tours,function(t){return t.end>now&&t.pr>0}),'Live tournaments'],[n(D.invites,function(i){return i.s==='unused'&&i.exp>now}),'Open invitations'],[n(D.chats,function(c){return c.st==='flagged'}),'Flagged chats']];
+ var qk=[['tours','Tournament'],['events','Event'],['invites','Invitation codes'],['players','Player'],['posts','Post'],['msgs','Message']];
+ return '<div class="grid stats">'+s.map(function(x){return '<div class="box stat"><b>'+x[0]+'</b><span>'+x[1]+'</span></div>'}).join('')+'</div>'+
+ '<div class="box" style="margin-top:14px"><h2>Quick add</h2><div class="qk">'+qk.map(function(x){return '<button class="btn sec" data-add="'+x[0]+'">'+PLUS+x[1]+'</button>'}).join('')+'</div></div>'+
+ '<div class="grid two" style="margin-top:14px"><div class="box"><h2>Tournament progress</h2>'+(D.tours.length?D.tours.map(function(x,i){return item('tours',x,i)}).join(''):'<p class="empty">No tournaments yet.</p>')+'</div>'+
+ '<div class="box"><h2>Chat rooms</h2>'+(D.chats.length?D.chats.map(function(x,i){return item('chats',x,i)}).join(''):'<p class="empty">No chat rooms yet.</p>')+'</div></div>'}
+
+// ---------- settings ----------
+function sel(key,opts,cur){return '<select data-s="'+key+'">'+opts.map(function(o){return '<option value="'+o[0]+'"'+(String(o[0])===String(cur)?' selected':'')+'>'+o[1]+'</option>'}).join('')+'</select>'}
+function menuRows(){return st.menu.map(function(m,i){return '<div class="mrow"><input type="checkbox" data-ms="'+i+'" '+(m.show?'checked':'')+' aria-label="Show '+DEF[m.k].l+'" style="width:20px;height:20px;accent-color:var(--accent)"><input data-ml="'+i+'" value="'+esc(m.l)+'" placeholder="'+DEF[m.k].l+'" aria-label="Menu name"><button class="btn sm sec" data-mv="'+i+':-1" aria-label="Move up">&uarr;</button><button class="btn sm sec" data-mv="'+i+':1" aria-label="Move down">&darr;</button></div>'}).join('')}
+function settings(){var sw=['#5E3C88','#7656AE','#2D6BE0','#0E9F8E','#D9467A','#1A0B2E'];
+ return '<div class="grid two"><div class="box"><h2>Appearance</h2><form onsubmit="return false">'+
+ '<div><label>Panel name</label><input data-s="name" value="'+esc(st.name)+'"></div>'+
+ '<div><label>Theme</label>'+sel('theme',[['light','Light'],['dark','Dark']],st.theme)+'</div>'+
+ '<div><label>Accent colour</label><div class="sw">'+sw.map(function(c){return '<button type="button" data-acc="'+c+'" style="background:'+c+'" aria-label="Use '+c+'"></button>'}).join('')+'<input type="color" data-s="acc" value="'+st.acc+'" aria-label="Custom colour"></div></div>'+
+ '<div><label>Corners</label>'+sel('r',[[4,'Sharp'],[14,'Rounded'],[24,'Extra round']],st.r)+'</div>'+
+ '<div><label>Spacing</label>'+sel('dense',[['comfortable','Comfortable'],['compact','Compact']],st.dense)+'</div>'+
+ '<div><label>Open this page first</label>'+sel('start',ORDER.map(function(k){return[k,lab(k)]}),st.start)+'</div></form></div>'+
+ '<div class="box"><h2>Your lists</h2><form onsubmit="return false"><div><label>Games (separate with commas)</label><input data-s="games" value="'+esc(st.games.join(', '))+'"></div><div><label>Event categories (separate with commas)</label><input data-s="cats" value="'+esc(st.cats.join(', '))+'"></div></form>'+
+ '<h2 style="margin-top:18px">Data</h2><div class="qk"><button class="btn bad" data-clear="d">Clear all data</button><button class="btn bad" data-clear="s">Reset settings</button></div></div></div>'+
+ '<div class="box" style="margin-top:14px"><h2>Automatic invitation codes</h2><form onsubmit="return false"><label class="chk"><input type="checkbox" data-au="on" '+(st.auto.on?'checked':'')+'> Send codes automatically to players</label><div class="grid two" style="gap:12px"><div><label>Codes per player</label><input type="number" min="1" data-au="n" value="'+st.auto.n+'"></div><div><label>Time on the site before codes (hours)</label><input type="number" min="1" data-au="hrs" value="'+st.auto.hrs+'"></div><div><label>Codes expire after (days)</label><input type="number" min="1" data-au="days" value="'+st.auto.days+'"></div></div><div><button type="button" class="btn sec" data-run>Check now</button></div></form></div>'+
+ '<div class="box" style="margin-top:14px"><h2>Menu</h2><p class="mut" style="margin-bottom:10px;font-size:14px">Tick to show, rename, and reorder sections.</p><div id="mrows">'+menuRows()+'</div></div>'}
+
+// ---------- apply, nav, router ----------
+function apply(){var r=document.documentElement;r.dataset.theme=st.theme;r.dataset.dense=st.dense;r.style.setProperty('--accent',st.acc);r.style.setProperty('--r',st.r+'px');$('#brand').textContent=st.name;document.title=st.name+' Admin'}
+function navBtn(k,l){return '<button class="nav" data-v="'+k+'"'+(k===cur?' aria-current="page"':'')+'><svg viewBox="0 0 24 24"><path d="'+DEF[k].i+'"/></svg>'+esc(l)+'</button>'}
+var cur='dash';
+function nav(){var h='',g='';st.menu.forEach(function(m){if(!m.show)return;var d=DEF[m.k];if(d.g!==g){h+='<div class="grp">'+d.g+'</div>';g=d.g}h+=navBtn(m.k,m.l||d.l)});$('#nav').innerHTML=h+'<div class="grp">System</div>'+navBtn('settings','Settings')}
+function go(v){cur=v;var m=$('#main');m.innerHTML=v==='dash'?dash():v==='settings'?settings():listView(v);
+ $('#title').textContent=v==='settings'?'Settings':lab(v);$('#side').classList.remove('open');nav();
+ if(CFG[v]&&v!=='dash'){fill(v);$('#q').oninput=function(){fill(v)}}tick()}
+setInterval(tick,1000);
+
+// ---------- add / edit dialog ----------
+var dlg=$('#dlg'),ctx=null;
+function fh(f,x){var v=x[f[0]],o=typeof f[3]==='function'?f[3]():f[3],h='<div><label for="f_'+f[0]+'">'+f[1]+(f[4]?' (optional)':'')+'</label>',req=f[4]?'':'required';
+ if(f[2]==='dts')return h+'<input id="f_'+f[0]+'" name="'+f[0]+'" type="datetime-local" value="'+lt(v||Date.now())+'" required></div>';
+ if(f[2]==='select')return h+'<select id="f_'+f[0]+'" name="'+f[0]+'">'+o.map(function(z){return '<option'+(z===v?' selected':'')+'>'+esc(z)+'</option>'}).join('')+'</select></div>';
+ if(f[2]==='area')return h+'<textarea id="f_'+f[0]+'" name="'+f[0]+'" '+req+'>'+esc(v||'')+'</textarea></div>';
+ if(f[2]==='check')return '<label class="chk"><input type="checkbox" name="'+f[0]+'" '+(v?'checked':'')+'> '+f[1]+'</label>';
+ if(f[2]==='hrs')v=x.end?Math.max(0,Math.round((x.end-Date.now())/H*10)/10):24;
+ if(f[2]==='number'&&v==null)v=f[0]==='qty'?1:f[0]==='days'?14:f[0]==='lim'?16:'';
+ return h+'<input id="f_'+f[0]+'" name="'+f[0]+'" type="'+(f[2]==='hrs'?'number':f[2])+'" '+(f[2]==='number'||f[2]==='hrs'?'min="0" step="any"':'')+' value="'+esc(v==null?'':v)+'" '+req+'></div>'}
+function openDlg(k,i){ctx={k:k,i:i};var c=CFG[k],x=i>=0?D[k][i]:{};$('#dt').textContent=i>=0?'Edit '+c.one:c.add;
+ $('#df').innerHTML=c.f.map(function(f){return fh(f,x)}).join('')+'<div class="fa"><button type="button" class="btn sec" data-close>Cancel</button><button class="btn" type="submit">'+(i>=0?'Save changes':'Save')+'</button></div>';dlg.showModal()}
+$('#df').onsubmit=function(e){e.preventDefault();var k=ctx.k,fd=new FormData(e.target),o=ctx.i>=0?D[k][ctx.i]:{d:new Date().toLocaleDateString()};
+ if(k==='invites'){for(var n=0;n<Math.min(+fd.get('qty')||1,100);n++)D.invites.unshift({c:code(),note:(fd.get('note')||'').trim(),s:'unused',exp:Date.now()+(+fd.get('days')||14)*864e5});toast('Codes generated')}
+ else{CFG[k].f.forEach(function(f){var v=fd.get(f[0]);if(f[2]==='check')o[f[0]]=!!v;else if(f[2]==='number')o[f[0]]=+v||0;else if(f[2]==='dts')o[f[0]]=new Date(v).getTime()||Date.now();else if(f[2]==='hrs')o.end=Date.now()+(+v||0)*H;else o[f[0]]=(v||'').trim()});
+  if(k==='fixtures'&&o.a.toLowerCase()===o.b.toLowerCase()){toast('Pick two different players');return}
+  if(ctx.i<0)D[k].unshift(o);toast(ctx.i<0?'Added':'Saved')}
+ save();dlg.close();go(cur)};
+
+// ---------- clicks and settings changes ----------
+document.addEventListener('click',function(e){var t=e.target,b;
+ if(t.closest('[data-close]')){dlg.close();return}
+ if(b=t.closest('[data-v]')){go(b.dataset.v);return}
+ if(b=t.closest('[data-add]')){openDlg(b.dataset.add,-1);return}
+ if(b=t.closest('[data-ed]')){var p=b.dataset.ed.split(':');openDlg(p[0],+p[1]);return}
+ if(b=t.closest('[data-del]')){var q=b.dataset.del.split(':');if(confirm('Delete this '+CFG[q[0]].one+'?')){D[q[0]].splice(+q[1],1);save();go(cur)}return}
+ if(b=t.closest('[data-cp]')){navigator.clipboard&&navigator.clipboard.writeText(b.dataset.cp);toast('Code copied');return}
+ if(b=t.closest('[data-rv]')){D.invites.forEach(function(i){if(i.c===b.dataset.rv)i.s='revoked'});save();go(cur);return}
+ if(b=t.closest('[data-run]')){var mm=autoInvites();toast(mm?mm+' codes sent':'No players qualify right now');go(cur);return}
+ if(b=t.closest('[data-acc]')){st.acc=b.dataset.acc;save();apply();go('settings');return}
+ if(b=t.closest('[data-mv]')){var m=b.dataset.mv.split(':'),i=+m[0],j=i+ +m[1];if(st.menu[j]){var z=st.menu[i];st.menu[i]=st.menu[j];st.menu[j]=z;save();go('settings')}return}
+ if(b=t.closest('[data-clear]')){if(confirm(b.dataset.clear==='d'?'Delete ALL panel data? This cannot be undone.':'Reset all settings?')){if(b.dataset.clear==='d')D=fresh();else st=freshSt();save();apply();go(cur)}return}
+});
+document.addEventListener('input',function(e){var t=e.target,k;
+ if(t.dataset.s){k=t.dataset.s;var v=t.value;if(k==='games'||k==='cats')v=v.split(',').map(function(x){return x.trim()}).filter(Boolean);else if(k==='r')v=+v;st[k]=v;save();apply();if(k==='start')nav()}
+ else if(t.dataset.au){var au=t.dataset.au;st.auto[au]=au==='on'?t.checked:Math.max(1,+t.value||1);save()}
+ else if(t.dataset.ms!=null){st.menu[+t.dataset.ms].show=t.checked;save();nav()}
+ else if(t.dataset.ml!=null){st.menu[+t.dataset.ml].l=t.value;save();nav()}});
+$('#menu').onclick=function(){$('#side').classList.toggle('open')};
+// ---------- automatic invitation codes (runs while this panel is open) ----------
+// TODO: also run this rule on the server (Supabase scheduled function) so it works when no admin is online.
+function autoInvites(){var a=st.auto,made=0;if(!a.on)return 0;D.players.forEach(function(p){if(p.gift||p.st==='suspended'||!p.j||Date.now()-p.j<a.hrs*H)return;for(var i=0;i<a.n;i++)D.invites.unshift({c:code(),note:'Automatic reward',own:p.n,s:'unused',exp:Date.now()+a.days*864e5});p.gift=Date.now();made+=a.n});if(made)save();return made}
+function live(){var m=autoInvites();if(m){toast(m+' invitation codes sent automatically');if(!dlg.open&&cur!=='settings')go(cur)}}
+setInterval(live,15000);
+window.addEventListener('storage',function(e){if(e.key&&e.key.indexOf(KEY)===0&&!dlg.open){D=Object.assign(fresh(),load('d',{}));st=Object.assign(freshSt(),load('s',{}));apply();go(cur)}});
+apply();autoInvites();go(st.start&&DEF[st.start]?st.start:'dash');
+</script>
+</body>
+</html>

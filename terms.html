@@ -1,0 +1,427 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#FFFFFF">
+<meta name="color-scheme" content="light">
+<title>Terms of use · Countrex</title>
+<meta name="description" content="The rules for using Countrex.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,600;12..96,700;12..96,800&display=swap" rel="stylesheet">
+<style>
+/* =====================================================================
+   COUNTREX SHARED LOOK (css/shell.css)
+   Every page that uses js/shell.js uses this file, so the phone-style screen, top bar, bottom tab bar,
+   menu and popup look the same everywhere. Change a colour here and all those pages change.
+   ===================================================================== */
+:root{--bg:#FFFFFF;--ink:#1A0B2E;--muted:#6A5F7C;--line:#DDD4EA;--field:#F6F2FB;--accent:#5B2C8F;--accent-hi:#6E37AB;--pline:#BBA0DA;--stage:#E9E2F4;--gold:#E8A400;--tab:70px}
+*,*::before,*::after{box-sizing:border-box}
+[hidden]{display:none!important}
+html{background:var(--stage)}
+@media (prefers-reduced-motion:no-preference){html{scroll-behavior:smooth}}
+body{margin:0;background:var(--stage);color:var(--ink);font-family:"Bricolage Grotesque",Arial,sans-serif;line-height:1.5;-webkit-font-smoothing:antialiased;-webkit-tap-highlight-color:transparent}
+button{font:inherit;color:inherit}
+a{color:inherit;text-decoration:none}
+a:focus-visible,button:focus-visible{outline:3px solid var(--accent);outline-offset:3px}
+
+/* the phone screen: never wider than a phone, centred on a laptop */
+.app{position:relative;max-width:480px;min-height:100dvh;margin:0 auto;background:var(--bg);padding-bottom:calc(var(--tab) + env(safe-area-inset-bottom,0px));box-shadow:0 0 0 1px var(--line),0 40px 90px -40px rgba(26,11,46,.5)}
+
+/* ----- top bar ----- */
+.top{position:sticky;top:0;z-index:20;display:flex;align-items:center;gap:10px;height:60px;padding:env(safe-area-inset-top,0px) 16px 0 20px;background:rgba(255,255,255,.94);backdrop-filter:blur(8px);border-bottom:1px solid var(--line)}
+.top:has(.back){padding-left:12px}
+.brand{font-weight:800;font-size:1.5rem;letter-spacing:-.03em;margin-right:auto}
+.ttl{margin:0 auto 0 0;font-size:1.35rem;letter-spacing:-.03em;font-weight:800;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.back{flex:none;display:grid;place-items:center;width:44px;height:44px;border:0;border-radius:14px;background:var(--field);color:var(--ink);cursor:pointer}
+.back:hover{background:#ECE4F7}
+.back svg{width:24px;height:24px}
+.right{display:flex;align-items:center;gap:8px;margin-left:auto}
+button.wal{border:0;cursor:pointer}
+.wal{position:relative;width:44px;height:44px;border-radius:14px;background:var(--field);display:grid;place-items:center;color:var(--accent)}
+.wal:hover{background:#ECE4F7}
+.wal svg{width:25px;height:25px}
+.dot{position:absolute;top:8px;right:9px;width:11px;height:11px;border-radius:50%;background:#C0213F;border:2px solid var(--field)}
+.burger{width:44px;height:44px;border:0;border-radius:14px;background:var(--field);cursor:pointer;position:relative}
+.burger span,.burger span::before,.burger span::after{position:absolute;left:12px;width:20px;height:2.5px;border-radius:2px;background:var(--ink);content:""}
+.burger span{top:20px}.burger span::before{left:0;top:-7px}.burger span::after{left:0;top:7px}
+
+/* ----- bottom tab bar ----- */
+.tabs{position:fixed;left:50%;bottom:0;transform:translateX(-50%);z-index:40;width:100%;max-width:480px;display:grid;grid-template-columns:repeat(4,1fr);padding:6px 6px calc(6px + env(safe-area-inset-bottom,0px));background:rgba(255,255,255,.97);backdrop-filter:blur(10px);border-top:1px solid var(--line)}
+.tabs a{display:flex;flex-direction:column;align-items:center;gap:2px;padding:7px 2px 6px;border-radius:16px;font-size:.75rem;font-weight:600;color:var(--muted)}
+.tabs .e{font-size:1.5rem;line-height:1.1}
+.tabs a:hover{background:var(--field);color:var(--ink)}
+.tabs a.on{background:var(--field);color:var(--accent)}
+
+/* ----- the 3-dash menu and the notifications panel ----- */
+.scrim{position:fixed;inset:0;z-index:50;background:rgba(26,11,46,.45)}
+.sheet{position:fixed;z-index:60;top:60px;left:50%;transform:translateX(-50%);width:100%;max-width:480px;padding:10px 14px 16px;background:var(--bg);border-radius:0 0 26px 26px;box-shadow:0 30px 60px -30px rgba(26,11,46,.5)}
+.who{padding:8px 12px 12px;margin-bottom:6px;border-bottom:1px solid var(--line);color:var(--muted);font-size:.95rem}
+.sheet a{display:flex;align-items:center;gap:14px;padding:15px 12px;border-radius:16px;font-weight:700;font-size:1.1rem;cursor:pointer}
+.sheet a:hover{background:var(--field)}
+.sheet .e{font-size:1.5rem;width:34px;text-align:center}
+.notes h3{margin:6px 12px 4px;font-size:1.3rem;letter-spacing:-.02em}
+.empty{padding:34px 24px;text-align:center;color:var(--muted)}
+.empty svg{width:46px;height:46px;color:var(--pline)}
+.empty .big{font-size:2.6rem;line-height:1}
+.empty b{display:block;margin:10px 0 4px;color:var(--ink);font-size:1.1rem}
+@media (prefers-reduced-motion:no-preference){.sheet{animation:drop .22s ease-out}}
+@keyframes drop{from{opacity:0;transform:translate(-50%,-10px)}}
+
+/* ----- the 3-dash menu (same as the homepage) ----- */
+.menu{position:fixed;z-index:60;top:12px;left:50%;transform:translateX(-50%);width:calc(100% - 24px);max-width:456px;max-height:calc(100dvh - 24px);overflow-y:auto;padding:8px 14px 14px;background:var(--bg);border-radius:28px;box-shadow:0 30px 70px -26px rgba(26,11,46,.55)}
+.mhead{display:flex;align-items:center;justify-content:space-between;padding:8px 6px 12px}
+.mbrand{font-weight:800;font-size:1.35rem;letter-spacing:-.03em}
+.mclose{display:grid;place-items:center;width:42px;height:42px;border:0;border-radius:14px;background:var(--field);color:var(--ink);cursor:pointer}
+.mclose:hover{background:#ECE4F7}
+.mclose svg{width:20px;height:20px}
+/* the profile card at the top */
+.mprofile{display:flex;align-items:center;gap:14px;padding:14px;border-radius:22px;background:var(--field)}
+.mprofile:hover{background:#EFE7FA}
+.mav{flex:none;display:grid;place-items:center;width:52px;height:52px;border-radius:50%;background:linear-gradient(135deg,#7A45B8,var(--accent));color:#fff;font-weight:800;font-size:1.3rem}
+.mav svg{width:26px;height:26px}
+.mwho{flex:1;min-width:0}
+.mwho b{display:block;font-size:1.1rem;letter-spacing:-.01em;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.mwho small{color:var(--muted)}
+/* the menu items */
+.mgrp{margin:16px 10px 2px;font-size:.74rem;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
+.mlist{display:grid;gap:2px;margin:10px 0 0}
+.mlist a{display:flex;align-items:center;gap:14px;padding:10px 8px;border-radius:16px;font-weight:700;font-size:1.05rem;cursor:pointer}
+.mlist a:hover{background:var(--field)}
+.mlist a>span:nth-child(2){flex:1}
+.mi{flex:none;display:grid;place-items:center;width:42px;height:42px;border-radius:13px;background:var(--field);color:var(--accent)}
+.mi svg{width:22px;height:22px}
+.chev{flex:none;width:18px;height:18px;color:#B8AECB}
+.mdiv{height:1px;margin:10px 8px;background:var(--line)}
+.mlist a.danger{color:#C0213F}
+.mlist a.danger .mi{background:#FDE7EA;color:#C0213F}
+@media (prefers-reduced-motion:no-preference){.menu{animation:drop .22s ease-out}}
+
+/* ----- the "log in to continue" popup ----- */
+dialog{border:0;border-radius:26px;padding:28px;max-width:400px;width:calc(100% - 32px);background:var(--bg);color:var(--ink)}
+dialog::backdrop{background:rgba(26,11,46,.6)}
+dialog h3{margin:0 0 8px;font-size:1.7rem;letter-spacing:-.03em;line-height:1.05}
+dialog p{margin:0 0 22px;color:var(--muted)}
+.row{display:flex;gap:12px}
+.row a{flex:1;text-align:center;padding:14px;border-radius:999px;font-weight:700;border:1.5px solid var(--ink)}
+.row a.main{background:var(--accent);border-color:var(--accent);color:#fff}
+.row a.main:hover{background:var(--accent-hi)}
+.row a:not(.main):hover{background:var(--ink);color:var(--bg)}
+.x{display:block;margin:14px auto 0;background:none;border:0;color:var(--muted);cursor:pointer}
+
+/* ----- page content helpers (used by the pages) ----- */
+.pg{padding:26px 20px 40px}
+.pt{margin:0 0 8px;font-size:2.3rem;line-height:1;letter-spacing:-.04em;font-weight:800}
+.lead{margin:0 0 24px;color:var(--muted);font-size:1.05rem}
+.card{margin:0 0 16px;padding:20px;border:1px solid var(--line);border-radius:22px;background:var(--bg)}
+.card.tint{background:var(--field);border-color:transparent}
+.card h3{margin:0 0 8px;font-size:1.2rem;letter-spacing:-.02em}
+.card p{margin:0 0 10px;color:var(--muted)}
+.card p:last-child{margin-bottom:0}
+.ticks{list-style:none;margin:0;padding:0}
+.ticks li{display:flex;gap:12px;padding:10px 0;border-top:1px solid var(--line)}
+.ticks li:first-child{border-top:0}
+.ticks .e{font-size:1.4rem;line-height:1.3}
+.ticks b{display:block}.ticks span{color:var(--muted)}
+.fine{margin:22px 0 0;color:var(--muted);font-size:.85rem}
+.btn{display:flex;align-items:center;justify-content:center;width:100%;height:54px;border:0;border-radius:999px;background:var(--accent);color:#fff;font-weight:700;font-size:1.05rem;cursor:pointer}
+.btn:hover{background:var(--accent-hi)}
+.btn.out{background:none;color:var(--ink);border:1.5px solid var(--ink)}
+.btn.out:hover{background:var(--ink);color:var(--bg)}
+.btn[disabled]{opacity:.45;cursor:default}
+.more{display:flex;align-items:center;justify-content:center;height:52px;margin-top:18px;border-radius:999px;border:1.5px solid var(--ink);font-weight:700}
+.more:hover{background:var(--ink);color:var(--bg)}
+.kv{display:flex;justify-content:space-between;gap:12px;padding:14px 0;border-top:1px solid var(--line)}
+.kv:first-of-type{border-top:0}
+.kv span{color:var(--muted)}.kv b{text-align:right}
+.soon{color:var(--muted);font-weight:600}
+
+/* ----- the wallet balance card ----- */
+.bal{padding:24px 22px;border-radius:26px;background:linear-gradient(135deg,#2A1050,var(--accent));color:#fff;margin-bottom:16px}
+.bal small{opacity:.8}.bal b{display:block;margin-top:4px;font-size:2rem;letter-spacing:-.03em;line-height:1.1}
+
+/* ----- event cards (the cover on top is yours to design, 16:9) ----- */
+.ev{border-radius:26px;overflow:hidden;background:var(--bg);border:1px solid var(--line);box-shadow:0 18px 40px -30px rgba(26,11,46,.5)}
+.cover{aspect-ratio:16/9;display:grid;place-items:center;background:linear-gradient(135deg,var(--c1,#1A0B2E),var(--c2,#5B2C8F));color:#fff;font-weight:800;font-size:1.6rem;letter-spacing:-.02em}
+.cover img{display:block;width:100%;height:100%;object-fit:cover}
+.evb{padding:18px 20px 20px}
+.evb h3{margin:0 0 2px;font-size:1.3rem;letter-spacing:-.02em;line-height:1.15}
+.evb small{color:var(--muted)}
+.tba{margin:14px 0;padding:12px 14px;border-radius:14px;background:var(--field);color:var(--muted);font-weight:600;text-align:center}
+.cd{display:flex;gap:8px;margin:14px 0}
+.cd div{flex:1;text-align:center;padding:9px 2px;border-radius:14px;background:var(--field)}
+.cd b{display:block;font-size:1.45rem;line-height:1.1;font-variant-numeric:tabular-nums}
+.cd span{font-size:.75rem;color:var(--muted)}
+.prize{display:flex;justify-content:space-between;gap:12px;padding-top:12px;border-top:1px solid var(--line);font-weight:700}
+.prize .pv{color:var(--accent);text-align:right}
+.evlist{display:grid;gap:22px}
+
+/* ----- game pages: a poster on top that melts into the game's colour (--base) ----- */
+.ghero{background:var(--base)}
+.gshot{position:relative;aspect-ratio:4/3;overflow:hidden}
+.gshot img{display:block;width:100%;height:100%;object-fit:cover}
+.gshot::after{content:"";position:absolute;left:0;right:0;bottom:0;height:16%;background:linear-gradient(to bottom,transparent,var(--base))}
+.gcap{padding:2px 22px 26px;color:#fff}
+.gcap h2{margin:0;font-size:2rem;letter-spacing:-.035em;line-height:1.05;font-weight:800}
+.gcap span{color:rgba(255,255,255,.72)}
+.toast{position:fixed;left:50%;bottom:90px;transform:translateX(-50%);z-index:80;max-width:min(90vw,420px);padding:12px 18px;border-radius:14px;background:var(--ink);color:#fff;font-weight:600}
+@media (max-width:380px){.tabs a{font-size:.7rem}}
+
+.draft{margin:0 0 20px;padding:12px 14px;border-radius:14px;background:#FFF1D6;color:#7A5200;font-weight:600;font-size:.92rem}
+.legal h3{margin:24px 0 6px;font-size:1.15rem;letter-spacing:-.02em}
+.legal p,.legal li{color:var(--muted)}
+.legal ul{padding-left:20px;margin:0 0 8px}
+.edit{background:#FFE58F;color:#5C4300;padding:0 4px;border-radius:4px;font-weight:700}
+</style>
+<!--
+  TERMS OF USE PAGE.
+  The shared look (css/shell.css) and the shared top bar, tab bar, menu and popup (js/shell.js) are stored INSIDE this file,
+  so this page works on its own. Only js/supabase.js (yours) is needed next to it.
+  What is set on <body> tells shell.js the title, the back arrow, the lit tab and whether a login is needed.
+-->
+<style id="cx-dark">
+/* Dark mode. Applies when <html data-theme="dark"> (set from Settings > Preferences > Appearance). */
+html[data-theme="dark"]{color-scheme:dark;--bg:#131114;--ink:#EDE8F3;--muted:#9A92A8;--line:#2A252F;--field:#1B181E;--accent:#9D6FE0;--accent-hi:#B186EA;--pline:#3B3342;--stage:#0C0B0D;--btn:#6D3BB3}
+html[data-theme="dark"] body{background:var(--stage);color:var(--ink)}
+html[data-theme="dark"] .top,html[data-theme="dark"] .tabs{background:rgba(19,17,20,.97)}
+html[data-theme="dark"] .top{border-bottom:1px solid var(--line)}
+html[data-theme="dark"] .wal:hover,html[data-theme="dark"] .mclose:hover,html[data-theme="dark"] .mprofile:hover{background:#26212B}
+html[data-theme="dark"] .tabs a:hover,html[data-theme="dark"] .tabs a.on{background:#241F29}
+html[data-theme="dark"] .scrim{background:rgba(0,0,0,.6)}
+html[data-theme="dark"] .sheet,html[data-theme="dark"] .menu{background:#18151B;border:1px solid var(--line);box-shadow:0 30px 60px -30px #000}
+html[data-theme="dark"] .mav{background:var(--btn)}
+html[data-theme="dark"] .chev{color:#5E566A}
+html[data-theme="dark"] .mlist a.danger{color:#F0788E}
+html[data-theme="dark"] .mlist a.danger .mi{background:#3A1A22;color:#F0788E}
+html[data-theme="dark"] dialog{background:#18151B;border:1px solid var(--line);color:var(--ink)}
+html[data-theme="dark"] dialog::backdrop{background:rgba(0,0,0,.7)}
+html[data-theme="dark"] .cta .go,html[data-theme="dark"] .row a.main{background:var(--btn);border-color:var(--btn);box-shadow:none}
+html[data-theme="dark"] .cta .gh,html[data-theme="dark"] .row a,html[data-theme="dark"] .more{border-color:var(--pline)}
+html[data-theme="dark"] .hero{background:none}
+html[data-theme="dark"] .chip{background:var(--field);box-shadow:none}
+html[data-theme="dark"] .game{box-shadow:none;border:1px solid var(--line)}
+html[data-theme="dark"] .pick{background:var(--ink);color:#131114}
+html[data-theme="dark"] .sec.alt{background:#0F0D11}
+html[data-theme="dark"] .ev{box-shadow:none;background:var(--field)}
+html[data-theme="dark"] .tba,html[data-theme="dark"] .cd div{background:#131114}
+html[data-theme="dark"] input,html[data-theme="dark"] select,html[data-theme="dark"] textarea{color:var(--ink);background:var(--field)}
+html[data-theme="dark"] .app{box-shadow:0 0 0 1px var(--line)}
+/* pages with their own token names (wallet, notifications) */
+html[data-theme="dark"]{--purple:#6D3BB3;--purple-dark:#9D6FE0;--purple-soft:#241F29;--white:#18151B;--green:#3FCB92;--red:#F0788E}
+html[data-theme="dark"] .content{background:var(--bg)}
+html[data-theme="dark"] .chip:not(.active),html[data-theme="dark"] .sheet,html[data-theme="dark"] .tx,html[data-theme="dark"] .stat,html[data-theme="dark"] .nav,html[data-theme="dark"] .sheet input{background:var(--white);color:var(--ink)}
+html[data-theme="dark"] .btn-ghost,html[data-theme="dark"] .topbar .burger{color:#C9AEF0}
+/* the menu kit re-declares light colours on .menu/.scrim/.burger */
+html[data-theme="dark"] .menu,html[data-theme="dark"] .scrim,html[data-theme="dark"] .burger{--bg:#131114;--ink:#EDE8F3;--muted:#9A92A8;--line:#2A252F;--field:#1B181E;--accent:#9D6FE0;--pline:#3B3342}
+html[data-theme="dark"] .burger span,html[data-theme="dark"] .burger span::before,html[data-theme="dark"] .burger span::after{background:var(--ink)}
+html[data-theme="dark"] .bottom-nav{background:#131114}
+/* login, signup */
+html[data-theme="dark"]{--panel:#131114;--pslot:#1F1B23;--glow:#9D6FE0;--ring:rgba(157,111,224,.3);--err:#F0788E;--ok:#3FCB92}
+html[data-theme="dark"] .btn{background:var(--btn)}
+html[data-theme="dark"] .btn:hover{background:#7C48C6}
+html[data-theme="dark"] .nm{fill:#C9BFD8}
+html[data-theme="dark"] .nm.you,html[data-theme="dark"] #you.on .nm{fill:#fff}
+html[data-theme="dark"] ::placeholder{color:#7C7389}
+html[data-theme="dark"] .ghost{border-color:var(--pline)}
+html[data-theme="dark"] .ghost:hover{background:var(--ink);color:var(--bg)}
+html[data-theme="dark"] .tut{background:var(--field)}
+/* community, leaderboard */
+html[data-theme="dark"] .filters{background:rgba(19,17,20,.97)}
+html[data-theme="dark"] .filters button,html[data-theme="dark"] .chips button,html[data-theme="dark"] .fchips button{background:var(--field);color:var(--ink)}
+html[data-theme="dark"] .filters button.on{background:var(--btn);color:#fff}
+html[data-theme="dark"] .msgs .msg{background:#241F29;color:var(--ink);box-shadow:none}
+html[data-theme="dark"] .msgs .msg.mine{background:var(--btn);color:#fff}
+html[data-theme="dark"] .dsep span{background:#241F29;color:var(--muted)}
+html[data-theme="dark"] .compose textarea:focus{background:var(--field)}
+html[data-theme="dark"] .star:hover{background:#26212B}
+html[data-theme="dark"] .skel{background:linear-gradient(90deg,#1B181E,#26212B,#1B181E);background-size:200% 100%}
+html[data-theme="dark"] .seg button[aria-selected="true"]{background:var(--btn);color:#fff;box-shadow:none}
+html[data-theme="dark"] .head{background:linear-gradient(180deg,#1B181E 0,#131114 220px)}
+html[data-theme="dark"] .me{background:linear-gradient(135deg,#241F29,var(--btn))}
+html[data-theme="dark"] .chat,html[data-theme="dark"] .chead,html[data-theme="dark"] .compose,html[data-theme="dark"] .only{background:var(--bg)}
+html[data-theme="dark"] .toast{background:#EDE8F3;color:#131114}
+</style>
+<script>(function(){try{var t=(JSON.parse(localStorage.getItem("countrex_settings")||"{}").theme)||"light";if(t==="system")t=matchMedia("(prefers-color-scheme:dark)").matches?"dark":"light";if(t==="dark")document.documentElement.setAttribute("data-theme","dark")}catch(e){}})();</script>
+</head>
+<body data-title="Terms of use" data-back="help.html">
+<div class="app">
+<main class="pg legal">
+  <h2 class="pt">Terms of use</h2>
+  <p class="lead">The rules for using Countrex.</p>
+  <p class="draft">Draft: this is a starting text, not legal advice. Fill in the highlighted parts and have it checked by a lawyer before you launch.</p>
+  <h3>1. Using Countrex</h3><p>Countrex lets players join esports tournaments, climb the rankings and talk with the community. By creating an account you agree to these terms. You must be at least <span class="edit">[EDIT: minimum age]</span> years old, or old enough to use Countrex where you live.</p>
+  <h3>2. Your account</h3><ul><li>Give true information and keep your login to yourself.</li><li>One person, one account.</li><li>You are responsible for what happens on your account.</li></ul>
+  <h3>3. Tournaments and fair play</h3><ul><li>Play fair. Cheat tools, modified apps, bots and match fixing are not allowed.</li><li>Each tournament has its own rules on its card. Admin decisions on results are final.</li><li>Be respectful. Insults, threats and harassment can get you banned.</li></ul>
+  <h3>4. Wallet, entry fees and prizes</h3><p>Entry fees are taken from your wallet when you join a tournament. Prizes are added to your wallet after the result is confirmed. To withdraw money you must confirm your email and add a payout account. <span class="edit">[EDIT: refund rules, withdrawal times and any fees]</span></p>
+  <h3>5. Breaking the rules</h3><p>If you break these terms or a tournament’s rules we may remove results, take back prizes, suspend or close your account.</p>
+  <h3>6. Games and brands</h3><p>Countrex is not affiliated with, endorsed by or sponsored by Konami, Activision or Electronic Arts. Game names and artwork belong to their respective owners.</p>
+  <h3>7. Changes</h3><p>We may update these terms. If we make an important change we will tell you in the app.</p>
+  <h3>8. Contact</h3><p><!-- EDIT: write your contact email or number here -->Contact details coming soon.</p>
+  <p class="fine"><a href="privacy.html">Privacy policy</a> · <a href="help.html">Help &amp; Support</a></p>
+</main>
+</div>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
+<script src="js/supabase.js"></script>
+<script>
+/* =====================================================================
+   COUNTREX SHARED NAVIGATION (js/shell.js)
+   Put this on any page and it adds: the top bar (back arrow or name, bell, wallet, 3-dash menu),
+   the bottom tab bar (Home, Events, Community), the menu, the notifications panel and the
+   "Log in to continue" popup. It also knows who is logged in.
+
+   A page tells it what to do with attributes on <body>:
+     data-title="Wallet"        the title shown in the top bar (leave out to show "Countrex")
+     data-back="index.html"     show a back arrow that goes to this page
+     data-tab="events"          which bottom tab is lit: home, events, leaderboard or community (leave out for none)
+     data-login="required"      only logged-in players may see the page (others are sent to the login page)
+   Load order on a page: the Supabase library, js/supabase.js, then this file.
+   ===================================================================== */
+(function () {
+  "use strict";
+  var B = document.body, D = B.dataset, app = document.querySelector(".app");
+  var page = location.pathname.split("/").pop() || "index.html";
+  var need = D.login === "required";
+  // ===== LOGIN SWITCH. false = the "Log in to continue" popup is OFF: every link just opens (while you build).
+  //       Change to true when you are done and want the login popup back for logged-out visitors. =====
+  var REQUIRE_LOGIN = false;
+  if (!app) return;
+  if (need) app.style.visibility = "hidden";          // hide the page until we know someone is logged in
+  function esc(t) { return String(t == null ? "" : t).replace(/[&<>"']/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c] }) }
+  function $(id) { return document.getElementById(id) }
+
+  // ---------- the pieces ----------
+  var ARROW = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19 12H5M11 5l-7 7 7 7"/></svg>';
+  var BELL = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9.5a6 6 0 0 1 12 0c0 4.6 2 6.2 2 6.2H4s2-1.6 2-6.2z"/><path d="M10 19a2.1 2.1 0 0 0 4 0"/></svg>';
+  var WALLET = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 6.2 16.2 3.6a1.5 1.5 0 0 1 1.8 1.1l.3 1.3"/><rect x="2.5" y="6" width="19" height="13.5" rx="3"/><path d="M21.5 11.2h-4a2.2 2.2 0 0 0 0 4.4h4z"/><circle cx="17.9" cy="13.4" r=".9" fill="currentColor" stroke="none"/></svg>';
+
+  // top bar
+  app.insertAdjacentHTML("afterbegin",
+    '<header class="top">' +
+    (D.back ? '<a class="back" href="' + esc(D.back) + '" aria-label="Back">' + ARROW + '</a><h1 class="ttl">' + esc(D.title || "") + '</h1>'
+            : '<a class="brand" href="index.html">Countrex</a>') +
+    '<div class="right">' +
+    '<button class="wal" id="bell" type="button" aria-label="Notifications" aria-expanded="false" aria-controls="npanel">' + BELL + '<span class="dot" id="dot" hidden></span></button>' +
+    '<button class="burger" id="burger" type="button" aria-label="Menu" aria-expanded="false" aria-controls="sheet"><span></span></button></div></header>');
+
+  // bottom tab bar + menu + notifications + popup
+  var tabs = [["home", "index.html", "\uD83C\uDFE0", "Home"], ["events", "events.html", "\uD83D\uDCC5", "Events"], ["leaderboard", "leaderboard.html", "\uD83C\uDFC6", "Leaderboard", "Leaderboard"], ["community", "community.html", "\uD83D\uDC65", "Community", "Community"]];
+  B.insertAdjacentHTML("beforeend",
+    '<nav class="tabs" aria-label="Main">' + tabs.map(function (t) {
+      return '<a' + (D.tab === t[0] ? ' class="on"' : '') + ' href="' + t[1] + '"' + (t[4] ? ' data-gate="' + t[4] + '"' : '') +
+        '><span class="e" aria-hidden="true">' + t[2] + '</span><span class="l">' + t[3] + '</span></a>';
+    }).join("") + '</nav>' +
+    '<div class="scrim" id="scrim" hidden></div>' +
+    '<section class="sheet notes" id="npanel" aria-label="Notifications" hidden><h3>Notifications</h3><div class="empty">' + BELL +
+    '<b>You\'re all caught up</b><span>Updates about your matches and tournaments will show up here.</span></div></section>' +
+    '<aside class="menu" id="sheet" aria-label="Menu" hidden>' +
+    '<div class="mhead"><span class="mbrand">Countrex</span><button class="mclose" id="mclose" type="button" aria-label="Close menu"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button></div>' +
+    '<a class="mprofile" href="profile.html" data-gate="My Profile">' +
+    '<span class="mav" id="mav" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 20c1.5-4 5-5.5 8-5.5s6.5 1.5 8 5.5"/></svg></span>' +
+    '<span class="mwho"><b id="mname">Guest</b><small id="msub">Log in or create an account</small></span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" class="chev" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg>' +
+    '</a>' +
+    '<p class="mgrp">You</p>' +
+    '<nav class="mlist" aria-label="Your account">' +
+    '<a href="profile.html" data-gate="My Profile"><span class="mi"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 20c1.5-4 5-5.5 8-5.5s6.5 1.5 8 5.5"/></svg></span><span>My Profile</span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" class="chev" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg></a>' +
+    '<a href="wallet.html" data-gate="Wallet"><span class="mi"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 6.2 16.2 3.6a1.5 1.5 0 0 1 1.8 1.1l.3 1.3"/><rect x="2.5" y="6" width="19" height="13.5" rx="3"/><path d="M21.5 11.2h-4a2.2 2.2 0 0 0 0 4.4h4z"/><circle cx="17.9" cy="13.4" r=".9" fill="currentColor" stroke="none"/></svg></span><span>Wallet</span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" class="chev" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg></a>' +
+    '<a href="notifications.html" data-gate="Notifications"><span class="mi"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9.5a6 6 0 0 1 12 0c0 4.6 2 6.2 2 6.2H4s2-1.6 2-6.2z"/><path d="M10 19a2.1 2.1 0 0 0 4 0"/></svg></span><span>Notifications</span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" class="chev" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg></a>' +
+    '<a href="news.html"><span class="mi"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3.5" y="4" width="13" height="16" rx="2"/><path d="M16.5 8H20a1 1 0 0 1 1 1v9a2 2 0 0 1-2 2"/><path d="M7 8.5h6M7 12h6M7 15.5h4"/></svg></span><span>News</span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" class="chev" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg></a>' +
+    '</nav>' +
+    '<p class="mgrp">More</p>' +
+    '<nav class="mlist" aria-label="More">' +
+    '<a href="settings.html" data-gate="Settings"><span class="mi"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg></span><span>Settings</span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" class="chev" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg></a>' +
+    '<a href="help.html"><span class="mi"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 14v-2a8 8 0 0 1 16 0v2"/><rect x="3" y="14" width="4" height="6" rx="1.5"/><rect x="17" y="14" width="4" height="6" rx="1.5"/><path d="M19 20c0 1.5-2 2-5 2"/></svg></span><span>Help &amp; Support</span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" class="chev" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg></a>' +
+    '<a href="about.html"><span class="mi"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 8h.01"/></svg></span><span>About</span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" class="chev" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg></a>' +
+    '<a id="msign" href="signup.html" hidden><span class="mi"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="10" cy="8" r="4"/><path d="M2.5 20c1.3-3.6 4.2-5 7.5-5M18 14v6M15 17h6"/></svg></span><span>Sign up</span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" class="chev" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg></a>' +
+    '<a id="mauth" href="login.html"><span class="mi" id="mai"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 4h3a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2h-3"/><path d="M10 8l4 4-4 4M14 12H4"/></svg></span><span id="mal">Log in</span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" class="chev" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg></a>' +
+    '</nav>' +
+    '</aside>' +
+    '<dialog id="gate" aria-labelledby="gt"><h3 id="gt">Log in to continue</h3><p id="gp">You need an account to continue.</p>' +
+    '<div class="row"><a class="main" id="gin" href="login.html">Log in</a><a id="gup" href="signup.html">Sign up</a></div>' +
+    '<button class="x" id="gx" type="button">Not now</button></dialog>');
+
+  // When you come BACK to a page with the phone's back button, the browser can show an old frozen copy of it.
+  // That old copy can have a stuck popup or the wrong logged-in state. So we reload it fresh.
+  window.addEventListener("pageshow", function (e) { if (e.persisted) location.reload() });
+
+  // ---------- who is logged in ----------
+  var session = null, username = "";
+  window.countrex = window.countrex || {};
+  var ready = (async function () {
+    try {
+      if (typeof supabaseClient !== "undefined") {
+        session = (await supabaseClient.auth.getSession()).data.session;
+        if (session) {
+          username = (session.user.user_metadata || {}).username || "";
+          if (!username) {
+            var r = await supabaseClient.from("profiles").select("username").eq("id", session.user.id).single();
+            username = (r.data && r.data.username) || "";
+          }
+        }
+      }
+    } catch (e) { console.error(e) }
+    window.countrex.session = session; window.countrex.username = username;
+    if (need && !session) { location.replace("login.html?next=" + encodeURIComponent(page)); return }
+    if (session) {
+      var nm = username || "Player";
+      $("mav").textContent = nm.charAt(0).toUpperCase(); $("mname").textContent = nm; $("msub").textContent = "View your profile";
+      $("mai").innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 4H6a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h3"/><path d="M16 8l4 4-4 4M20 12H9"/></svg>'; $("mal").textContent = "Log out";
+      var t = $("mauth"); t.classList.add("danger"); t.removeAttribute("href"); t.setAttribute("role", "button"); t.setAttribute("tabindex", "0");
+      t.onclick = window.countrex.logout = async function () { try { await supabaseClient.auth.signOut() } catch (e) { } location.href = "index.html" };
+      t.onkeydown = function (e) { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); t.onclick() } };
+    } else { $("msign").hidden = false }
+    app.style.visibility = "";
+    document.dispatchEvent(new CustomEvent("countrex:ready", { detail: { session: session, username: username } }));
+  })();
+  window.countrex.ready = ready;
+
+  // ---------- links that need a login (data-gate): open them, or show the popup ----------
+  function askLogin(label, next) {
+    $("gp").textContent = "You need an account to open " + label + ".";
+    $("gin").href = "login.html?next=" + encodeURIComponent(next); $("gup").href = "signup.html?next=" + encodeURIComponent(next);
+    if (!$("gate").open) $("gate").showModal();
+  }
+  document.addEventListener("click", async function (e) {
+    var el = e.target.closest("[data-gate]"); if (!el) return;
+    e.preventDefault(); await ready; setMenu(false); setNotes(false);
+    var to = el.getAttribute("href");
+    if (session || !REQUIRE_LOGIN) location.href = to; else askLogin(el.dataset.gate, to);
+  });
+  $("gx").onclick = function () { $("gate").close() };
+
+  // ---------- 3-dash menu and bell ----------
+  var burger = $("burger"), sheet = $("sheet"), scrim = $("scrim"), bell = $("bell"), npanel = $("npanel");
+  function setMenu(open) { if (open) setNotes(false); sheet.hidden = !open; scrim.hidden = !open; burger.setAttribute("aria-expanded", open) }
+  function setNotes(open) { if (open) setMenu(false); npanel.hidden = !open; scrim.hidden = !open; bell.setAttribute("aria-expanded", open) }
+  burger.onclick = function () { setMenu(sheet.hidden) };
+  scrim.onclick = function () { setMenu(false); setNotes(false) };
+  $("mclose").onclick = function () { setMenu(false) };
+  sheet.addEventListener("click", function (e) { if (e.target.closest("a")) setMenu(false) });
+  document.addEventListener("keydown", function (e) { if (e.key === "Escape") { setMenu(false); setNotes(false) } });
+  bell.onclick = async function () {
+    await ready;
+    if (REQUIRE_LOGIN && !session) { askLogin("notifications", page); return }
+    setNotes(npanel.hidden);
+  };
+  window.setUnread = function (n) { $("dot").hidden = !n };   // later: setUnread(1) shows the red dot on the bell
+
+  // ---------- countdowns on event cards ----------
+  // Set data-start="2026-11-20T18:00:00Z" on an event card and its numbers start counting down.
+  document.querySelectorAll(".ev").forEach(function (c) {
+    var t = Date.parse(c.dataset.start || ""); if (isNaN(t)) return;
+    var box = c.querySelector(".cd"), tba = c.querySelector(".tba"); box.hidden = false; tba.hidden = true;
+    function p(n) { return n < 10 ? "0" + n : "" + n }
+    function tick() {
+      var l = Math.max(0, Math.floor((t - Date.now()) / 1000));
+      if (l === 0) { box.hidden = true; tba.hidden = false; tba.textContent = "Started"; return false }
+      box.querySelector('[data-u="d"]').textContent = Math.floor(l / 86400);
+      box.querySelector('[data-u="h"]').textContent = p(Math.floor(l % 86400 / 3600));
+      box.querySelector('[data-u="m"]').textContent = p(Math.floor(l % 3600 / 60));
+      box.querySelector('[data-u="s"]').textContent = p(l % 60); return true;
+    }
+    if (tick()) { var id = setInterval(function () { if (!tick()) clearInterval(id) }, 1000) }
+  });
+})();
+</script>
+</body>
+</html>
