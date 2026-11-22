@@ -465,7 +465,7 @@ html[data-theme="dark"] .toast{background:#EDE8F3;color:#131114}
   "use strict";
   // ===== PREVIEW SWITCH. true = demo mode: no backend needed, nothing is saved (to see the design). =====
   // When your Supabase is ready, change true to false.
-  var PREVIEW = true;
+  var PREVIEW = false;
 
   var $ = function (i) { return document.getElementById(i) };
   function esc(t) { return String(t == null ? "" : t).replace(/[&<>"']/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c] }) }
