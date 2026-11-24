@@ -458,7 +458,7 @@ html[data-theme="dark"] .toast{background:#EDE8F3;color:#131114}
   function gkey(g) { for (var k in MATCH) if (MATCH[k].test(g || "")) return k; return "" }
   function items() {
     var t = adminList("tours").map(function (x) { return { kind: "Tournament", name: x.n, game: x.g, p: +x.p || 0, lim: +x.lim || 0, end: +x.end || 0, fee: x.fee, prize: x.prize, pr: +x.pr || 0, cover: x.cover } });
-    var e = adminList("events").map(function (x) { return { kind: "Event", name: x.n, game: x.t, p: +x.p || 0, lim: +x.lim || 0, end: +x.end || 0, prize: x.prize, pr: 0 } });
+    var e = adminList("events").map(function (x) { return { kind: "Event", name: x.n, game: x.t, p: +x.p || 0, lim: +x.lim || 0, end: +x.end || 0, prize: x.prize, pr: 0, cover: x.cover } });
     var now = Date.now();
     return t.concat(e).sort(function (a, b) { var ao = a.end > now, bo = b.end > now; return ao === bo ? a.end - b.end : ao ? -1 : 1 });
   }

@@ -35,7 +35,7 @@
     try {
       var r = await Promise.all([
         c.from("tournaments").select("id,game_key,name,rules,player_limit,entry_fee,prize_pool,betting_enabled,join_closes_at,status,cover_url").neq("status", "draft").neq("status", "cancelled").order("join_closes_at"),
-        c.from("events").select("id,name,category,join_limit,prize,starts_at").order("starts_at"),
+        c.from("events").select("*").order("starts_at"),
         c.rpc("public_counts"), D.session()
       ]);
       if (r[0].error) throw r[0].error;
@@ -52,7 +52,7 @@
           rules: t.rules || "", bet: !!t.betting_enabled, cover: t.cover_url || "", joined: !!mine[t.id], status: t.status };
       });
       D.cache.events = (r[1].data || []).map(function (e) {
-        return { id: e.id, n: e.name, t: e.category, p: counts["event:" + e.id] || 0, lim: e.join_limit || 0, end: new Date(e.starts_at).getTime(), prize: e.prize || "" };
+        return { id: e.id, n: e.name, t: e.category, p: counts["event:" + e.id] || 0, lim: e.join_limit || 0, end: new Date(e.starts_at).getTime(), prize: e.prize || "", cover: e.cover_url || "" };
       });
       D.loaded = true;
     } catch (e) { console.error(e) }

@@ -150,7 +150,7 @@ dialog h2{margin-bottom:14px;font-size:19px}
   function toast(m, bad) { var t = $("toast"); t.textContent = m; t.className = "toast" + (bad ? " bad" : ""); t.hidden = false; clearTimeout(toastT); toastT = setTimeout(function () { t.hidden = true }, bad ? 5000 : 2600) }
   async function q(p) { var r = await p; if (r.error) { var e = new Error(r.error.message || "Request failed"); e.code = r.error.code; throw e } return r.data }
   var rpc = function (n, a) { return q(sb.rpc(n, a || {})) };
-  function fail(e) { console.error(e); toast(e && e.message ? e.message : "Something went wrong", true) }
+  function fail(e) { console.error(e); var m = e && e.message ? e.message : "Something went wrong"; if (/cover_url/.test(m)) m = "Run 006_event_covers.sql in Supabase first, then try again."; toast(m, true) }
   function badge(text, cls) { return '<span class="bd ' + (cls || "mut") + '">' + esc(text) + "</span>" }
   var STATUS = { active: "ok", suspended: "warn", banned: "bad", completed: "ok", pending: "warn", failed: "bad", open: "ok", live: "warn", draft: "mut", finished: "mut", cancelled: "bad", unused: "ok", used: "mut", revoked: "bad" };
   var stBadge = function (s) { return badge(s, STATUS[s] || "mut") };
@@ -585,7 +585,7 @@ dialog h2{margin-bottom:14px;font-size:19px}
     var rows = await q(sb.from("events").select("*, event_entries(count)").order("starts_at", { ascending: false }));
     cache.evts = {}; rows.forEach(function (e) { e.n = e.event_entries && e.event_entries[0] ? e.event_entries[0].count : 0; cache.evts[e.id] = e });
     main('<div class="box"><div class="hd"><h2>Events</h2><button class="btn" data-act="enew">New event</button></div>' + table([
-      { h: "Event", r: function (e) { return "<b>" + esc(e.name) + '</b><br><small class="mut">' + esc(e.category) + "</small>" } },
+      { h: "Event", r: function (e) { return '<div style="display:flex;gap:10px;align-items:center">' + (e.cover_url ? '<img src="' + esc(e.cover_url) + '" alt="" style="width:64px;height:36px;object-fit:cover;border-radius:6px;flex:none">' : "") + "<div><b>" + esc(e.name) + '</b><br><small class="mut">' + esc(e.category) + "</small></div></div>" } },
       { h: "Starts", r: function (e) { return esc(fdate(e.starts_at)) } },
       { h: "Prize", r: function (e) { return esc(e.prize || "–") } },
       { h: "Joined", n: 1, r: function (e) { return e.n + (e.join_limit ? " / " + e.join_limit : "") } },
@@ -596,12 +596,19 @@ dialog h2{margin-bottom:14px;font-size:19px}
     e = e || {};
     return [{ k: "name", l: "Name", t: "text", req: 1, v: e.name }, { k: "category", l: "Category", t: "text", req: 1, v: e.category || "Community", ph: "Community, Giveaway, Meetup…" },
       { k: "join_limit", l: "Seat limit (leave empty for no limit)", t: "number", min: 1, v: e.join_limit }, { k: "prize", l: "Prize (text)", t: "text", v: e.prize, ph: "e.g. GHS 200 + a trophy" },
-      { k: "starts_at", l: "Starts", t: "datetime", req: 1, v: toLocalInput(e.starts_at) }];
+      { k: "starts_at", l: "Starts", t: "datetime", req: 1, v: toLocalInput(e.starts_at) },
+      { k: "cover", l: "Cover picture", t: "file", v: e.cover_url, hint: "JPG, PNG or WebP. A wide 16:9 picture looks best. It is resized for you." }]
+      .concat(e.cover_url ? [{ k: "rmcover", l: "Remove the current cover", t: "checkbox" }] : []);
   }
   function evtSave(id) {
     return async function (v) {
       var row = { name: v.name, category: v.category, join_limit: v.join_limit, prize: v.prize || null, starts_at: v.starts_at };
-      if (id) await q(sb.from("events").update(row).eq("id", id)); else await q(sb.from("events").insert(row));
+      var oldUrl = id ? (cache.evts[id].cover_url || null) : null, newUrl = oldUrl;
+      if (v.cover) newUrl = await uploadCover(v.cover); else if (v.rmcover) newUrl = null;
+      row.cover_url = newUrl;
+      try { if (id) await q(sb.from("events").update(row).eq("id", id)); else await q(sb.from("events").insert(row)) }
+      catch (x) { if (newUrl && newUrl !== oldUrl) dropCover(newUrl); throw x }
+      if (oldUrl && oldUrl !== newUrl) dropCover(oldUrl);
       toast("Saved"); setTimeout(reload, 0);
     };
   }
@@ -610,7 +617,7 @@ dialog h2{margin-bottom:14px;font-size:19px}
   acts.edel = async function (el) {
     var e = cache.evts[el.dataset.id];
     if (!await confirmDlg("Delete " + esc(e.name) + "?", "Everyone who joined is removed from it.", "Delete", true)) return;
-    try { await q(sb.from("events").delete().eq("id", e.id)); toast("Deleted"); reload() } catch (x) { fail(x) }
+    try { await q(sb.from("events").delete().eq("id", e.id)); dropCover(e.cover_url); toast("Deleted"); reload() } catch (x) { fail(x) }
   };
 
   // ---------- NEWS & NOTIFICATIONS ----------
