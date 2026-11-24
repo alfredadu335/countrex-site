@@ -332,6 +332,7 @@ dialog h2{margin-bottom:14px;font-size:19px}
       '<button class="btn sm" data-act="padjust" data-id="' + p.id + '"' + (self ? " disabled" : "") + ">Adjust wallet</button>" +
       '<button class="btn sm" data-act="ppoints" data-id="' + p.id + '">Give / remove points</button>' +
       '<button class="btn sec sm" data-act="ptx" data-id="' + p.id + '">Transactions</button>' +
+      '<button class="btn sec sm" data-act="ppin" data-id="' + p.id + '">Reset wallet PIN</button>' +
       (p.status !== "active" ? '<button class="btn sec sm" data-act="pstatus" data-st="active" data-id="' + p.id + '">Restore account</button>' : "") +
       (p.status === "active" ? '<button class="btn bad sm" data-act="pstatus" data-st="suspended" data-id="' + p.id + '"' + (self ? " disabled" : "") + ">Suspend</button>" : "") +
       (p.status !== "banned" ? '<button class="btn bad sm" data-act="pstatus" data-st="banned" data-id="' + p.id + '"' + (self ? " disabled" : "") + ">Ban</button>" : "") +
@@ -369,6 +370,11 @@ dialog h2{margin-bottom:14px;font-size:19px}
     var p = cache.players[el.dataset.id], to = p.role === "admin" ? "player" : "admin";
     if (!await confirmDlg((to === "admin" ? "Make " : "Remove ") + p.username + (to === "admin" ? " an admin?" : " as admin?"), to === "admin" ? "Admins can see every player, move money and change anything on this page. Only do this for someone you fully trust." : "They will lose all admin access.", to === "admin" ? "Make admin" : "Remove admin", to === "admin")) return;
     try { await rpc("admin_set_role", { p_user: p.id, p_role: to }); toast("Role updated"); reload() } catch (e) { fail(e) }
+  };
+  acts.ppin = async function (el) {
+    var p = cache.players[el.dataset.id];
+    if (!await confirmDlg("Reset " + esc(p.username) + "'s wallet PIN?", "Only do this after you are sure it is really " + esc(p.username) + " (for example, they contact support from their own number). Their wallet locks and they create a new PIN next time they open it.", "Reset PIN", true)) return;
+    try { await rpc("admin_reset_wallet_pin", { p_user: p.id }); toast("PIN reset. " + p.username + " can create a new one now") } catch (e) { if (/does not exist/.test(e.message || "")) e.message = "Run 007_wallet_security.sql in Supabase first."; fail(e) }
   };
   acts.ptx = function (el) { W.user = el.dataset.id; W.userName = cache.players[el.dataset.id].username; W.off = 0; closeDlg(); go("wallet") };
 

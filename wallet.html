@@ -1,214 +1,122 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Countrex · Wallet</title>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="robots" content="noindex">
+<title>Countrex · Wallet</title>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,500;12..96,600;12..96,700;12..96,800&display=swap" rel="stylesheet">
+<style>
+/*
+  WALLET. Everything on this page is real: your balance and history come from Supabase, and nothing is shown
+  until you are logged in AND have entered your wallet PIN. The PIN is checked by the database, not by this page,
+  so hiding or editing this page in the browser cannot open somebody else's wallet.
+  Needs next to it: js/supabase.js, login.html. Database: 001, 002, 003, 007_wallet_security.sql.
+*/
+:root{
+  --purple:#5E3C88; --purple-dark:#46286F; --purple-soft:#F3EEF8; --ink:#1A0B2E; --muted:#6B6478;
+  --bg:#F7F3FC; --white:#FFFFFF; --line:#E7DFF0; --green:#1F8F63; --red:#C73E4C; --amber:#A8620A;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+[hidden]{display:none!important}
+body{font-family:"Bricolage Grotesque",system-ui,-apple-system,"Segoe UI",sans-serif;background:var(--bg);color:var(--ink);-webkit-font-smoothing:antialiased;line-height:1.45}
+button{font-family:inherit;color:inherit;cursor:pointer}
+input,select{font-family:inherit}
+:focus-visible{outline:3px solid var(--purple);outline-offset:2px}
+.app{max-width:600px;margin:0 auto;min-height:100vh;background:var(--white);padding-bottom:92px;visibility:hidden}
+body.ready .app{visibility:visible}
 
-  <style>
-    /* ---------- 1. DESIGN TOKENS (same as notifications page) ---------- */
-    :root {
-      --purple: #5b2d91;
-      --purple-dark: #3f1d6b;
-      --purple-soft: #f1ebfa;
-      --ink: #1a0b2e;
-      --muted: #6b6478;
-      --bg: #f7f3fc;
-      --white: #ffffff;
-      --line: #ebe5f4;
-      --green: #1fa971;
-      --red: #d64550;
-    }
+/* top bar */
+.topbar{display:flex;align-items:center;gap:12px;padding:16px 20px;border-bottom:1px solid var(--line)}
+.icon-btn{width:54px;height:54px;border-radius:16px;background:var(--purple-soft);border:0;display:grid;place-items:center;color:var(--purple);text-decoration:none;flex:none}
+.icon-btn svg{width:22px;height:22px}
+.topbar h1{font-size:24px;letter-spacing:-.02em;flex:1;font-weight:700}
+.content{padding:20px}
 
-    * { box-sizing: border-box; margin: 0; padding: 0; }
+/* locked / create PIN */
+.gate{max-width:380px;margin:28px auto 0;text-align:center}
+.lockic{width:64px;height:64px;border-radius:20px;background:var(--purple-soft);color:var(--purple);display:grid;place-items:center;margin:0 auto 16px}
+.lockic svg{width:30px;height:30px}
+.gate h2{font-size:24px;letter-spacing:-.02em;margin-bottom:6px}
+.lead{color:var(--muted);font-size:15px;margin-bottom:20px}
+.gate form{text-align:left;display:grid;gap:12px}
+label{display:block;font-size:13px;font-weight:600;color:var(--muted);margin-bottom:6px}
+.pin{width:100%;padding:15px 16px;font-size:26px;letter-spacing:.5em;text-align:center;font-weight:700;border:2px solid var(--line);border-radius:14px;background:var(--white);color:var(--ink);outline:none}
+.pin:focus{border-color:var(--purple)}
+.err{color:var(--red);font-size:14px;min-height:20px;font-weight:600}
+.small{color:var(--muted);font-size:13px;margin-top:14px}
+.primary{width:100%;padding:15px;border:0;border-radius:999px;background:var(--purple);color:#fff;font-weight:700;font-size:16px}
+.primary:hover{background:var(--purple-dark)}
+.primary:disabled{opacity:.55;cursor:not-allowed}
+.soft{padding:15px;border:0;border-radius:999px;background:var(--purple-soft);color:var(--purple);font-weight:700;font-size:15px}
+.bal .soft{background:var(--white);box-shadow:inset 0 0 0 1.5px rgba(94,60,136,.25)}
+.linkbtn{border:0;background:none;color:var(--purple);font-weight:700;font-size:14px;padding:6px 2px}
 
-    body {
-      font-family: "Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
-      background: var(--bg);
-      color: var(--ink);
-    }
+/* balance */
+.bal{padding:22px 20px 20px;border-radius:18px;background:var(--purple-soft)}
+.balhead{display:flex;align-items:center;justify-content:space-between;color:var(--muted);font-size:14px;font-weight:600}
+.eye{width:36px;height:36px;border:0;border-radius:50%;background:rgba(94,60,136,.12);color:var(--purple);display:grid;place-items:center}
+.eye svg{width:19px;height:19px}.eye .off{display:none}.eye.is-hidden .on{display:none}.eye.is-hidden .off{display:block}
+.amount{font-size:42px;font-weight:800;letter-spacing:-.03em;line-height:1.1;margin:6px 0 4px;font-variant-numeric:tabular-nums;overflow-wrap:anywhere}
+.balsub{font-size:14px;color:var(--amber);font-weight:600;min-height:20px}
+.actions{display:flex;gap:10px;margin-top:16px}
+.actions button{flex:1}
+.lockbar{display:flex;justify-content:space-between;align-items:center;margin:10px 2px 0;color:var(--muted);font-size:13px}
 
-    .app {
-      max-width: 600px;
-      margin: 0 auto;
-      min-height: 100vh;
-      background: var(--white);
-      padding-bottom: 90px;
-    }
+/* sections */
+.block{margin-top:22px}
+.block h2{font-size:19px;letter-spacing:-.01em;margin-bottom:10px;font-weight:700}
+.payout{display:flex;align-items:center;gap:12px;justify-content:space-between;padding:14px 16px;border:1px solid var(--line);border-radius:16px}
+.payout b{display:block;font-size:15px}.payout small{color:var(--muted);font-size:13px}
+.chips{display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap}
+.chip{padding:9px 16px;border-radius:999px;border:1.5px solid var(--line);background:var(--white);font-weight:600;font-size:14px}
+.chip.active{background:var(--purple);border-color:var(--purple);color:#fff}
+.day{margin:16px 0 8px;font-size:13px;font-weight:700;color:var(--muted)}
+.tx-list{display:flex;flex-direction:column}
+.tx{display:flex;align-items:center;gap:12px;padding:12px 0;border:0;border-bottom:1px solid var(--line);border-radius:0;background:none}
+.tx:last-child{border-bottom:0}
+.ico{width:40px;height:40px;border-radius:50%;background:var(--purple-soft);color:var(--purple);display:grid;place-items:center;flex:none}
+.ico svg{width:20px;height:20px}
+.ico.in{background:rgba(31,143,99,.12);color:var(--green)}.ico.out{background:rgba(199,62,76,.1);color:var(--red)}
+.tx .info{flex:1;min-width:0}
+.tx .info h4{font-size:15px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.tx .info small{color:var(--muted);font-size:13px}
+.tx .amt{font-weight:700;font-size:15px;font-variant-numeric:tabular-nums;white-space:nowrap}
+.amt.plus{color:var(--green)}.amt.minus{color:var(--ink)}.amt.wait{color:var(--amber)}.amt.void{color:var(--muted);text-decoration:line-through}
+.tag{display:inline-block;font-size:12px;font-weight:700;padding:1px 8px;border-radius:99px;margin-left:6px;vertical-align:1px}
+.tag.wait{background:rgba(168,98,10,.13);color:var(--amber)}.tag.bad{background:rgba(199,62,76,.12);color:var(--red)}
+.empty{color:var(--muted);text-align:center;padding:30px 12px;font-size:15px}
+.empty b{display:block;color:var(--ink);font-size:16px;margin-bottom:4px}
+.morebtn{width:100%;margin-top:10px}
+.row{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:14px 0;border-top:1px solid var(--line)}
 
-    /* ---------- 2. TOP BAR ---------- */
-    .topbar {
-      display: flex; align-items: center; gap: 12px;
-      padding: 16px 24px;
-      border-bottom: 1px solid var(--line);
-    }
-    .icon-btn {
-      width: 54px; height: 54px; border-radius: 16px;
-      background: var(--purple-soft); border: none;
-      display: grid; place-items: center;
-      font-size: 22px; color: var(--purple);
-      cursor: pointer; text-decoration: none;
-    }
-    .topbar h1 { font-size: 26px; letter-spacing: -0.5px; flex: 1; }
+/* pop-up */
+.overlay{position:fixed;inset:0;background:rgba(26,11,46,.55);display:none;align-items:flex-end;justify-content:center;z-index:200}
+.overlay.open{display:flex}
+.sheet{width:100%;max-width:600px;background:var(--white);border-radius:24px 24px 0 0;padding:24px 20px 28px;max-height:92vh;overflow:auto}
+.sheet h3{font-size:21px;letter-spacing:-.01em;margin-bottom:6px}
+.sheet p.lead{margin-bottom:14px}
+.sheet form{display:grid;gap:12px}
+.sheet input,.sheet select{width:100%;padding:14px;font-size:17px;font-weight:600;border:2px solid var(--line);border-radius:14px;outline:none;background:var(--white);color:var(--ink)}
+.sheet input:focus,.sheet select:focus{border-color:var(--purple)}
+.sheet input.pin{font-size:24px}
+.cancel{width:100%;margin-top:2px;padding:12px;background:none;border:0;color:var(--muted);font-weight:600}
+.sendto{padding:12px 14px;border-radius:14px;background:var(--purple-soft);font-size:14px}
+.sendto b{display:block;font-size:15px}
+.quick{display:flex;gap:8px}.quick button{flex:1;padding:9px;border-radius:999px;border:1.5px solid var(--line);background:var(--white);font-weight:600}
+.done{text-align:center;padding:6px 0 4px}.done .ico{margin:0 auto 12px;width:56px;height:56px}.done .ico svg{width:28px;height:28px}
+.toast{position:fixed;left:50%;bottom:100px;transform:translateX(-50%);z-index:300;background:var(--ink);color:#fff;padding:11px 18px;border-radius:12px;font-weight:600;max-width:calc(100% - 28px);text-align:center}
 
-    .content { padding: 24px; background: linear-gradient(#f7f3fc, #fff 220px); }
-
-    /* ---------- 3. BALANCE CARD (looks like a black bank card) ---------- */
-    .bank-card {
-      position: relative; overflow: hidden;
-      aspect-ratio: 1.586 / 1;            /* real credit-card shape */
-      border-radius: 22px;
-      padding: 22px 24px;
-      color: #fff;
-      display: flex; flex-direction: column; justify-content: space-between;
-      background:
-        radial-gradient(120% 90% at 100% 0%, rgba(122, 69, 184, .55) 0%, rgba(122, 69, 184, 0) 55%),
-        radial-gradient(90% 70% at 0% 100%, rgba(255, 255, 255, .07) 0%, rgba(255, 255, 255, 0) 60%),
-        linear-gradient(135deg, #1b1b1f 0%, #08080a 55%, #000 100%);
-      box-shadow: 0 22px 40px -18px rgba(0, 0, 0, .75), inset 0 0 0 1px rgba(255, 255, 255, .09);
-    }
-    /* soft diagonal shine */
-    .bank-card::before {
-      content: ""; position: absolute; inset: 0; pointer-events: none;
-      background: linear-gradient(115deg, transparent 35%, rgba(255, 255, 255, .08) 48%, transparent 60%);
-    }
-    .bank-card > * { position: relative; }
-    .card-top { display: flex; justify-content: space-between; align-items: center; }
-    .card-brand { font-weight: 800; font-size: 20px; letter-spacing: -.5px; }
-    .card-type { font-size: 11px; font-weight: 700; letter-spacing: 2px; opacity: .65; text-transform: uppercase; }
-    .card-mid { display: flex; align-items: center; justify-content: space-between; }
-    .chip-ic {
-      width: 46px; height: 34px; border-radius: 7px;
-      background:
-        linear-gradient(90deg, transparent 33%, rgba(0,0,0,.28) 33% 35%, transparent 35% 65%, rgba(0,0,0,.28) 65% 67%, transparent 67%),
-        linear-gradient(0deg, transparent 45%, rgba(0,0,0,.28) 45% 55%, transparent 55%),
-        linear-gradient(135deg, #f2d98b, #c9a24a 55%, #e8cb7d);
-      box-shadow: inset 0 0 0 1px rgba(0,0,0,.25);
-    }
-    .nfc { width: 28px; height: 28px; opacity: .8; }
-    .card-bal .label { font-size: 11px; letter-spacing: 1.5px; text-transform: uppercase; opacity: .65; }
-    .card-bal .row { display: flex; align-items: center; gap: 8px; }
-    .eye {
-      width: 30px; height: 30px; border: 0; border-radius: 50%; cursor: pointer;
-      display: grid; place-items: center; padding: 0;
-      background: rgba(255,255,255,.14); color: #fff;
-    }
-    .eye:hover { background: rgba(255,255,255,.24); }
-    .eye:focus-visible { outline: 2px solid #fff; outline-offset: 2px; }
-    .eye svg { width: 18px; height: 18px; }
-    .eye .off { display: none; }
-    .eye.is-hidden .on { display: none; }
-    .eye.is-hidden .off { display: block; }
-    .card-bal .amount {
-      font-size: 36px; font-weight: 800; letter-spacing: -1px; line-height: 1.1;
-      font-variant-numeric: tabular-nums;
-    }
-    .actions { display: flex; gap: 12px; margin-top: 16px; }
-    .actions button {
-      flex: 1; padding: 15px;
-      border-radius: 999px; border: none;
-      font-weight: 700; font-size: 15px; cursor: pointer;
-    }
-    .btn-light { background: var(--purple); color: #fff; box-shadow: 0 10px 20px -10px var(--purple); }
-    .btn-ghost { background: var(--purple-soft); color: var(--purple); }
-
-    /* ---------- 4. QUICK STATS ---------- */
-    .stats { display: flex; gap: 12px; margin: 20px 0 28px; }
-    .stat {
-      flex: 1; padding: 16px;
-      border: 1px solid var(--line);
-      border-radius: 20px;
-    }
-    .stat small { color: var(--muted); font-size: 13px; }
-    .stat strong { display: block; font-size: 22px; margin-top: 4px; }
-    .stat.in strong  { color: var(--green); }
-    .stat.out strong { color: var(--red); }
-
-    /* ---------- 5. TRANSACTIONS ---------- */
-    h2 { font-size: 24px; letter-spacing: -0.5px; margin-bottom: 12px; }
-
-    .chips { display: flex; gap: 8px; margin-bottom: 16px; }
-    .chip {
-      padding: 10px 18px; border-radius: 999px;
-      border: 1.5px solid var(--line); background: #fff;
-      font-weight: 600; font-size: 14px; cursor: pointer;
-    }
-    .chip.active { background: var(--purple); border-color: var(--purple); color: #fff; }
-
-    .day { margin: 12px 0 0; font-size: 13px; font-weight: 700; color: var(--muted); }
-    .tx-list { display: flex; flex-direction: column; gap: 10px; }
-    .tx {
-      display: flex; align-items: center; gap: 14px;
-      padding: 14px 16px;
-      border: 1px solid var(--line); border-radius: 20px;
-    }
-    .tx .ico {
-      width: 44px; height: 44px; border-radius: 14px;
-      background: var(--purple-soft);
-      display: grid; place-items: center; font-size: 20px;
-    }
-    .tx .info { flex: 1; }
-    .tx .info h4 { font-size: 15px; }
-    .tx .info small { color: var(--muted); font-size: 12px; }
-    .tx .amt { font-weight: 800; font-size: 16px; }
-    .tx .amt.plus  { color: var(--green); }
-    .tx .amt.minus { color: var(--red); }
-
-    /* ---------- 6. POP-UP (modal) for Add / Withdraw ---------- */
-    .overlay {
-      position: fixed; inset: 0;
-      background: rgba(26, 11, 46, .55);
-      display: none; align-items: flex-end; justify-content: center;
-      z-index: 10;
-    }
-    .overlay.open { display: flex; }
-    .sheet {
-      width: 100%; max-width: 600px;
-      background: #fff; border-radius: 28px 28px 0 0;
-      padding: 28px 24px 32px;
-    }
-    .sheet h3 { font-size: 22px; margin-bottom: 16px; }
-    .sheet input {
-      width: 100%; padding: 16px;
-      font-size: 20px; font-weight: 700;
-      border: 2px solid var(--line); border-radius: 16px;
-      outline: none;
-    }
-    .sheet input:focus { border-color: var(--purple); }
-    .quick { display: flex; gap: 8px; margin: 12px 0 18px; }
-    .quick button {
-      flex: 1; padding: 10px; border-radius: 999px;
-      border: 1.5px solid var(--line); background: #fff;
-      font-weight: 600; cursor: pointer;
-    }
-    .error { color: var(--red); font-size: 14px; min-height: 20px; margin-top: 8px; }
-    .sheet .confirm {
-      width: 100%; padding: 16px; border: none; border-radius: 999px;
-      background: var(--purple); color: #fff;
-      font-weight: 700; font-size: 16px; cursor: pointer;
-    }
-    .sheet .cancel {
-      width: 100%; margin-top: 10px; padding: 14px;
-      background: none; border: none; color: var(--muted);
-      font-weight: 600; cursor: pointer;
-    }
-
-    /* ---------- 7. BOTTOM NAV ---------- */
-    .bottom-nav {
-      position: fixed; bottom: 0; left: 50%; transform: translateX(-50%);
-      width: 100%; max-width: 600px;
-      display: flex; background: #fff;
-      border-top: 1px solid var(--line); padding: 8px;
-    }
-    .bottom-nav a {
-      flex: 1; text-align: center; padding: 8px 0;
-      border-radius: 16px; text-decoration: none;
-      font-size: 13px; font-weight: 600; color: var(--muted);
-    }
-    .bottom-nav a span { display: block; font-size: 22px; }
-  
+/* bottom nav */
+.bottom-nav{position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:100%;max-width:600px;display:flex;background:var(--white);border-top:1px solid var(--line);padding:8px;z-index:50}
+.bottom-nav a{flex:1;text-align:center;padding:6px 0;border-radius:14px;text-decoration:none;font-size:12px;font-weight:600;color:var(--muted)}
+.bottom-nav a svg{display:block;width:24px;height:24px;margin:0 auto 2px}
+@media (prefers-reduced-motion:no-preference){.sheet{animation:up .2s ease-out}@keyframes up{from{transform:translateY(24px);opacity:.6}}}
+</style>
+<noscript><style>.app{visibility:visible}</style></noscript>
+<style>
 /* ----- 3-dash menu (same as the homepage) ----- */
-.menu,.scrim,.burger{--bg:#FFFFFF;--ink:#1A0B2E;--muted:#6A5F7C;--line:#DDD4EA;--field:#F6F2FB;--accent:#5B2C8F;--pline:#BBA0DA}
+.menu,.scrim,.burger{--bg:#FFFFFF;--ink:#1A0B2E;--muted:#6A5F7C;--line:#DDD4EA;--field:#F6F2FB;--accent:#5E3C88;--pline:#C2B2D6}
 [hidden]{display:none!important}
 .burger{flex:none;width:44px;height:44px;margin-left:auto;border:0;border-radius:14px;background:var(--field);cursor:pointer;position:relative}
 .burger span,.burger span::before,.burger span::after{position:absolute;left:12px;width:20px;height:2.5px;border-radius:2px;background:var(--ink);content:""}
@@ -221,7 +129,7 @@
 .mclose{display:grid;place-items:center;width:42px;height:42px;border:0;border-radius:14px;background:var(--field);color:var(--ink);cursor:pointer}
 .mclose svg{width:22px;height:22px}
 .mprofile{display:flex;align-items:center;gap:14px;padding:14px;border-radius:22px;background:var(--field)}
-.mav{flex:none;display:grid;place-items:center;width:52px;height:52px;border-radius:50%;background:linear-gradient(135deg,#7A45B8,var(--accent));color:#fff;font-weight:800;font-size:1.3rem}
+.mav{flex:none;display:grid;place-items:center;width:52px;height:52px;border-radius:50%;background:linear-gradient(135deg,#7A5AAA,var(--accent));color:#fff;font-weight:800;font-size:1.3rem}
 .mav svg{width:26px;height:26px}
 .mwho{flex:1;min-width:0}.mwho b{display:block;font-size:1.1rem;letter-spacing:-.01em;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.mwho small{color:var(--muted)}
 .mgrp{margin:16px 10px 2px;font-size:.74rem;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
@@ -240,7 +148,7 @@
 </style>
 <style id="cx-dark">
 /* Dark mode. Applies when <html data-theme="dark"> (set from Settings > Preferences > Appearance). */
-html[data-theme="dark"]{color-scheme:dark;--bg:#131114;--ink:#EDE8F3;--muted:#9A92A8;--line:#2A252F;--field:#1B181E;--accent:#9D6FE0;--accent-hi:#B186EA;--pline:#3B3342;--stage:#0C0B0D;--btn:#6D3BB3}
+html[data-theme="dark"]{color-scheme:dark;--bg:#131114;--ink:#EDE8F3;--muted:#9A92A8;--line:#2A252F;--field:#1B181E;--accent:#8A68C2;--accent-hi:#9A7CCF;--pline:#3B3342;--stage:#0C0B0D;--btn:#5B3C94}
 html[data-theme="dark"] body{background:var(--stage);color:var(--ink)}
 html[data-theme="dark"] .top,html[data-theme="dark"] .tabs{background:rgba(19,17,20,.97)}
 html[data-theme="dark"] .top{border-bottom:1px solid var(--line)}
@@ -266,18 +174,18 @@ html[data-theme="dark"] .tba,html[data-theme="dark"] .cd div{background:#131114}
 html[data-theme="dark"] input,html[data-theme="dark"] select,html[data-theme="dark"] textarea{color:var(--ink);background:var(--field)}
 html[data-theme="dark"] .app{box-shadow:0 0 0 1px var(--line)}
 /* pages with their own token names (wallet, notifications) */
-html[data-theme="dark"]{--purple:#6D3BB3;--purple-dark:#9D6FE0;--purple-soft:#241F29;--white:#18151B;--green:#3FCB92;--red:#F0788E}
+html[data-theme="dark"]{--purple:#5B3C94;--purple-dark:#8A68C2;--purple-soft:#241F29;--white:#18151B;--green:#3FCB92;--red:#F0788E}
 html[data-theme="dark"] .content{background:var(--bg)}
 html[data-theme="dark"] .chip:not(.active),html[data-theme="dark"] .sheet,html[data-theme="dark"] .tx,html[data-theme="dark"] .stat,html[data-theme="dark"] .nav,html[data-theme="dark"] .sheet input{background:var(--white);color:var(--ink)}
-html[data-theme="dark"] .btn-ghost,html[data-theme="dark"] .topbar .burger{color:#C9AEF0}
+html[data-theme="dark"] .btn-ghost,html[data-theme="dark"] .topbar .burger{color:#B8A2DC}
 /* the menu kit re-declares light colours on .menu/.scrim/.burger */
-html[data-theme="dark"] .menu,html[data-theme="dark"] .scrim,html[data-theme="dark"] .burger{--bg:#131114;--ink:#EDE8F3;--muted:#9A92A8;--line:#2A252F;--field:#1B181E;--accent:#9D6FE0;--pline:#3B3342}
+html[data-theme="dark"] .menu,html[data-theme="dark"] .scrim,html[data-theme="dark"] .burger{--bg:#131114;--ink:#EDE8F3;--muted:#9A92A8;--line:#2A252F;--field:#1B181E;--accent:#8A68C2;--pline:#3B3342}
 html[data-theme="dark"] .burger span,html[data-theme="dark"] .burger span::before,html[data-theme="dark"] .burger span::after{background:var(--ink)}
 html[data-theme="dark"] .bottom-nav{background:#131114}
 /* login, signup */
-html[data-theme="dark"]{--panel:#131114;--pslot:#1F1B23;--glow:#9D6FE0;--ring:rgba(157,111,224,.3);--err:#F0788E;--ok:#3FCB92}
+html[data-theme="dark"]{--panel:#131114;--pslot:#1F1B23;--glow:#8A68C2;--ring:rgba(138,104,194,.28);--err:#F0788E;--ok:#3FCB92}
 html[data-theme="dark"] .btn{background:var(--btn)}
-html[data-theme="dark"] .btn:hover{background:#7C48C6}
+html[data-theme="dark"] .btn:hover{background:#6A48A6}
 html[data-theme="dark"] .nm{fill:#C9BFD8}
 html[data-theme="dark"] .nm.you,html[data-theme="dark"] #you.on .nm{fill:#fff}
 html[data-theme="dark"] ::placeholder{color:#7C7389}
@@ -300,225 +208,332 @@ html[data-theme="dark"] .me{background:linear-gradient(135deg,#241F29,var(--btn)
 html[data-theme="dark"] .chat,html[data-theme="dark"] .chead,html[data-theme="dark"] .compose,html[data-theme="dark"] .only{background:var(--bg)}
 html[data-theme="dark"] .toast{background:#EDE8F3;color:#131114}
 </style>
+<style>
+/* wallet page in dark mode */
+html[data-theme="dark"]{--amber:#F2B84B}
+html[data-theme="dark"] .soft,html[data-theme="dark"] .linkbtn,html[data-theme="dark"] .eye{color:#B8A2DC}
+html[data-theme="dark"] .eye{background:rgba(255,255,255,.08)}
+html[data-theme="dark"] .bal,html[data-theme="dark"] .sendto{background:#241F29}
+html[data-theme="dark"] .primary{background:#6A48A6}
+html[data-theme="dark"] .pin,html[data-theme="dark"] .quick button{background:var(--white);color:var(--ink)}
+html[data-theme="dark"] .toast{background:#EDE8F3;color:#131114}
+html[data-theme="dark"] .ico.in{color:#3FCB92}html[data-theme="dark"] .ico.out{color:#F0788E}
+html[data-theme="dark"] .icon-btn,html[data-theme="dark"] .lockic,html[data-theme="dark"] .ico{color:#B8A2DC}
+html[data-theme="dark"] .tx{background:transparent}
+html[data-theme="dark"] .ico.in{color:#3FCB92}html[data-theme="dark"] .ico.out{color:#F0788E}
+</style>
 <script>(function(){try{var t=(JSON.parse(localStorage.getItem("countrex_settings")||"{}").theme)||"light";if(t==="system")t=matchMedia("(prefers-color-scheme:dark)").matches?"dark":"light";if(t==="dark")document.documentElement.setAttribute("data-theme","dark")}catch(e){}})();</script>
 </head>
 
 <body>
-  <div class="app">
+<div class="app">
+  <header class="topbar">
+    <a href="index.html" class="icon-btn" aria-label="Back"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19 12H5M11 6l-6 6 6 6"/></svg></a>
+    <h1>Wallet</h1>
+    <a href="notifications.html" class="icon-btn" aria-label="Notifications"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9.5a6 6 0 0 1 12 0c0 4.6 2 6.2 2 6.2H4s2-1.6 2-6.2z"/><path d="M10 19a2.1 2.1 0 0 0 4 0"/></svg></a>
+    <button class="burger" id="burger" type="button" aria-label="Menu" aria-expanded="false" aria-controls="sheet"><span></span></button>
+  </header>
 
-    <header class="topbar">
-      <a href="index.html" class="icon-btn" aria-label="Back">←</a>
-      <h1>Wallet</h1>
-      <a href="notifications.html" class="icon-btn" aria-label="Notifications">🔔</a>
-      <button class="burger" id="burger" type="button" aria-label="Menu" aria-expanded="false" aria-controls="sheet"><span></span></button>
-    </header>
+  <main class="content">
+    <!-- 1. checking -->
+    <p class="empty" id="vLoad">Checking your wallet…</p>
 
-    <main class="content">
+    <!-- 2. PIN: create it, or enter it -->
+    <section id="vPin" hidden>
+      <div class="gate">
+        <div class="lockic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4.5" y="10.5" width="15" height="10" rx="2.5"/><path d="M8 10.5V8a4 4 0 0 1 8 0v2.5"/><circle cx="12" cy="15.5" r="1.2" fill="currentColor" stroke="none"/></svg></div>
+        <h2 id="pinTitle">Wallet PIN</h2>
+        <p class="lead" id="pinText"></p>
+        <form id="pinForm" autocomplete="off" novalidate>
+          <div><label for="pin1" id="pinLabel">PIN</label><input class="pin" id="pin1" type="password" inputmode="numeric" maxlength="6" autocomplete="off" placeholder="••••••"></div>
+          <div id="pin2wrap" hidden><label for="pin2">Type it again</label><input class="pin" id="pin2" type="password" inputmode="numeric" maxlength="6" autocomplete="off" placeholder="••••••"></div>
+          <p class="err" id="pinErr" role="alert"></p>
+          <button class="primary" id="pinBtn" type="submit">Unlock wallet</button>
+        </form>
+        <p class="small" id="pinForgot">Forgot your PIN? Ask Countrex support to reset it, then you can create a new one.</p>
+      </div>
+    </section>
 
-      <!-- Bank-style balance card -->
-      <section class="bank-card" aria-label="Wallet card">
-        <div class="card-top">
-          <span class="card-brand">Countrex</span>
-          <span class="card-type">Wallet</span>
+    <!-- 3. the wallet -->
+    <section id="vWallet" hidden>
+      <div class="bal">
+        <div class="balhead"><span>Your balance</span>
+          <button class="eye" id="eyeBtn" type="button" aria-label="Hide balance" aria-pressed="false">
+            <svg class="on" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></svg>
+            <svg class="off" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M17.9 17.9A10.4 10.4 0 0 1 12 19C5.6 19 2 12 2 12a18 18 0 0 1 4.1-5M9.9 5.2A9.7 9.7 0 0 1 12 5c6.4 0 10 7 10 7a18 18 0 0 1-2.2 3.2M14.1 14.1a3 3 0 0 1-4.2-4.2"/><path d="M2 2l20 20"/></svg>
+          </button>
         </div>
-        <div class="card-mid">
-          <span class="chip-ic" aria-hidden="true"></span>
-          <svg class="nfc" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><path d="M7 7c2.5 3 2.5 7 0 10"/><path d="M11 5c3.8 4.3 3.8 9.7 0 14"/><path d="M15 3c5 5.6 5 12.4 0 18"/></svg>
-        </div>
-        <div class="card-bal">
-          <div class="row">
-            <div class="label">Available balance</div>
-            <button class="eye" id="eyeBtn" type="button" aria-label="Hide balance" aria-pressed="false">
-              <svg class="on" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></svg>
-              <svg class="off" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M17.9 17.9A10.4 10.4 0 0 1 12 19C5.6 19 2 12 2 12a18 18 0 0 1 4.1-5M9.9 5.2A9.7 9.7 0 0 1 12 5c6.4 0 10 7 10 7a18 18 0 0 1-2.2 3.2M14.1 14.1a3 3 0 0 1-4.2-4.2"/><path d="M2 2l20 20"/></svg>
-            </button>
-          </div>
-          <div class="amount" id="balance">$0.00</div>
-        </div>
-      </section>
+        <div class="amount" id="balance">GHS 0.00</div>
+        <div class="balsub" id="balSub"></div>
+        <div class="actions"><button class="primary" id="openAdd" type="button">Add money</button><button class="soft" id="openWithdraw" type="button">Withdraw</button></div>
+      </div>
+      <div class="lockbar"><span id="lockTimer"></span><button class="linkbtn" id="lockNow" type="button">Lock now</button></div>
 
-      <div class="actions">
-        <button class="btn-light" id="openAdd">＋ Add money</button>
-        <button class="btn-ghost" id="openWithdraw">Withdraw</button>
+      <div class="block"><h2>Where we send your money</h2><div class="payout" id="payoutBox"></div></div>
+
+      <div class="block">
+        <h2>History</h2>
+        <div class="chips" id="chips"><button class="chip active" data-filter="all" type="button">All</button><button class="chip" data-filter="in" type="button">Money in</button><button class="chip" data-filter="out" type="button">Money out</button></div>
+        <div class="tx-list" id="txList"></div>
+        <button class="soft morebtn" id="moreBtn" type="button" hidden>Show older</button>
       </div>
 
-      <!-- Money in / money out -->
-      <section class="stats">
-        <div class="stat in"><small>Received</small><strong id="totalIn">$0.00</strong></div>
-        <div class="stat out"><small>Spent</small><strong id="totalOut">$0.00</strong></div>
-      </section>
-
-      <!-- Transactions -->
-      <h2>Transaction history</h2>
-      <div class="chips" id="chips">
-        <button class="chip active" data-filter="all">All</button>
-        <button class="chip" data-filter="in">Received</button>
-        <button class="chip" data-filter="out">Spent</button>
+      <div class="block"><h2>Security</h2>
+        <div class="row" style="border-top:0"><span>Wallet PIN<br><small class="small" style="margin:0">Asked every time you open your wallet.</small></span><button class="linkbtn" id="openPin" type="button">Change PIN</button></div>
       </div>
-      <div class="tx-list" id="txList"></div>
-    </main>
+    </section>
+  </main>
 
-    <!-- Pop-up used by both Add money and Withdraw -->
-    <div class="overlay" id="overlay">
-      <div class="sheet">
-        <h3 id="sheetTitle">Add money</h3>
-        <input type="number" id="amountInput" placeholder="0.00" min="1" step="0.01" />
-        <div class="quick">
-          <button data-amt="5">$5</button>
-          <button data-amt="10">$10</button>
-          <button data-amt="20">$20</button>
-          <button data-amt="50">$50</button>
-        </div>
-        <div class="error" id="error"></div>
-        <button class="confirm" id="confirmBtn">Confirm</button>
-        <button class="cancel" id="cancelBtn">Cancel</button>
-      </div>
-    </div>
+  <div class="overlay" id="overlay"><div class="sheet" id="sheet2" role="dialog" aria-modal="true" aria-labelledby="sheetT"></div></div>
+  <div class="toast" id="toast" hidden></div>
 
-    <nav class="bottom-nav">
-      <a href="index.html"><span>🏠</span>Home</a>
-      <a href="events.html"><span>📅</span>Events</a>
-      <a href="leaderboard.html"><span>🏆</span>Leaderboard</a>
-      <a href="community.html"><span>👥</span>Community</a>
-    </nav>
-  </div>
+  <nav class="bottom-nav" aria-label="Main">
+    <a href="index.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 11.5 12 4l9 7.5V20a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/></svg>Home</a>
+    <a href="events.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3.5" y="5" width="17" height="15" rx="2.5"/><path d="M3.5 10h17M8 3v4M16 3v4"/></svg>Events</a>
+    <a href="leaderboard.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 21h8M12 17v4M7 4h10v5a5 5 0 0 1-10 0z"/><path d="M7 6H4v2a3 3 0 0 0 3 3M17 6h3v2a3 3 0 0 1-3 3"/></svg>Leaderboard</a>
+    <a href="community.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 5h16v11H9l-5 4z"/></svg>Community</a>
+  </nav>
+</div>
 
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
-  <script src="js/supabase.js"></script>
-  <script>
-    // ---------- A. SETTINGS + DATA ----------
-    const CURRENCY = "$";   // change to "₵" or anything else in one place
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
+<script src="js/supabase.js"></script>
+<script>
+(function () {
+  "use strict";
+  var sb = window.supabaseClient || null;
+  var $ = function (i) { return document.getElementById(i) };
+  var esc = function (s) { return String(s == null ? "" : s).replace(/[&<>"']/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c] }) };
+  // Money is kept as whole pesewas in the database (1000 = GHS 10.00).
+  function ghs(n) { return "GHS " + (Number(n || 0) / 100).toLocaleString("en-GB", { minimumFractionDigits: 2, maximumFractionDigits: 2 }) }
+  function toMinor(v) { var s = String(v == null ? "" : v).replace(/[,\s]/g, ""); if (!/^\d+(\.\d{1,2})?$/.test(s)) return NaN; return Math.round(parseFloat(s) * 100) }
+  function mmss(s) { s = Math.max(0, Math.round(s)); return Math.floor(s / 60) + ":" + String(s % 60).padStart(2, "0") }
+  var PAGE = 20, UNLOCK_SECONDS = 600;
+  var S = { uid: null, bal: 0, tx: [], names: {}, payout: null, pending: 0, lim: { on: true, min: 1000, max: 500000 }, filter: "all", more: false, hide: false, until: 0, timer: null, lockTimer: null, mode: "unlock" };
+  try { S.hide = localStorage.getItem("countrex_hide_balance") === "1" } catch (e) { }
 
-    // positive amount = money in, negative = money out
-    let transactions = [
-      { id: 1, icon: "🎁", title: "Prize: Friday Night Showdown", sub: "eFootball · 1st place",  date: "2 Nov",  time: "21:14", amount:  15 },
-      { id: 2, icon: "🎟️", title: "FC27 Weekend Cup entry",       sub: "Tournament entry",       date: "1 Nov",  time: "18:02", amount:  -5 },
-      { id: 3, icon: "🎁", title: "Prize: CODM Squad Clash",      sub: "Call of Duty: Mobile · 3rd place", date: "31 Oct", time: "22:40", amount: 8 },
-      { id: 4, icon: "🎟️", title: "CODM Squad Clash entry",       sub: "Tournament entry",       date: "31 Oct", time: "19:30", amount:  -3 },
-      { id: 5, icon: "💳", title: "Wallet top-up",                sub: "Added to wallet",        date: "30 Oct", time: "16:45", amount:  20 },
-      { id: 6, icon: "🏦", title: "Withdrawal",                   sub: "Sent to your account",   date: "28 Oct", time: "12:10", amount: -10 },
-      { id: 7, icon: "🎁", title: "Prize: eFootball Midweek Cup", sub: "eFootball · 2nd place",  date: "26 Oct", time: "20:55", amount:  10 },
-      { id: 8, icon: "💳", title: "Wallet top-up",                sub: "Added to wallet",        date: "25 Oct", time: "09:20", amount:  15 }
-    ];
+  var toastT; function toast(m) { var t = $("toast"); t.textContent = m; t.hidden = false; clearTimeout(toastT); toastT = setTimeout(function () { t.hidden = true }, 3200) }
+  async function rpc(n, a) { var r = await sb.rpc(n, a || {}); if (r.error) { var e = new Error(r.error.message || "Request failed"); e.code = r.error.code; throw e } return r.data }
+  async function q(p) { var r = await p; if (r.error) { var e = new Error(r.error.message || "Request failed"); e.code = r.error.code; throw e } return r.data }
+  function say(e) {
+    var m = String((e && e.message) || "").toLowerCase();
+    if (/too easy|exactly 6|6 digits/.test(m)) return e.message.charAt(0).toUpperCase() + e.message.slice(1) + (/\.$/.test(e.message) ? "" : ".");
+    if (/wallet is locked/.test(m)) return "Your wallet locked. Enter your PIN again.";
+    if (/verify your email/.test(m)) return "Please add and verify your email in Settings first, then try again.";
+    if (/add a payout account/.test(m)) return "Add where we should send your money first.";
+    if (/paused/.test(m)) return "Withdrawals are paused right now. Please try again later.";
+    if (/between .* pesewas/.test(m)) return "That amount is outside the allowed range.";
+    if (/insufficient/.test(m)) return "You do not have enough money for that.";
+    if (/pending withdrawals/.test(m)) return "You already have 3 withdrawals waiting. Wait for them to be paid first.";
+    if (/too many/.test(m)) return "Too many tries. Please wait a little and try again.";
+    if (/valid mobile money|valid bank|account name/.test(m)) return e.message.charAt(0).toUpperCase() + e.message.slice(1) + ".";
+    if (/account not active/.test(m)) return "Your account cannot use the wallet right now.";
+    return "Something went wrong. Please try again.";
+  }
+  function view(n) { ["vLoad", "vPin", "vWallet"].forEach(function (id) { $(id).hidden = id !== n }) }
 
-    let currentFilter = "all";
-    // remember the eye setting on this device
-    let hideBalance = false;
-    try { hideBalance = localStorage.getItem("countrex_hide_balance") === "1"; } catch (e) {}
-    let mode = "add";       // "add" or "withdraw" — which action the pop-up is doing
-
-    // ---------- B. HELPERS ----------
-    const $ = id => document.getElementById(id);
-    const money = n => CURRENCY + Math.abs(n).toFixed(2);
-
-    // ---------- C. DRAW THE PAGE ----------
-    function render() {
-      // add up everything for the balance
-      const totalIn  = transactions.filter(t => t.amount > 0).reduce((s, t) => s + t.amount, 0);
-      const totalOut = transactions.filter(t => t.amount < 0).reduce((s, t) => s + t.amount, 0);
-
-      const show = v => hideBalance ? CURRENCY + "••••" : v;
-      $("balance").textContent  = show(money(totalIn + totalOut));
-      $("totalIn").textContent  = show(money(totalIn));
-      $("totalOut").textContent = show(money(totalOut));
-
-      // filter by chip
-      const shown = transactions.filter(t =>
-        currentFilter === "all" ||
-        (currentFilter === "in"  && t.amount > 0) ||
-        (currentFilter === "out" && t.amount < 0)
-      );
-
-      // group by day: a small date heading, then that day's transactions
-      let html = "", lastDate = "";
-      shown.forEach(t => {
-        if (t.date !== lastDate) {
-          html += `<div class="day">${t.date}</div>`;
-          lastDate = t.date;
-        }
-        html += `
-        <div class="tx">
-          <div class="ico">${t.icon}</div>
-          <div class="info"><h4>${t.title}</h4><small>${t.sub} · ${t.time}</small></div>
-          <div class="amt ${t.amount > 0 ? "plus" : "minus"}">
-            ${t.amount > 0 ? "+" : "−"}${money(t.amount)}
-          </div>
-        </div>`;
-      });
-      $("txList").innerHTML = html || '<p style="color:var(--muted);text-align:center;padding:30px 0">No transactions yet</p>';
+  // ---------- PIN screen ----------
+  function pinView(mode, lockedSeconds) {
+    view("vPin"); S.mode = mode; clearInterval(S.timer); clearInterval(S.lockTimer); closeSheet();
+    var b = $("pinBtn"), f1 = $("pin1"), f2 = $("pin2"); f1.value = ""; f2.value = ""; $("pinErr").textContent = ""; b.disabled = false; f1.disabled = false; f2.disabled = false;
+    $("pin2wrap").hidden = mode !== "create"; $("pinForgot").hidden = mode === "create";
+    if (mode === "create") {
+      $("pinTitle").textContent = "Create your wallet PIN"; $("pinText").textContent = "Choose a 6-digit PIN. You will enter it each time you open your wallet and when you withdraw. Never share it with anyone."; $("pinLabel").textContent = "New PIN"; b.textContent = "Create PIN";
+    } else if (mode === "locked") {
+      $("pinTitle").textContent = "Wallet locked for now"; $("pinLabel").textContent = "PIN"; b.textContent = "Unlock wallet"; b.disabled = f1.disabled = true;
+      var until = Date.now() + lockedSeconds * 1000;
+      var tick = function () { var l = Math.round((until - Date.now()) / 1000); if (l <= 0) { clearInterval(S.lockTimer); pinView("unlock"); return } $("pinText").textContent = "Too many wrong PINs. For your safety, try again in " + mmss(l) + "." };
+      tick(); S.lockTimer = setInterval(tick, 1000);
+    } else {
+      $("pinTitle").textContent = "Enter your wallet PIN"; $("pinText").textContent = "Your wallet is locked to keep your money safe."; $("pinLabel").textContent = "PIN"; b.textContent = "Unlock wallet";
     }
+    if (!f1.disabled) setTimeout(function () { f1.focus() }, 50);
+  }
+  ["pin1", "pin2"].forEach(function (id) { $(id).addEventListener("input", function () { this.value = this.value.replace(/\D/g, "").slice(0, 6) }) });
+  $("pinForm").onsubmit = async function (e) {
+    e.preventDefault(); var p = $("pin1").value, err = $("pinErr"), b = $("pinBtn"); err.textContent = "";
+    if (!/^\d{6}$/.test(p)) { err.textContent = "Enter all 6 digits."; return }
+    if (S.mode === "create" && p !== $("pin2").value) { err.textContent = "The two PINs do not match."; return }
+    b.disabled = true;
+    try {
+      var r = S.mode === "create" ? await rpc("set_wallet_pin", { p_pin: p, p_old: null }) : await rpc("unlock_wallet", { p_pin: p });
+      if (r && r.ok) { S.until = Date.now() + (r.unlocked_seconds || UNLOCK_SECONDS) * 1000; await loadWallet(); return }
+      if (r && r.reason === "locked") { pinView("locked", r.locked_seconds || 900); return }
+      err.textContent = "Wrong PIN." + (r && r.left != null ? " " + r.left + (r.left === 1 ? " try" : " tries") + " left." : ""); $("pin1").value = ""; $("pin1").focus();
+    } catch (x) { err.textContent = say(x) }
+    b.disabled = false;
+  };
 
-    // ---------- D. POP-UP OPEN / CLOSE ----------
-    function openSheet(newMode) {
-      mode = newMode;
-      $("sheetTitle").textContent = mode === "add" ? "Add money" : "Withdraw";
-      $("amountInput").value = "";
-      $("error").textContent = "";
-      $("overlay").classList.add("open");
-      $("amountInput").focus();
-    }
-    function closeSheet() { $("overlay").classList.remove("open"); }
+  // ---------- what to show ----------
+  async function route() {
+    clearInterval(S.timer);
+    try {
+      var st = await rpc("wallet_pin_status");
+      if (!st.has_pin) return pinView("create");
+      if (st.locked_seconds > 0) return pinView("locked", st.locked_seconds);
+      if (!st.unlocked) return pinView("unlock");
+      S.until = Date.now() + st.unlocked_seconds * 1000; await loadWallet();
+    } catch (e) { console.error(e); view("vLoad"); $("vLoad").textContent = "We could not open your wallet. Check your connection and refresh." }
+  }
 
-    $("openAdd").onclick      = () => openSheet("add");
-    $("openWithdraw").onclick = () => openSheet("withdraw");
-    $("cancelBtn").onclick    = closeSheet;
-
-    // quick-amount buttons fill the input
-    document.querySelectorAll(".quick button").forEach(b => {
-      b.onclick = () => $("amountInput").value = b.dataset.amt;
+  // ---------- the wallet ----------
+  async function loadWallet() {
+    var r = await Promise.all([
+      sb.from("wallets").select("balance").eq("user_id", S.uid).maybeSingle(),
+      sb.from("wallet_transactions").select("id,kind,amount,balance_after,status,ref_type,ref_id,created_at").eq("user_id", S.uid).order("created_at", { ascending: false }).range(0, PAGE),
+      sb.from("payout_accounts").select("method,account_name,account_number").eq("user_id", S.uid).maybeSingle(),
+      sb.from("site_settings").select("key,value"),
+      sb.from("wallet_transactions").select("amount").eq("user_id", S.uid).eq("kind", "withdrawal").eq("status", "pending")
+    ]);
+    if (r[0].error || !r[0].data) return route();                       // the database says the wallet is locked: ask for the PIN again
+    S.bal = r[0].data.balance; var rows = r[1].data || []; S.more = rows.length > PAGE; S.tx = rows.slice(0, PAGE);
+    S.payout = r[2].data || null; S.pending = (r[4].data || []).reduce(function (s, x) { return s - x.amount }, 0);
+    (r[3].data || []).forEach(function (x) { if (x.key === "withdrawals_enabled") S.lim.on = x.value !== false; if (x.key === "min_withdrawal") S.lim.min = x.value; if (x.key === "max_withdrawal") S.lim.max = x.value });
+    await names(S.tx); view("vWallet"); paint(); startTimer();
+  }
+  async function names(rows) {
+    var ids = []; rows.forEach(function (t) { if (t.ref_type === "tournament" && t.ref_id && !S.names[t.ref_id] && ids.indexOf(t.ref_id) < 0) ids.push(t.ref_id) });
+    if (!ids.length) return;
+    try { var d = await q(sb.from("tournaments").select("id,name").in("id", ids)); d.forEach(function (t) { S.names[t.id] = t.name }) } catch (e) { }
+  }
+  function startTimer() {
+    clearInterval(S.timer);
+    var tick = function () { var l = Math.round((S.until - Date.now()) / 1000); if (l <= 0) { clearInterval(S.timer); toast("Your wallet locked for safety"); route(); return } $("lockTimer").textContent = "Locks automatically in " + mmss(l) };
+    tick(); S.timer = setInterval(tick, 1000);
+  }
+  var ICON = {
+    in: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M17 7 7 17M7 9v8h8"/></svg>',
+    out: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 17 17 7M9 7h8v8"/></svg>',
+    prize: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 21h8M12 17v4M7 4h10v5a5 5 0 0 1-10 0z"/><path d="M7 6H4v2a3 3 0 0 0 3 3M17 6h3v2a3 3 0 0 1-3 3"/></svg>',
+    ok: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5 10 17.5 19 7"/></svg>'
+  };
+  function describe(t) {
+    var tn = t.ref_type === "tournament" ? (S.names[t.ref_id] || "") : "", s = t.status;
+    var o = { title: "Transaction", sub: "", icon: t.amount > 0 ? "in" : "out", cls: t.amount > 0 ? "in" : "out" };
+    if (t.kind === "deposit") { o.title = "Money added" }
+    else if (t.kind === "entry_fee") { o.title = "Tournament entry"; o.sub = tn }
+    else if (t.kind === "prize") { o.title = "Prize won"; o.sub = tn; o.icon = "prize" }
+    else if (t.kind === "refund") { o.title = t.ref_type === "withdrawal" ? "Withdrawal returned" : "Refund"; o.sub = tn }
+    else if (t.kind === "withdrawal") { o.title = "Withdrawal" }
+    else if (t.kind === "adjustment") { o.title = "Adjustment by Countrex" }
+    return o;
+  }
+  function dayLabel(iso) {
+    var d = new Date(iso), n = new Date(), y = new Date(Date.now() - 864e5);
+    if (d.toDateString() === n.toDateString()) return "Today"; if (d.toDateString() === y.toDateString()) return "Yesterday";
+    return d.toLocaleDateString("en-GB", { day: "numeric", month: "short", year: d.getFullYear() === n.getFullYear() ? undefined : "numeric" });
+  }
+  function paint() {
+    var show = function (v) { return S.hide ? "GHS ••••" : v };
+    $("balance").textContent = show(ghs(S.bal));
+    $("balSub").textContent = S.pending > 0 ? (S.hide ? "A withdrawal is being processed" : ghs(S.pending) + " withdrawal is being processed") : "";
+    var b = $("eyeBtn"); b.classList.toggle("is-hidden", S.hide); b.setAttribute("aria-pressed", S.hide); b.setAttribute("aria-label", S.hide ? "Show balance" : "Hide balance");
+    var p = S.payout;
+    $("payoutBox").innerHTML = p ? '<div><b>' + esc(p.account_name) + '</b><small>' + (p.method === "bank" ? "Bank account" : "Mobile money") + " · •••• " + esc(String(p.account_number).slice(-4)) + '</small></div><button class="linkbtn" id="editPayout" type="button">Change</button>'
+      : '<div><b>Not added yet</b><small>Add where we should send your withdrawals.</small></div><button class="linkbtn" id="editPayout" type="button">Add</button>';
+    $("editPayout").onclick = openPayout;
+    var rows = S.tx.filter(function (t) { return S.filter === "all" || (S.filter === "in" && t.amount > 0) || (S.filter === "out" && t.amount < 0) });
+    var html = "", last = "";
+    rows.forEach(function (t) {
+      var d = describe(t), day = dayLabel(t.created_at), time = new Date(t.created_at).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" });
+      if (day !== last) { html += '<div class="day">' + esc(day) + "</div>"; last = day }
+      var tag = "", cls = t.amount > 0 ? "plus" : "minus";
+      if (t.status === "pending") { tag = '<span class="tag wait">Being processed</span>'; cls = "wait" }
+      if (t.status === "failed") { tag = '<span class="tag bad">Declined</span>'; cls = "void" }
+      var amt = show((t.amount > 0 ? "+" : "−") + ghs(Math.abs(t.amount)));
+      html += '<div class="tx"><div class="ico ' + (d.icon === "prize" ? "" : d.cls) + '">' + ICON[d.icon] + '</div><div class="info"><h4>' + esc(d.title) + tag + "</h4><small>" + (d.sub ? esc(d.sub) + " · " : "") + esc(time) + '</small></div><div class="amt ' + cls + '">' + esc(amt) + "</div></div>";
     });
+    $("txList").innerHTML = html || '<div class="empty"><b>' + (S.tx.length ? "Nothing here" : "No transactions yet") + "</b>" + (S.tx.length ? "Try another filter." : "When you join a tournament, win a prize or withdraw, it shows up here.") + "</div>";
+    $("moreBtn").hidden = !S.more;
+  }
+  $("chips").addEventListener("click", function (e) { var c = e.target.closest(".chip"); if (!c) return; document.querySelectorAll(".chip").forEach(function (x) { x.classList.remove("active") }); c.classList.add("active"); S.filter = c.dataset.filter; paint() });
+  $("moreBtn").onclick = async function () {
+    var b = this; b.disabled = true;
+    try { var rows = await q(sb.from("wallet_transactions").select("id,kind,amount,balance_after,status,ref_type,ref_id,created_at").eq("user_id", S.uid).order("created_at", { ascending: false }).range(S.tx.length, S.tx.length + PAGE)); S.more = rows.length > PAGE; rows = rows.slice(0, PAGE); await names(rows); S.tx = S.tx.concat(rows); paint() } catch (e) { toast(say(e)) }
+    b.disabled = false;
+  };
+  $("eyeBtn").onclick = function () { S.hide = !S.hide; try { localStorage.setItem("countrex_hide_balance", S.hide ? "1" : "0") } catch (e) { } paint() };
+  $("lockNow").onclick = async function () { try { await rpc("lock_wallet") } catch (e) { } route() };
 
-    // ---------- E. CONFIRM (the important logic) ----------
-    $("confirmBtn").onclick = () => {
-      const value = parseFloat($("amountInput").value);
-      const balance = transactions.reduce((s, t) => s + t.amount, 0);
+  // ---------- pop-ups ----------
+  function openSheet(html) { $("sheet2").innerHTML = html; $("overlay").classList.add("open"); var f = $("sheet2").querySelector("input,select"); if (f) setTimeout(function () { f.focus() }, 60) }
+  function closeSheet() { $("overlay").classList.remove("open") }
+  $("overlay").addEventListener("click", function (e) { if (e.target === this || e.target.closest("[data-close]")) closeSheet() });
+  document.addEventListener("keydown", function (e) { if (e.key === "Escape") closeSheet() });
 
-      // validation
-      if (!value || value <= 0)                 return $("error").textContent = "Enter an amount greater than 0.";
-      if (mode === "withdraw" && value > balance) return $("error").textContent = "You don't have enough balance.";
-
-      // add a new transaction to the TOP of the list
-      transactions.unshift({
-        id: Date.now(),
-        icon: mode === "add" ? "💳" : "🏦",
-        title: mode === "add" ? "Wallet top-up" : "Withdrawal",
-        sub: mode === "add" ? "Added to wallet" : "Sent to your account",
-        date: "Today",
-        time: new Date().toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" }),
-        amount: mode === "add" ? value : -value
-      });
-
-      closeSheet();
-      render();
+  $("openAdd").onclick = function () {
+    openSheet('<h3 id="sheetT">Add money</h3><p class="lead">Adding money is not open yet. We are setting up mobile money payments and will tell you here and in your notifications when it is ready.</p><button class="primary" data-close type="button">OK</button>');
+  };
+  $("openWithdraw").onclick = function () {
+    if (!S.lim.on) return openSheet('<h3 id="sheetT">Withdraw</h3><p class="lead">Withdrawals are paused right now. Please try again later.</p><button class="primary" data-close type="button">OK</button>');
+    if (!S.payout) return openSheet('<h3 id="sheetT">Withdraw</h3><p class="lead">First tell us where to send your money.</p><button class="primary" id="goPay" type="button">Add payout details</button><button class="cancel" data-close type="button">Not now</button>'), ($("goPay").onclick = openPayout);
+    var p = S.payout, max = Math.min(S.bal, S.lim.max);
+    openSheet('<h3 id="sheetT">Withdraw</h3><p class="lead">Available: <b>' + esc(ghs(S.bal)) + '</b>. The money leaves your balance now and we send it to you after checking the request.</p>' +
+      '<form id="wf" novalidate><div class="sendto">Sending to<b>' + esc(p.account_name) + "</b>" + (p.method === "bank" ? "Bank account" : "Mobile money") + " · •••• " + esc(String(p.account_number).slice(-4)) + '</div>' +
+      '<div><label for="wa">Amount (GHS)</label><input id="wa" inputmode="decimal" autocomplete="off" placeholder="0.00"><small class="small" style="display:block;margin:6px 0 0">From ' + esc(ghs(S.lim.min)) + " to " + esc(ghs(S.lim.max)) + ' each time.</small></div>' +
+      '<div class="quick"><button type="button" id="wall">All (' + esc(ghs(max)) + ')</button></div><p class="err" id="werr" role="alert"></p><button class="primary" type="submit">Request withdrawal</button><button class="cancel" data-close type="button">Cancel</button></form>');
+    $("wall").onclick = function () { $("wa").value = (max / 100).toFixed(2) };
+    $("wf").onsubmit = async function (e) {
+      e.preventDefault(); var er = $("werr"), btn = e.submitter || $("wf").querySelector("button[type=submit]"), amt = toMinor($("wa").value); er.textContent = "";
+      if (isNaN(amt)) { er.textContent = "Type an amount like 25 or 25.50."; return }
+      if (amt < S.lim.min) { er.textContent = "The smallest withdrawal is " + ghs(S.lim.min) + "."; return }
+      if (amt > S.lim.max) { er.textContent = "The largest withdrawal is " + ghs(S.lim.max) + "."; return }
+      if (amt > S.bal) { er.textContent = "You only have " + ghs(S.bal) + "."; return }
+      btn.disabled = true;
+      try {
+        await rpc("request_withdrawal", { p_amount: amt });
+        openSheet('<div class="done"><div class="ico in">' + ICON.ok + '</div><h3 id="sheetT">Request sent</h3><p class="lead">' + esc(ghs(amt)) + " is on its way to " + esc(p.account_name) + '. It shows as "Being processed" until we have paid it.</p></div><button class="primary" data-close type="button">Done</button>');
+        loadWallet();
+      } catch (x) { if (/wallet is locked/i.test(x.message)) { closeSheet(); return route() } er.textContent = say(x); btn.disabled = false }
     };
-
-    // ---------- F. FILTER CHIPS ----------
-    $("chips").addEventListener("click", e => {
-      const chip = e.target.closest(".chip");
-      if (!chip) return;
-      document.querySelectorAll(".chip").forEach(c => c.classList.remove("active"));
-      chip.classList.add("active");
-      currentFilter = chip.dataset.filter;
-      render();
-    });
-
-    // ---------- EYE: hide / show the balance ----------
-    function paintEye() {
-      const b = $("eyeBtn");
-      b.classList.toggle("is-hidden", hideBalance);
-      b.setAttribute("aria-pressed", hideBalance);
-      b.setAttribute("aria-label", hideBalance ? "Show balance" : "Hide balance");
-    }
-    $("eyeBtn").onclick = () => {
-      hideBalance = !hideBalance;
-      try { localStorage.setItem("countrex_hide_balance", hideBalance ? "1" : "0"); } catch (e) {}
-      paintEye();
-      render();
+  };
+  function openPayout() {
+    var p = S.payout || {};
+    openSheet('<h3 id="sheetT">' + (S.payout ? "Change payout details" : "Where should we send your money?") + '</h3><p class="lead">Withdrawals go here. We only pay to the account you save, so check the number carefully.</p>' +
+      '<form id="pf" novalidate><div><label for="pm">Send to</label><select id="pm"><option value="mobile_money"' + (p.method === "bank" ? "" : " selected") + '>Mobile money</option><option value="bank"' + (p.method === "bank" ? " selected" : "") + '>Bank account</option></select></div>' +
+      '<div><label for="pn">Name on the account</label><input id="pn" autocomplete="off" value="' + esc(p.account_name || "") + '"></div>' +
+      '<div><label for="pa" id="pal">Mobile money number</label><input id="pa" inputmode="numeric" autocomplete="off" placeholder="0241234567" value="' + esc(p.account_number || "") + '"></div>' +
+      '<p class="err" id="perr" role="alert"></p><button class="primary" type="submit">Save</button><button class="cancel" data-close type="button">Cancel</button></form>');
+    $("pm").onchange = function () { $("pal").textContent = this.value === "bank" ? "Bank account number" : "Mobile money number"; $("pa").placeholder = this.value === "bank" ? "Account number" : "0241234567" };
+    $("pm").onchange();
+    $("pf").onsubmit = async function (e) {
+      e.preventDefault(); var er = $("perr"), btn = e.submitter || $("pf").querySelector("button[type=submit]"); er.textContent = ""; btn.disabled = true;
+      try { await rpc("set_payout_account", { p_method: $("pm").value, p_name: $("pn").value.trim(), p_number: $("pa").value.trim() }); closeSheet(); toast("Payout details saved"); loadWallet() }
+      catch (x) { if (/wallet is locked/i.test(x.message)) { closeSheet(); return route() } er.innerHTML = /verify your email/i.test(x.message) ? 'Please add and verify your email first. <a href="settings.html" style="color:inherit;text-decoration:underline">Open Settings</a>' : esc(say(x)); btn.disabled = false }
     };
-    paintEye();
-    render();
+  }
+  $("openPin").onclick = function () {
+    openSheet('<h3 id="sheetT">Change your PIN</h3><p class="lead">Enter your current PIN, then choose a new one.</p><form id="cf" novalidate>' +
+      '<div><label for="c0">Current PIN</label><input class="pin" id="c0" type="password" inputmode="numeric" maxlength="6" autocomplete="off" placeholder="••••••"></div>' +
+      '<div><label for="c1">New PIN</label><input class="pin" id="c1" type="password" inputmode="numeric" maxlength="6" autocomplete="off" placeholder="••••••"></div>' +
+      '<div><label for="c2">New PIN again</label><input class="pin" id="c2" type="password" inputmode="numeric" maxlength="6" autocomplete="off" placeholder="••••••"></div>' +
+      '<p class="err" id="cerr" role="alert"></p><button class="primary" type="submit">Change PIN</button><button class="cancel" data-close type="button">Cancel</button></form>');
+    ["c0", "c1", "c2"].forEach(function (id) { $(id).addEventListener("input", function () { this.value = this.value.replace(/\D/g, "").slice(0, 6) }) });
+    $("cf").onsubmit = async function (e) {
+      e.preventDefault(); var er = $("cerr"), btn = e.submitter || $("cf").querySelector("button[type=submit]"); er.textContent = "";
+      if (!/^\d{6}$/.test($("c0").value) || !/^\d{6}$/.test($("c1").value)) { er.textContent = "Each PIN must be 6 digits."; return }
+      if ($("c1").value !== $("c2").value) { er.textContent = "The new PINs do not match."; return }
+      btn.disabled = true;
+      try {
+        var r = await rpc("set_wallet_pin", { p_pin: $("c1").value, p_old: $("c0").value });
+        if (r && r.ok) { closeSheet(); toast("PIN changed"); return }
+        if (r && r.reason === "locked") { closeSheet(); return route() }
+        er.textContent = "Your current PIN is wrong." + (r && r.left != null ? " " + r.left + (r.left === 1 ? " try" : " tries") + " left." : ""); btn.disabled = false;
+      } catch (x) { er.textContent = say(x); btn.disabled = false }
+    };
+  };
 
-  </script>
+  // ---------- start: logged in? ----------
+  window.addEventListener("pageshow", function (e) { if (e.persisted) location.reload() });
+  document.addEventListener("visibilitychange", function () { if (!document.hidden && !$("vWallet").hidden && Date.now() >= S.until) route() });
+  (async function () {
+    if (!sb) { document.body.classList.add("ready"); $("vLoad").textContent = "This page could not start. js/supabase.js is missing."; return }
+    var session = null;
+    try { session = (await sb.auth.getSession()).data.session } catch (e) { console.error(e) }
+    if (!session) { location.replace("login.html?next=wallet.html"); return }       // nobody sees the wallet without logging in
+    S.uid = session.user.id; document.body.classList.add("ready"); route();
+  })();
+})();
+</script>
 <aside class="menu" id="sheet" aria-label="Menu" hidden>
   <div class="mhead"><span class="mbrand">Countrex</span><button class="mclose" id="mclose" type="button" aria-label="Close menu"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button></div>
   <a class="mprofile" href="profile.html" data-gate="My Profile">
