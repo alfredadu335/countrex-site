@@ -280,6 +280,7 @@ html[data-theme="dark"] .toast{background:#EDE8F3;color:#131114}
 </div>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
 <script src="js/supabase.js"></script>
+<script src="js/data.js"></script>
 <script>
 /* =====================================================================
    COUNTREX SHARED NAVIGATION (js/shell.js)
@@ -446,7 +447,7 @@ html[data-theme="dark"] .toast{background:#EDE8F3;color:#131114}
    When your Supabase is ready, change adminList() to read from your tables. */
 (function () {
   var STORE = "cx_admin_v2_d";
-  function adminList(name) { try { var d = JSON.parse(localStorage.getItem(STORE) || "{}"); return Array.isArray(d[name]) ? d[name] : [] } catch (e) { return [] } }
+  function adminList(name) { return (window.cxData && cxData.cache[name]) || [] }   // now comes from Supabase (js/data.js), not from this browser
   var MATCH = { codm: /call of duty|\bcod\b|codm/i, eafc: /\bfc\b|ea sports|fifa/i, efootball: /e-?football/i };
   var COVER = { codm: ["#050607", "#2a3340"], eafc: ["#0a0d11", "#0b3a2c"], efootball: ["#00003e", "#000094"] };
   var q = document.getElementById("q"), qx = document.getElementById("qx"), chips = document.getElementById("fchips"),
@@ -456,14 +457,14 @@ html[data-theme="dark"] .toast{background:#EDE8F3;color:#131114}
   function money(v) { v = String(v == null ? "" : v).trim(); return !v ? "" : /^[\d.,]+$/.test(v) ? "$" + v : v }
   function gkey(g) { for (var k in MATCH) if (MATCH[k].test(g || "")) return k; return "" }
   function items() {
-    var t = adminList("tours").map(function (x) { return { kind: "Tournament", name: x.n, game: x.g, p: +x.p || 0, lim: +x.lim || 0, end: +x.end || 0, fee: x.fee, prize: x.prize, pr: +x.pr || 0 } });
+    var t = adminList("tours").map(function (x) { return { kind: "Tournament", name: x.n, game: x.g, p: +x.p || 0, lim: +x.lim || 0, end: +x.end || 0, fee: x.fee, prize: x.prize, pr: +x.pr || 0, cover: x.cover } });
     var e = adminList("events").map(function (x) { return { kind: "Event", name: x.n, game: x.t, p: +x.p || 0, lim: +x.lim || 0, end: +x.end || 0, prize: x.prize, pr: 0 } });
     var now = Date.now();
     return t.concat(e).sort(function (a, b) { var ao = a.end > now, bo = b.end > now; return ao === bo ? a.end - b.end : ao ? -1 : 1 });
   }
   function card(x) {
     var open = x.end > Date.now(), k = gkey(x.game), c = COVER[k] || ["#1A0B2E", "#5E3C88"], prize = money(x.prize), fee = money(x.fee);
-    return '<article class="ev" data-end="' + x.end + '" data-game="' + k + '"><div class="cover" style="--c1:' + c[0] + ';--c2:' + c[1] + '"><span>' + esc(x.game || x.kind) + '</span></div><div class="evb">' +
+    return '<article class="ev" data-end="' + x.end + '" data-game="' + k + '"><div class="cover" style="--c1:' + c[0] + ';--c2:' + c[1] + '">' + (x.cover ? '<img src="' + esc(x.cover) + '" alt="" loading="lazy">' : '<span>' + esc(x.game || x.kind) + '</span>') + '</div><div class="evb">' +
       '<h3>' + esc(x.name) + '</h3><small>' + x.kind + ' · ' + esc(x.game || "") + ' · ' + x.p + (x.lim ? "/" + x.lim : "") + ' joined</small>' +
       (open ? '<div class="cd"><div><b data-u="d">0</b><span>days</span></div><div><b data-u="h">00</b><span>hours</span></div><div><b data-u="m">00</b><span>min</span></div><div><b data-u="s">00</b><span>sec</span></div></div>' : '<p class="tba">' + (x.pr > 0 ? "Live now" : "Closed") + '</p>') +
       (fee ? '<div class="prize"><span>Entry</span><span class="pv">' + esc(fee) + '</span></div>' : '') +
@@ -517,7 +518,8 @@ html[data-theme="dark"] .toast{background:#EDE8F3;color:#131114}
   setInterval(tick, 1000);
   window.addEventListener("storage", function (e) { if (e.key === STORE) render() });   // you changed something in the admin page: update now
   var pre = new URLSearchParams(location.search).get("q"); if (pre) q.value = pre;
-  render();
+  function reloadAll() { return (window.cxData ? cxData.refresh() : Promise.resolve()).then(render, render) }
+  reloadAll(); setInterval(reloadAll, 60000);
 })();
 </script>
 </body>

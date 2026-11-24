@@ -335,6 +335,7 @@ dialog#lb button{display:block;margin:14px auto 0;height:44px;padding:0 24px;bor
 </div>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
 <script src="js/supabase.js"></script>
+<script src="js/data.js"></script>
 <script>
 /* =====================================================================
    COUNTREX SHARED NAVIGATION (js/shell.js)
@@ -503,7 +504,7 @@ dialog#lb button{display:block;margin:14px auto 0;height:44px;padding:0 24px;bor
   // Right now the admin page keeps its data in this browser (localStorage), so this page and the admin page
   // must be on the same website. When your Supabase is ready, change adminList() to read from your tables.
   var STORE = "cx_admin_v2_d";
-  function adminList(name) { try { var d = JSON.parse(localStorage.getItem(STORE) || "{}"); return Array.isArray(d[name]) ? d[name] : [] } catch (e) { return [] } }
+  function adminList(name) { return (window.cxData && cxData.cache[name]) || [] }   // now comes from Supabase (js/data.js), not from this browser
 
   var G = window.GAME;
   var MATCH = { codm: /call of duty|\bcod\b|codm/i, eafc: /\bfc\b|ea sports|fifa/i, efootball: /e-?football/i }[G.key];
@@ -532,8 +533,8 @@ dialog#lb button{display:block;margin:14px auto 0;height:44px;padding:0 24px;bor
   function mine() { return adminList("tours").filter(function (x) { return MATCH.test(x.g || "") }).sort(function (a, b) { var ao = a.end > Date.now(), bo = b.end > Date.now(); return ao === bo ? a.end - b.end : ao ? -1 : 1 }) }
   function tcard(x) {
     var now = Date.now(), open = x.end > now, lim = +x.lim || 0, joined = +x.p || 0, full = lim && joined >= lim, live = (+x.pr || 0) > 0;
-    var fee = money(x.fee), prize = money(x.prize), btn = open && !full ? '<button class="gb main" type="button" data-join="' + esc(x.n) + '">Join tournament</button>' : '<button class="gb" type="button" disabled>' + (full ? "Tournament full" : "Registration closed") + '</button>';
-    return '<article class="gcard" data-end="' + (+x.end || 0) + '"><div class="tt"><h3>' + esc(x.n) + '</h3><span class="tag' + (live ? " live" : "") + '">' + (live ? "LIVE" : open ? "Open" : "Closed") + '</span></div>' +
+    var fee = money(x.fee), prize = money(x.prize), btn = x.joined ? '<button class="gb" type="button" disabled>You joined ✓</button>' : open && !full ? '<button class="gb main" type="button" data-join="' + esc(x.id) + '">Join tournament</button>' : '<button class="gb" type="button" disabled>' + (full ? "Tournament full" : "Registration closed") + '</button>';
+    return '<article class="gcard" data-end="' + (+x.end || 0) + '">' + (x.cover ? '<img class="tcv" src="' + esc(x.cover) + '" alt="" loading="lazy">' : '') + '<div class="tt"><h3>' + esc(x.n) + '</h3><span class="tag' + (live ? " live" : "") + '">' + (live ? "LIVE" : open ? "Open" : "Closed") + '</span></div>' +
       '<p class="tm">' + esc(x.g) + ' · ' + joined + (lim ? '/' + lim : '') + ' players joined' + (x.bet ? ' · Betting on' : '') + '</p>' +
       (open ? '<p class="cl">Registration closes in</p><div class="cdn"><div><b data-u="d">0</b><span>days</span></div><div><b data-u="h">00</b><span>hours</span></div><div><b data-u="m">00</b><span>min</span></div><div><b data-u="s">00</b><span>sec</span></div></div>' : '<div class="tba">Registration is closed</div>') +
       (live ? '<div class="pbar" aria-label="Progress"><i style="width:' + Math.min(100, +x.pr) + '%"></i></div>' : '') +
@@ -577,8 +578,7 @@ dialog#lb button{display:block;margin:14px auto 0;height:44px;padding:0 24px;bor
   $("tqx").onclick = function () { $("tq").value = ""; searchTournaments(); $("tq").focus() };
   document.addEventListener("click", function (e) {
     var b = e.target.closest("[data-join]"); if (!b) return;
-    // TODO (backend): take the entry fee from the wallet and add the player to the tournament.
-    toast("Tournament entry is not open yet.");
+    cxData.join(b.getAttribute("data-join"), { toast: toast, redraw: loadTournaments });   // confirms, takes the fee from the wallet and adds the player
   });
 
   // ===== RANKINGS (overall points from your Supabase "profiles" table; the leaderboard page has the full list) =====
@@ -595,7 +595,9 @@ dialog#lb button{display:block;margin:14px auto 0;height:44px;padding:0 24px;bor
   }
 
   document.title = G.name + " · Countrex";
-  drawArt(); loadTournaments(); loadRanks();
+  drawArt(); loadRanks();
+  function reloadT() { return (window.cxData ? cxData.refresh() : Promise.resolve()).then(loadTournaments, loadTournaments) }
+  reloadT(); setInterval(reloadT, 60000);
 })();
 </script>
 <dialog id="lb" aria-label="Picture viewer"><img id="lbi" alt=""><button type="button" id="lbx">Close</button></dialog>
