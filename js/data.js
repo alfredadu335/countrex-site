@@ -28,6 +28,14 @@
     "html[data-theme=dark] #cxjoin button.cxgo{background:#8A68C2;border-color:#8A68C2}";
   document.head.appendChild(st);
 
+  st.textContent += ".cxcode{margin:12px 0 0;padding:12px 14px;border-radius:14px;background:rgba(127,127,127,.14);display:flex;align-items:center;justify-content:space-between;gap:10px}.cxcode small{display:block;opacity:.7;font-size:12px}.cxcode b{font-size:16px;word-break:break-all}.cxcode button{font:inherit;font-weight:700;border:0;border-radius:10px;padding:9px 14px;background:#5E3C88;color:#fff;cursor:pointer;flex:none}";
+  D.codeBox = function (code) { return code ? '<div class="cxcode"><div><small>Tournament ID — paste this in the game</small><b>' + esc(code) + '</b></div><button type="button" data-cxcopy="' + esc(code) + '">Copy</button></div>' : "" };
+  document.addEventListener("click", function (e) {
+    var b = e.target.closest && e.target.closest("[data-cxcopy]"); if (!b) return; var t = b.getAttribute("data-cxcopy");
+    var done = function () { b.textContent = "Copied ✓"; setTimeout(function () { b.textContent = "Copy" }, 1800) };
+    if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(t).then(done, function () { prompt("Copy this ID:", t) }); else prompt("Copy this ID:", t);
+  });
+
   D.session = async function () { try { return sb() ? (await sb().auth.getSession()).data.session : null } catch (e) { return null } };
 
   D.refresh = async function () {
@@ -42,6 +50,8 @@
       var counts = {}; ((r[2] && r[2].data) || []).forEach(function (x) { counts[x.kind + ":" + x.id] = Number(x.n) || 0 });
       var s = r[3], mine = {};
       if (s) { var m = await c.from("tournament_entries").select("tournament_id").eq("user_id", s.user.id); ((m && m.data) || []).forEach(function (x) { mine[x.tournament_id] = true }) }
+      var codes = {};
+      if (s && Object.keys(mine).length) { try { var cr = await c.from("tournament_codes").select("tournament_id,code"); ((cr && cr.data) || []).forEach(function (x) { codes[x.tournament_id] = x.code }) } catch (e) { } }
       var mineE = {};
       if (s) { var me = await c.from("event_entries").select("event_id").eq("user_id", s.user.id); ((me && me.data) || []).forEach(function (x) { mineE[x.event_id] = true }) }
       var liveIds = (r[0].data || []).filter(function (t) { return t.status === "live" }).map(function (t) { return t.id }), prog = {};
@@ -51,7 +61,7 @@
         return { id: t.id, n: t.name, g: GN[t.game_key] || t.game_key, p: counts["tournament:" + t.id] || 0, lim: t.player_limit,
           end: t.status === "open" ? new Date(t.join_closes_at).getTime() : 0,          // registration is only open while the status is "open"
           fee: t.entry_fee > 0 ? ghs(t.entry_fee) : "Free", prize: t.prize_pool > 0 ? ghs(t.prize_pool) : "", feeMinor: t.entry_fee, pr: pr,
-          rules: t.rules || "", bet: !!t.betting_enabled, cover: t.cover_url || "", joined: !!mine[t.id], status: t.status };
+          rules: t.rules || "", bet: !!t.betting_enabled, cover: t.cover_url || "", joined: !!mine[t.id], code: mine[t.id] ? (codes[t.id] || "") : "", status: t.status };
       });
       D.cache.events = (r[1].data || []).map(function (e) {
         return { id: e.id, n: e.name, t: e.category, p: counts["event:" + e.id] || 0, lim: e.join_limit || 0, end: new Date(e.starts_at).getTime(), prize: e.prize || "", cover: e.cover_url || "", joined: !!mineE[e.id] };

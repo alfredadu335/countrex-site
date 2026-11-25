@@ -150,7 +150,7 @@ dialog h2{margin-bottom:14px;font-size:19px}
   function toast(m, bad) { var t = $("toast"); t.textContent = m; t.className = "toast" + (bad ? " bad" : ""); t.hidden = false; clearTimeout(toastT); toastT = setTimeout(function () { t.hidden = true }, bad ? 5000 : 2600) }
   async function q(p) { var r = await p; if (r.error) { var e = new Error(r.error.message || "Request failed"); e.code = r.error.code; throw e } return r.data }
   var rpc = function (n, a) { return q(sb.rpc(n, a || {})) };
-  function fail(e) { console.error(e); var m = e && e.message ? e.message : "Something went wrong"; if (/cover_url/.test(m)) m = "Run 006_event_covers.sql in Supabase first, then try again."; toast(m, true) }
+  function fail(e) { console.error(e); var m = e && e.message ? e.message : "Something went wrong"; if (/tournament_codes/.test(m)) m = "Run 008_tournament_codes.sql in Supabase first, then try again."; if (/cover_url/.test(m)) m = "Run 006_event_covers.sql in Supabase first, then try again."; toast(m, true) }
   function badge(text, cls) { return '<span class="bd ' + (cls || "mut") + '">' + esc(text) + "</span>" }
   var STATUS = { active: "ok", suspended: "warn", banned: "bad", completed: "ok", pending: "warn", failed: "bad", open: "ok", live: "warn", draft: "mut", finished: "mut", cancelled: "bad", unused: "ok", used: "mut", revoked: "bad" };
   var stBadge = function (s) { return badge(s, STATUS[s] || "mut") };
@@ -483,6 +483,7 @@ dialog h2{margin-bottom:14px;font-size:19px}
       { k: "entry_fee", l: "Entry fee (GHS, 0 = free)", t: "money", v: t.entry_fee != null ? t.entry_fee / 100 : 0, dis: hasPlayers, hint: hasPlayers ? "Locked: players already paid this price." : "" },
       { k: "prize_pool", l: "Prize pool (GHS)", t: "money", v: t.prize_pool != null ? t.prize_pool / 100 : 0 },
       { k: "join_closes_at", l: "Registration closes", t: "datetime", req: 1, v: toLocalInput(t.join_closes_at) },
+      { k: "game_code", l: "In-game tournament ID / code", t: "text", v: t.game_code, ph: "e.g. the room ID or code from the game", hint: "Players who join see this and copy it into the game. Not shown to the public." },
       { k: "betting_enabled", l: "Allow betting on this tournament", t: "checkbox", v: !!t.betting_enabled },
       { k: "cover", l: "Cover picture", t: "file", v: t.cover_url, hint: "JPG, PNG or WebP. A wide 16:9 picture looks best. It is resized for you." }
     ];
@@ -501,14 +502,16 @@ dialog h2{margin-bottom:14px;font-size:19px}
       row.cover_url = newUrl;
       try {
         if (id) { if (!("entry_fee" in v) || document.getElementById("f_entry_fee").disabled) delete row.entry_fee; await q(sb.from("tournaments").update(row).eq("id", id)) }
-        else await q(sb.from("tournaments").insert(row));
+        else { var nr = await q(sb.from("tournaments").insert(row).select("id")); id = nr && nr[0] && nr[0].id }
+        var gc = (v.game_code || "").trim();
+        if (id) { if (gc) await q(sb.from("tournament_codes").upsert({ tournament_id: id, code: gc, updated_at: new Date().toISOString() })); else await q(sb.from("tournament_codes").delete().eq("tournament_id", id)) }
       } catch (e) { if (newUrl && newUrl !== oldUrl) dropCover(newUrl); throw e }   // do not leave a picture nobody uses
       if (oldUrl && oldUrl !== newUrl) dropCover(oldUrl);
       toast("Saved"); setTimeout(reload, 0);
     };
   }
   acts.tnew = function () { form("New tournament", tourFields(), "Create", tourSave(null)) };
-  acts.tedit = function (el) { var t = cache.tours[el.dataset.id]; form("Edit tournament", tourFields(t), "Save", tourSave(t.id)) };
+  acts.tedit = async function (el) { var t = cache.tours[el.dataset.id]; try { var cd = await q(sb.from("tournament_codes").select("code").eq("tournament_id", t.id).maybeSingle()); t.game_code = cd ? cd.code : "" } catch (e) { } form("Edit tournament", tourFields(t), "Save", tourSave(t.id)) };
   acts.tdel = async function (el) {
     var t = cache.tours[el.dataset.id];
     if (!await confirmDlg("Delete " + esc(t.name) + "?", "This removes it and its fixtures for good.", "Delete", true)) return;
