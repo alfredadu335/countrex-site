@@ -459,7 +459,7 @@ html[data-theme="dark"] .toast{background:#EDE8F3;color:#131114}
   function money(v) { v = String(v == null ? "" : v).trim(); return !v ? "" : /^[\d.,]+$/.test(v) ? "$" + v : v }
   function gkey(g) { for (var k in MATCH) if (MATCH[k].test(g || "")) return k; return "" }
   function items() {
-    var t = adminList("tours").map(function (x) { return { id: x.id, joined: x.joined, st: x.status, kind: "Tournament", name: x.n, game: x.g, p: +x.p || 0, lim: +x.lim || 0, end: +x.end || 0, fee: x.fee, prize: x.prize, pr: +x.pr || 0, cover: x.cover, code: x.code } });
+    var t = adminList("tours").map(function (x) { return { id: x.id, joined: x.joined, st: x.status, kind: "Tournament", name: x.n, game: x.g, p: +x.p || 0, lim: +x.lim || 0, end: +x.end || 0, fee: x.fee, prize: x.prize, pr: +x.pr || 0, cover: x.cover, code: x.code, raw: x } });
     var e = adminList("events").map(function (x) { return { id: x.id, joined: x.joined, kind: "Event", name: x.n, game: x.t, p: +x.p || 0, lim: +x.lim || 0, end: +x.end || 0, prize: x.prize, pr: 0, cover: x.cover } });
     var now = Date.now();
     return t.concat(e).sort(function (a, b) { var ao = a.end > now, bo = b.end > now; return ao === bo ? a.end - b.end : ao ? -1 : 1 });
@@ -471,7 +471,7 @@ html[data-theme="dark"] .toast{background:#EDE8F3;color:#131114}
       (open ? '<div class="cd"><div><b data-u="d">0</b><span>days</span></div><div><b data-u="h">00</b><span>hours</span></div><div><b data-u="m">00</b><span>min</span></div><div><b data-u="s">00</b><span>sec</span></div></div>' : '<p class="tba">' + (x.pr > 0 ? "Live now" : "Closed") + '</p>') +
       (fee ? '<div class="prize"><span>Entry</span><span class="pv">' + esc(fee) + '</span></div>' : '') +
       '<div class="prize"><span>Prize</span><span class="pv">' + (prize ? esc(prize) : "To be announced") + '</span></div>' +
-      (open && (x.kind === "Event" || x.st === "open") ? (x.joined ? '<button type="button" class="jbtn done" disabled>You joined ✓</button>' + (window.cxData ? cxData.codeBox(x.code) : '') : (x.lim && x.p >= x.lim ? '<button type="button" class="jbtn" disabled>Full</button>' : '<button type="button" class="jbtn" data-jk="' + x.kind + '" data-jid="' + esc(x.id) + '">Join</button>')) : '') + '</div></article>';
+      (open && (x.kind === "Event" || x.st === "open") ? (x.joined ? '<button type="button" class="jbtn done" disabled>You joined ✓</button>' + (window.cxData ? cxData.codeBox(x.raw || x.code) : '') : (x.lim && x.p >= x.lim ? '<button type="button" class="jbtn" disabled>Full</button>' : '<button type="button" class="jbtn" data-jk="' + x.kind + '" data-jid="' + esc(x.id) + '">Join</button>')) : '') + '</div></article>';
   }
   var ALIAS = { codm: "cod codm call of duty mobile", eafc: "fc eafc ea sports fc football", efootball: "efootball football" };
   var none = document.createElement("div"); none.className = "nores"; none.hidden = true;

@@ -103,6 +103,7 @@ dialog h2{margin-bottom:14px;font-size:19px}
 .gate{min-height:100vh;display:grid;place-items:center;padding:24px;text-align:center}
 .gate .box{max-width:420px}
 .gate p{color:var(--muted);margin:8px 0 16px}
+.rm{border:1px solid var(--line);border-radius:12px;padding:12px;margin-bottom:12px}.rm h4{margin:0 0 8px;font-size:15px}.rm .rg{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px}.rm .pl{display:flex;flex-wrap:wrap;gap:6px 14px;margin:8px 0}.rm .pl label{display:flex;gap:6px;align-items:center;font-size:14px}dialog.wide{width:min(720px,calc(100% - 24px))}
 .pay{display:grid;grid-template-columns:auto 1fr 1fr 1fr;gap:8px;align-items:center;margin-bottom:8px}
 .pay input{padding:8px 10px}
 @media(min-width:640px){.stats{grid-template-columns:repeat(4,1fr)}main{padding:24px}}
@@ -150,7 +151,7 @@ dialog h2{margin-bottom:14px;font-size:19px}
   function toast(m, bad) { var t = $("toast"); t.textContent = m; t.className = "toast" + (bad ? " bad" : ""); t.hidden = false; clearTimeout(toastT); toastT = setTimeout(function () { t.hidden = true }, bad ? 5000 : 2600) }
   async function q(p) { var r = await p; if (r.error) { var e = new Error(r.error.message || "Request failed"); e.code = r.error.code; throw e } return r.data }
   var rpc = function (n, a) { return q(sb.rpc(n, a || {})) };
-  function fail(e) { console.error(e); var m = e && e.message ? e.message : "Something went wrong"; if (/tournament_codes/.test(m)) m = "Run 008_tournament_codes.sql in Supabase first, then try again."; if (/cover_url/.test(m)) m = "Run 006_event_covers.sql in Supabase first, then try again."; toast(m, true) }
+  function fail(e) { console.error(e); var m = e && e.message ? e.message : "Something went wrong"; if (/room_size|advance_per_room|prize_1|prize_2|prize_3|tournament_rooms|admin_set_room|admin_start_final|admin_finish_final|admin_set_qualifiers|admin_close_signup/.test(m) && /column|function|relation|schema cache/i.test(m)) m = "Run 009_rooms.sql in Supabase first, then try again."; if (/tournament_codes/.test(m)) m = "Run 008_tournament_codes.sql in Supabase first, then try again."; if (/cover_url/.test(m)) m = "Run 006_event_covers.sql in Supabase first, then try again."; toast(m, true) }
   function badge(text, cls) { return '<span class="bd ' + (cls || "mut") + '">' + esc(text) + "</span>" }
   var STATUS = { active: "ok", suspended: "warn", banned: "bad", completed: "ok", pending: "warn", failed: "bad", open: "ok", live: "warn", draft: "mut", finished: "mut", cancelled: "bad", unused: "ok", used: "mut", revoked: "bad" };
   var stBadge = function (s) { return badge(s, STATUS[s] || "mut") };
@@ -467,7 +468,8 @@ dialog h2{margin-bottom:14px;font-size:19px}
       { h: "", r: function (t) {
         var done = t.status === "finished" || t.status === "cancelled";
         return '<div class="acts"><button class="btn sec sm" data-act="tedit" data-id="' + t.id + '">Edit</button><button class="btn sec sm" data-act="tfix" data-id="' + t.id + '">Fixtures</button>' +
-          '<button class="btn sm" data-act="tpay" data-id="' + t.id + '">' + (done ? "Results" : "Players &amp; payout") + "</button>" +
+          (t.room_size ? '<button class="btn sm" data-act="trooms" data-id="' + t.id + '">Rooms</button>' : "") +
+          ((t.room_size && !done) ? "" : '<button class="btn sm" data-act="tpay" data-id="' + t.id + '">' + (done ? "Results" : "Players &amp; payout") + "</button>") +
           (done ? "" : '<button class="btn bad sm" data-act="tcancel" data-id="' + t.id + '">Cancel &amp; refund</button>') +
           '<button class="btn bad sm" data-act="tdel" data-id="' + t.id + '"' + (t.n > 0 ? ' disabled title="Has players. Cancel it instead so fees are refunded."' : "") + ">Delete</button></div>";
       } }
@@ -484,6 +486,11 @@ dialog h2{margin-bottom:14px;font-size:19px}
       { k: "prize_pool", l: "Prize pool (GHS)", t: "money", v: t.prize_pool != null ? t.prize_pool / 100 : 0 },
       { k: "join_closes_at", l: "Registration closes", t: "datetime", req: 1, v: toLocalInput(t.join_closes_at) },
       { k: "game_code", l: "In-game tournament ID / code", t: "text", v: t.game_code, ph: "e.g. the room ID or code from the game", hint: "Players who join see this and copy it into the game. Not shown to the public." },
+      { k: "room_size", l: "Players per game room (leave empty for a normal tournament)", t: "number", v: t.room_size, min: 2, dis: hasPlayers, ph: "8 for eFootball", hint: hasPlayers ? "Locked: players already joined." : "Example: 32 players with 8 per room makes 4 rooms. Players are put in a random room." },
+      { k: "advance_per_room", l: "Players that move on from each room", t: "number", v: t.advance_per_room || 2, min: 1, dis: hasPlayers },
+      { k: "prize_1", l: "1st place prize (GHS)", t: "money", v: t.prize_1 ? t.prize_1 / 100 : 0 },
+      { k: "prize_2", l: "2nd place prize (GHS)", t: "money", v: t.prize_2 ? t.prize_2 / 100 : 0 },
+      { k: "prize_3", l: "3rd place prize (GHS)", t: "money", v: t.prize_3 ? t.prize_3 / 100 : 0, hint: "Only used for tournaments with rooms. The three prizes must not add up to more than the prize pool." },
       { k: "betting_enabled", l: "Allow betting on this tournament", t: "checkbox", v: !!t.betting_enabled },
       { k: "cover", l: "Cover picture", t: "file", v: t.cover_url, hint: "JPG, PNG or WebP. A wide 16:9 picture looks best. It is resized for you." }
     ];
@@ -493,7 +500,10 @@ dialog h2{margin-bottom:14px;font-size:19px}
   }
   function tourSave(id) {
     return async function (v) {
-      var row = { game_key: v.game_key, name: v.name, rules: v.rules || null, player_limit: v.player_limit, entry_fee: v.entry_fee || 0, prize_pool: v.prize_pool || 0, join_closes_at: v.join_closes_at, betting_enabled: v.betting_enabled };
+      var row = { game_key: v.game_key, name: v.name, rules: v.rules || null, player_limit: v.player_limit, entry_fee: v.entry_fee || 0, prize_pool: v.prize_pool || 0, join_closes_at: v.join_closes_at, betting_enabled: v.betting_enabled,
+        room_size: v.room_size || null, advance_per_room: v.advance_per_room || 2, prize_1: v.prize_1 || 0, prize_2: v.prize_2 || 0, prize_3: v.prize_3 || 0 };
+      if ((row.prize_1 + row.prize_2 + row.prize_3) > row.prize_pool) throw new Error("1st + 2nd + 3rd prizes are more than the prize pool");
+      if (row.room_size && row.room_size > row.player_limit) throw new Error("Players per room cannot be more than the player limit");
       if (v.status) row.status = v.status;
       if (!(v.player_limit >= 2)) throw new Error("Player limit must be at least 2");
       if (row.entry_fee < 0 || row.prize_pool < 0) throw new Error("Amounts cannot be negative");
@@ -501,7 +511,7 @@ dialog h2{margin-bottom:14px;font-size:19px}
       if (v.cover) newUrl = await uploadCover(v.cover); else if (v.rmcover) newUrl = null;
       row.cover_url = newUrl;
       try {
-        if (id) { if (!("entry_fee" in v) || document.getElementById("f_entry_fee").disabled) delete row.entry_fee; await q(sb.from("tournaments").update(row).eq("id", id)) }
+        if (id) { if (!("entry_fee" in v) || document.getElementById("f_entry_fee").disabled) delete row.entry_fee; if (document.getElementById("f_room_size").disabled) { delete row.room_size; delete row.advance_per_room } await q(sb.from("tournaments").update(row).eq("id", id)) }
         else { var nr = await q(sb.from("tournaments").insert(row).select("id")); id = nr && nr[0] && nr[0].id }
         var gc = (v.game_code || "").trim();
         if (id) { if (gc) await q(sb.from("tournament_codes").upsert({ tournament_id: id, code: gc, updated_at: new Date().toISOString() })); else await q(sb.from("tournament_codes").delete().eq("tournament_id", id)) }
@@ -555,6 +565,63 @@ dialog h2{margin-bottom:14px;font-size:19px}
         toast("Paid out. Tournament finished"); closeDlg(); reload(); refreshPending();
       } catch (x) { er.textContent = x.message; er.hidden = false; b.disabled = false }
     };
+  };
+  // ---------- ROOMS (one tournament, several game rooms) ----------
+  async function openRooms(id) {
+    var t = (await q(sb.from("tournaments").select("*").eq("id", id).single()));
+    var rooms = await q(sb.from("tournament_rooms").select("*, tournament_room_players(user_id, advanced, profiles(username))").eq("tournament_id", id).order("stage").order("room_no"));
+    var groups = rooms.filter(function (r) { return r.stage === "group" }), fin = rooms.filter(function (r) { return r.stage === "final" })[0];
+    var total = groups.reduce(function (a, r) { return a + r.tournament_room_players.length }, 0), over = t.status === "finished" || t.status === "cancelled";
+    var stageName = { groups: "Group stage", final: "Final", done: "Finished" }[t.stage] || t.stage;
+    function roomBox(r, isFinal) {
+      var ps = r.tournament_room_players.slice().sort(function (a, b) { return String(a.profiles && a.profiles.username).localeCompare(String(b.profiles && b.profiles.username)) });
+      var need = Math.min(t.advance_per_room, ps.length), canPick = !isFinal && t.stage === "groups" && !over && ps.length > 0;
+      return '<div class="rm"><h4>' + esc(r.label) + ' <span class="mut" style="font-weight:400">' + ps.length + (isFinal ? "" : " / " + t.room_size) + ' players</span></h4>' +
+        (over ? "" : '<div class="rg"><div><label>Game room ID</label><input id="rid_' + r.id + '" value="' + esc(r.game_room_id || "") + '" autocomplete="off"></div><div><label>Password</label><input id="rpw_' + r.id + '" value="' + esc(r.game_password || "") + '" autocomplete="off"></div></div>' +
+        '<button class="btn sec sm" data-act="rsave" data-id="' + r.id + '">Save &amp; tell the players</button>') +
+        (ps.length ? '<div class="pl">' + ps.map(function (p) { return '<label>' + (canPick ? '<input type="checkbox" data-q="' + r.id + '" value="' + p.user_id + '"' + (p.advanced ? " checked" : "") + ">" : (isFinal ? "" : (p.advanced ? "✓ " : ""))) + esc(p.profiles && p.profiles.username) + "</label>" }).join("") + "</div>" : '<p class="mut" style="font-size:14px">Nobody here yet.</p>') +
+        (canPick ? '<button class="btn sm" data-act="rqual" data-id="' + r.id + '">Save the ' + need + ' who moved on</button>' : "") + "</div>";
+    }
+    var acts_ = "";
+    if (!over && t.status === "open") acts_ += '<button class="btn sec sm" data-act="rclose" data-id="' + t.id + '">Close sign-up now</button> ';
+    if (!over && t.stage === "groups") acts_ += '<button class="btn sm" data-act="rfinal" data-id="' + t.id + '">Start the final</button>';
+    if (!over && t.stage === "final") acts_ += '<button class="btn sm" data-act="rwin" data-id="' + t.id + '">Pick 1st, 2nd &amp; 3rd</button>';
+    dlg.classList.add("wide");
+    openDlg(t.name + " · rooms", '<p class="mut" style="font-size:14px;margin-bottom:12px">' + esc(stageName) + " · " + total + " of " + t.player_limit + ' players joined · prizes ' + money(t.prize_1) + " / " + money(t.prize_2) + " / " + money(t.prize_3) + '</p>' +
+      (t.stage === "groups" && !over ? '<p class="mut" style="font-size:14px;margin-bottom:12px">1) Type each room\'s game ID and password (players get it in their notifications). 2) After a room has played, tick the players who moved on and save. 3) When every room is done, press Start the final.</p>' : "") +
+      '<div class="acts" style="margin-bottom:12px">' + acts_ + '</div>' +
+      (fin ? "<h3 style='font-size:16px;margin:4px 0 8px'>Final</h3>" + roomBox(fin, true) : "") +
+      "<h3 style='font-size:16px;margin:4px 0 8px'>Group rooms</h3>" + (groups.map(function (r) { return roomBox(r, false) }).join("") || '<p class="empty">No rooms yet.</p>') +
+      '<div class="fa"><button class="btn sec" data-close>Close</button></div>');
+    cache.rm = { t: t, groups: groups, fin: fin };
+  }
+  dlg.addEventListener("close", function () { dlg.classList.remove("wide") });
+  acts.trooms = function (el) { return openRooms(el.dataset.id) };
+  acts.rsave = async function (el) {
+    var rid = el.dataset.id, n = await rpc("admin_set_room", { p_room: rid, p_game_room_id: $("rid_" + rid).value, p_password: $("rpw_" + rid).value });
+    toast("Saved. " + n + " player" + (n === 1 ? "" : "s") + " told"); await openRooms(cache.rm.t.id);
+  };
+  acts.rqual = async function (el) {
+    var rid = el.dataset.id, ids = Array.prototype.map.call(document.querySelectorAll('[data-q="' + rid + '"]:checked'), function (c) { return c.value });
+    await rpc("admin_set_qualifiers", { p_room: rid, p_users: ids }); toast("Saved"); await openRooms(cache.rm.t.id);
+  };
+  acts.rclose = async function (el) {
+    var t = cache.rm.t; if (!await confirmDlg("Close sign-up now?", "Nobody else can join " + esc(t.name) + ". Rooms keep the players they have. You can then run the rooms and start the final. To cancel instead and give everyone their money back, use Cancel &amp; refund.", "Close sign-up")) return;
+    var n = await rpc("admin_close_signup", { p_tournament: t.id }); toast("Sign-up closed with " + n + " players"); reload(); await openRooms(t.id);
+  };
+  acts.rfinal = function () {
+    var t = cache.rm.t;
+    form("Start the final", [{ k: "gid", l: "Final room ID", t: "text", req: 1 }, { k: "pw", l: "Final room password", t: "text" }], "Start the final & notify", async function (v) {
+      var n = await rpc("admin_start_final", { p_tournament: t.id, p_game_room_id: v.gid, p_password: v.pw }); toast(n + " finalists told"); reload(); setTimeout(function () { openRooms(t.id) }, 0);
+    }, { intro: "The players you ticked in every room get this room ID and password in their notifications. The others are told they did not qualify." });
+  };
+  acts.rwin = function () {
+    var t = cache.rm.t, ps = cache.rm.fin.tournament_room_players.map(function (p) { return [p.user_id, (p.profiles && p.profiles.username) || "?"] });
+    var opts = [["", "Choose a player"]].concat(ps);
+    form("Pick the winners", [{ k: "a", l: "1st place (wins " + money(t.prize_1) + ")", t: "select", opts: opts, v: "" }, { k: "b", l: "2nd place (wins " + money(t.prize_2) + ")", t: "select", opts: opts, v: "" }, { k: "c", l: "3rd place (wins " + money(t.prize_3) + ")", t: "select", opts: opts, v: "" }], "Pay out & finish", async function (v) {
+      if (!v.a || !v.b) throw new Error("Choose 1st and 2nd place");
+      await rpc("admin_finish_final", { p_tournament: t.id, p_first: v.a, p_second: v.b, p_third: v.c || null }); toast("Paid out. Tournament finished"); reload(); refreshPending();
+    }, { intro: "Prizes go into the winners' wallets straight away and the tournament is closed. This cannot be undone." });
   };
   acts.tfix = async function (el) {
     var t = cache.tours[el.dataset.id];

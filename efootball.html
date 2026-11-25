@@ -541,7 +541,7 @@ dialog#lb button{display:block;margin:14px auto 0;height:44px;padding:0 24px;bor
       (open ? '<p class="cl">Registration closes in</p><div class="cdn"><div><b data-u="d">0</b><span>days</span></div><div><b data-u="h">00</b><span>hours</span></div><div><b data-u="m">00</b><span>min</span></div><div><b data-u="s">00</b><span>sec</span></div></div>' : '<div class="tba">Registration is closed</div>') +
       (live ? '<div class="pbar" aria-label="Progress"><i style="width:' + Math.min(100, +x.pr) + '%"></i></div>' : '') +
       (fee ? '<div class="tf"><span>Entry</span><span>' + esc(fee) + '</span></div>' : '') + (prize ? '<div class="tf"><span>Prize</span><span>' + esc(prize) + '</span></div>' : '') +
-      (x.rules ? '<details class="trules"><summary>Rules</summary><p>' + esc(x.rules) + '</p></details>' : '') + btn + (window.cxData ? cxData.codeBox(x.code) : '') + '</article>';
+      (x.rules ? '<details class="trules"><summary>Rules</summary><p>' + esc(x.rules) + '</p></details>' : '') + btn + (window.cxData ? cxData.codeBox(x) : '') + '</article>';
   }
   function tickAll() {
     var expired = false;

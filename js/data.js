@@ -28,8 +28,25 @@
     "html[data-theme=dark] #cxjoin button.cxgo{background:#8A68C2;border-color:#8A68C2}";
   document.head.appendChild(st);
 
-  st.textContent += ".cxcode{margin:12px 0 0;padding:12px 14px;border-radius:14px;background:rgba(127,127,127,.14);display:flex;align-items:center;justify-content:space-between;gap:10px}.cxcode small{display:block;opacity:.7;font-size:12px}.cxcode b{font-size:16px;word-break:break-all}.cxcode button{font:inherit;font-weight:700;border:0;border-radius:10px;padding:9px 14px;background:#5E3C88;color:#fff;cursor:pointer;flex:none}";
-  D.codeBox = function (code) { return code ? '<div class="cxcode"><div><small>Tournament ID — paste this in the game</small><b>' + esc(code) + '</b></div><button type="button" data-cxcopy="' + esc(code) + '">Copy</button></div>' : "" };
+  st.textContent += ".cxcode{margin:12px 0 0;padding:12px 14px;border-radius:14px;background:rgba(127,127,127,.14);display:flex;align-items:center;justify-content:space-between;gap:10px}.cxcode small{display:block;opacity:.7;font-size:12px}.cxcode b{font-size:16px;word-break:break-all}.cxnote{margin:12px 0 0;font-size:14px;line-height:1.4}.cxcode+.cxcode{margin-top:8px}.cxcode button{font:inherit;font-weight:700;border:0;border-radius:10px;padding:9px 14px;background:#5E3C88;color:#fff;cursor:pointer;flex:none}";
+  function cxRow(label, val) { return '<div class="cxcode"><div><small>' + esc(label) + '</small><b>' + esc(val) + '</b></div><button type="button" data-cxcopy="' + esc(val) + '">Copy</button></div>' }
+  D.codeBox = function (x) {
+    if (typeof x === "string") x = { code: x };
+    if (!x) return "";
+    if (x.rooms && x.joined) {
+      var r = x.room, h = "";
+      if (!r) return "";
+      if (x.stage === "final" && !r.final) return '<p class="cxnote">Group stage finished. You did not qualify for the final. Thanks for playing!</p>';
+      if (x.stage === "done" && !r.final) return "";
+      if (x.stage === "done") return "";
+      if (r.final) h += '<p class="cxnote"><b>You are in the final!</b></p>';
+      else if (r.adv) h += '<p class="cxnote"><b>You moved on to the final.</b> The final room details will be sent to your notifications.</p>';
+      if (r.id) h += cxRow((r.final ? "Final" : r.label) + " · game room ID", r.id) + (r.pass ? cxRow("Password", r.pass) : "");
+      else h += '<p class="cxnote">You are in <b>' + esc(r.label) + '</b>. Your room ID and password will be sent to your notifications soon.</p>';
+      return h;
+    }
+    return x.code ? cxRow("Tournament ID — paste this in the game", x.code) : "";
+  };
   document.addEventListener("click", function (e) {
     var b = e.target.closest && e.target.closest("[data-cxcopy]"); if (!b) return; var t = b.getAttribute("data-cxcopy");
     var done = function () { b.textContent = "Copied ✓"; setTimeout(function () { b.textContent = "Copy" }, 1800) };
@@ -38,11 +55,17 @@
 
   D.session = async function () { try { return sb() ? (await sb().auth.getSession()).data.session : null } catch (e) { return null } };
 
+  // asks for the newest columns first; if 009_rooms.sql has not been run yet, asks again without them so the page still works
+  async function tq(c, cols) {
+    var r = await c.from("tournaments").select(cols).neq("status", "draft").neq("status", "cancelled").order("join_closes_at");
+    if (r.error && /room_size|stage|prize_1/.test(r.error.message || "")) r = await c.from("tournaments").select("id,game_key,name,rules,player_limit,entry_fee,prize_pool,betting_enabled,join_closes_at,status,cover_url").neq("status", "draft").neq("status", "cancelled").order("join_closes_at");
+    return r;
+  }
   D.refresh = async function () {
     var c = sb(); if (!c) return D.cache;
     try {
       var r = await Promise.all([
-        c.from("tournaments").select("id,game_key,name,rules,player_limit,entry_fee,prize_pool,betting_enabled,join_closes_at,status,cover_url").neq("status", "draft").neq("status", "cancelled").order("join_closes_at"),
+        tq(c, "id,game_key,name,rules,player_limit,entry_fee,prize_pool,betting_enabled,join_closes_at,status,cover_url,room_size,stage,prize_1,prize_2,prize_3"),
         c.from("events").select("*").order("starts_at"),
         c.rpc("public_counts"), D.session()
       ]);
@@ -52,16 +75,28 @@
       if (s) { var m = await c.from("tournament_entries").select("tournament_id").eq("user_id", s.user.id); ((m && m.data) || []).forEach(function (x) { mine[x.tournament_id] = true }) }
       var codes = {};
       if (s && Object.keys(mine).length) { try { var cr = await c.from("tournament_codes").select("tournament_id,code"); ((cr && cr.data) || []).forEach(function (x) { codes[x.tournament_id] = x.code }) } catch (e) { } }
+      var rooms = {};
+      if (s && Object.keys(mine).length) {
+        try {
+          var rr = await c.from("tournament_room_players").select("tournament_id,advanced,tournament_rooms(label,stage,game_room_id,game_password)").eq("user_id", s.user.id);
+          ((rr && rr.data) || []).forEach(function (x) {
+            var rm = x.tournament_rooms; if (!rm) return; var cur = rooms[x.tournament_id];
+            if (!cur) cur = rooms[x.tournament_id] = { adv: false };
+            if (rm.stage === "group") cur.adv = !!x.advanced;
+            if (rm.stage === "final" || !cur.label) { cur.label = rm.label; cur.id = rm.game_room_id; cur.pass = rm.game_password; cur.final = rm.stage === "final" }
+          });
+        } catch (e) { }
+      }
       var mineE = {};
       if (s) { var me = await c.from("event_entries").select("event_id").eq("user_id", s.user.id); ((me && me.data) || []).forEach(function (x) { mineE[x.event_id] = true }) }
       var liveIds = (r[0].data || []).filter(function (t) { return t.status === "live" }).map(function (t) { return t.id }), prog = {};
       if (liveIds.length) { var f = await c.from("fixtures").select("tournament_id,status").in("tournament_id", liveIds); ((f && f.data) || []).forEach(function (x) { var p = prog[x.tournament_id] = prog[x.tournament_id] || { all: 0, done: 0 }; p.all++; if (x.status === "done") p.done++ }) }
       D.cache.tours = (r[0].data || []).map(function (t) {
-        var p = prog[t.id], pr = t.status === "live" ? Math.max(1, p && p.all ? Math.round(p.done / p.all * 100) : 1) : 0;
+        var p = prog[t.id], pr = t.status === "live" ? (t.room_size ? (t.stage === "final" ? 75 : 33) : Math.max(1, p && p.all ? Math.round(p.done / p.all * 100) : 1)) : 0;
         return { id: t.id, n: t.name, g: GN[t.game_key] || t.game_key, p: counts["tournament:" + t.id] || 0, lim: t.player_limit,
           end: t.status === "open" ? new Date(t.join_closes_at).getTime() : 0,          // registration is only open while the status is "open"
           fee: t.entry_fee > 0 ? ghs(t.entry_fee) : "Free", prize: t.prize_pool > 0 ? ghs(t.prize_pool) : "", feeMinor: t.entry_fee, pr: pr,
-          rules: t.rules || "", bet: !!t.betting_enabled, cover: t.cover_url || "", joined: !!mine[t.id], code: mine[t.id] ? (codes[t.id] || "") : "", status: t.status };
+          rules: t.rules || "", bet: !!t.betting_enabled, cover: t.cover_url || "", joined: !!mine[t.id], code: mine[t.id] ? (codes[t.id] || "") : "", status: t.status, rooms: !!t.room_size, stage: t.stage || "", room: mine[t.id] ? (rooms[t.id] || null) : null };
       });
       D.cache.events = (r[1].data || []).map(function (e) {
         return { id: e.id, n: e.name, t: e.category, p: counts["event:" + e.id] || 0, lim: e.join_limit || 0, end: new Date(e.starts_at).getTime(), prize: e.prize || "", cover: e.cover_url || "", joined: !!mineE[e.id] };
@@ -94,7 +129,7 @@
     var d = document.getElementById("cxjoin"); if (d) d.remove();
     d = document.createElement("dialog"); d.id = "cxjoin";
     d.innerHTML = "<h3>Join " + esc(t.n) + "?</h3><p>" + (need > 0 ? "<span class=\"cxw\">" + esc(ghs(need)) + "</span> will be taken from your wallet." : "This tournament is free to enter.") + "</p>" +
-      (bal != null && need > 0 ? "<p>Your wallet: <span class=\"cxw\">" + esc(ghs(bal)) + "</span></p>" : "") + (short ? "<p class=\"cxbad\">You do not have enough money. Add money to your wallet first.</p>" : "") +
+      (bal != null && need > 0 ? "<p>Your wallet: <span class=\"cxw\">" + esc(ghs(bal)) + "</span></p>" : "") + (t.rooms ? "<p>You will be put in a random game room. The room ID and password will be sent to your notifications.</p>" : "") + (short ? "<p class=\"cxbad\">You do not have enough money. Add money to your wallet first.</p>" : "") +
       "<div class=\"cxa\"><button type=\"button\" id=\"cxno\">Cancel</button><button type=\"button\" class=\"cxgo\" id=\"cxyes\"" + (short ? " disabled" : "") + ">Join" + (need > 0 ? " and pay" : "") + "</button></div>";
     document.body.appendChild(d); d.showModal();
     d.querySelector("#cxno").onclick = function () { d.close() };
@@ -107,7 +142,7 @@
         if (/login required|jwt/i.test(r.error.message || "")) { location.href = "login.html?next=" + encodeURIComponent(location.pathname.split("/").pop() || "index.html"); return }
         say(why(r.error)); await D.refresh(); if (o.redraw) o.redraw(); return;
       }
-      say("You joined " + t.n + "!"); await D.refresh(); if (o.redraw) o.redraw();
+      say(t.rooms ? "You joined " + t.n + "! Check your notifications for your room." : "You joined " + t.n + "!"); await D.refresh(); if (o.redraw) o.redraw();
     };
   };
 
