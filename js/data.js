@@ -42,6 +42,8 @@
       var counts = {}; ((r[2] && r[2].data) || []).forEach(function (x) { counts[x.kind + ":" + x.id] = Number(x.n) || 0 });
       var s = r[3], mine = {};
       if (s) { var m = await c.from("tournament_entries").select("tournament_id").eq("user_id", s.user.id); ((m && m.data) || []).forEach(function (x) { mine[x.tournament_id] = true }) }
+      var mineE = {};
+      if (s) { var me = await c.from("event_entries").select("event_id").eq("user_id", s.user.id); ((me && me.data) || []).forEach(function (x) { mineE[x.event_id] = true }) }
       var liveIds = (r[0].data || []).filter(function (t) { return t.status === "live" }).map(function (t) { return t.id }), prog = {};
       if (liveIds.length) { var f = await c.from("fixtures").select("tournament_id,status").in("tournament_id", liveIds); ((f && f.data) || []).forEach(function (x) { var p = prog[x.tournament_id] = prog[x.tournament_id] || { all: 0, done: 0 }; p.all++; if (x.status === "done") p.done++ }) }
       D.cache.tours = (r[0].data || []).map(function (t) {
@@ -52,7 +54,7 @@
           rules: t.rules || "", bet: !!t.betting_enabled, cover: t.cover_url || "", joined: !!mine[t.id], status: t.status };
       });
       D.cache.events = (r[1].data || []).map(function (e) {
-        return { id: e.id, n: e.name, t: e.category, p: counts["event:" + e.id] || 0, lim: e.join_limit || 0, end: new Date(e.starts_at).getTime(), prize: e.prize || "", cover: e.cover_url || "" };
+        return { id: e.id, n: e.name, t: e.category, p: counts["event:" + e.id] || 0, lim: e.join_limit || 0, end: new Date(e.starts_at).getTime(), prize: e.prize || "", cover: e.cover_url || "", joined: !!mineE[e.id] };
       });
       D.loaded = true;
     } catch (e) { console.error(e) }
@@ -62,6 +64,7 @@
   function why(e) {
     var m = String((e && e.message) || "").toLowerCase();
     if (m.indexOf("registration closed") > -1) return "Registration is closed for this tournament.";
+    if (m.indexOf("event is full") > -1) return "This event is full.";
     if (m.indexOf("tournament full") > -1) return "This tournament is full.";
     if (m.indexOf("insufficient balance") > -1) return "Not enough money in your wallet.";
     if (m.indexOf("duplicate key") > -1 || m.indexOf("already") > -1) return "You already joined this tournament.";
@@ -95,6 +98,27 @@
         say(why(r.error)); await D.refresh(); if (o.redraw) o.redraw(); return;
       }
       say("You joined " + t.n + "!"); await D.refresh(); if (o.redraw) o.redraw();
+    };
+  };
+
+  // Join an EVENT (free, no wallet): confirm, then add the player's own row to event_entries (the database enforces the seat limit)
+  D.joinEvent = async function (id, o) {
+    o = o || {}; var say = o.toast || function () { };
+    var ev = D.cache.events.filter(function (x) { return x.id === id })[0]; if (!ev) return;
+    var s = await D.session();
+    if (!s) { location.href = "login.html?next=" + encodeURIComponent(location.pathname.split("/").pop() || "index.html"); return }
+    var d = document.getElementById("cxjoin"); if (d) d.remove();
+    d = document.createElement("dialog"); d.id = "cxjoin";
+    d.innerHTML = "<h3>Join " + esc(ev.n) + "?</h3><p>This event is free to join.</p><div class=\"cxa\"><button type=\"button\" id=\"cxno\">Cancel</button><button type=\"button\" class=\"cxgo\" id=\"cxyes\">Join</button></div>";
+    document.body.appendChild(d); d.showModal();
+    d.querySelector("#cxno").onclick = function () { d.close() };
+    d.addEventListener("close", function () { d.remove() });
+    d.querySelector("#cxyes").onclick = async function () {
+      this.disabled = true;
+      var r = await sb().from("event_entries").insert({ event_id: id, user_id: s.user.id });
+      d.close();
+      if (r.error) { say(why(r.error)); await D.refresh(); if (o.redraw) o.redraw(); return }
+      say("You joined " + ev.n + "!"); await D.refresh(); if (o.redraw) o.redraw();
     };
   };
 })();
