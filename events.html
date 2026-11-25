@@ -50,7 +50,7 @@ button.wal{border:0;cursor:pointer}
 /* ----- bottom tab bar ----- */
 .tabs{position:fixed;left:50%;bottom:0;transform:translateX(-50%);z-index:40;width:100%;max-width:480px;display:grid;grid-template-columns:repeat(4,1fr);padding:6px 6px calc(6px + env(safe-area-inset-bottom,0px));background:rgba(255,255,255,.97);backdrop-filter:blur(10px);border-top:1px solid var(--line)}
 .tabs a{display:flex;flex-direction:column;align-items:center;gap:2px;padding:7px 2px 6px;border-radius:16px;font-size:.75rem;font-weight:600;color:var(--muted)}
-.tabs .e{font-size:1.5rem;line-height:1.1}
+.tabs .e{display:block;line-height:0}.tabs .e svg{width:24px;height:24px;display:block;margin:0 auto 2px}
 .tabs a:hover{background:var(--field);color:var(--ink)}
 .tabs a.on{background:var(--field);color:var(--accent)}
 
@@ -325,7 +325,8 @@ html[data-theme="dark"] .toast{background:#EDE8F3;color:#131114}
     '<button class="burger" id="burger" type="button" aria-label="Menu" aria-expanded="false" aria-controls="sheet"><span></span></button></div></header>');
 
   // bottom tab bar + menu + notifications + popup
-  var tabs = [["home", "index.html", "\uD83C\uDFE0", "Home"], ["events", "events.html", "\uD83D\uDCC5", "Events"], ["leaderboard", "leaderboard.html", "\uD83C\uDFC6", "Leaderboard", "Leaderboard"], ["community", "community.html", "\uD83D\uDC65", "Community", "Community"]];
+  var ICO = {home: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 11 12 4l8 7"/><path d="M6 10v9a1 1 0 0 0 1 1h3.5v-5.5h3V20H17a1 1 0 0 0 1-1v-9"/></svg>',events: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="5.5" width="16" height="14.5" rx="3"/><path d="M4 10h16M8.5 3.5v4M15.5 3.5v4"/></svg>',board: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M8 4h8v5a4 4 0 0 1-8 0z"/><path d="M8 6H5.5a1 1 0 0 0-1 1c0 2.2 1.5 3.7 3.7 4M16 6h2.5a1 1 0 0 1 1 1c0 2.2-1.5 3.7-3.7 4"/><path d="M12 13v3.5M8.5 20h7M10 16.5h4"/></svg>',comm: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8.5" r="3.2"/><path d="M3.5 19.5c.6-3.3 3-5 5.5-5s4.9 1.7 5.5 5"/><circle cx="17" cy="9.5" r="2.5"/><path d="M16.5 14.7c2.2.1 3.7 1.6 4.2 4.3"/></svg>'};
+  var tabs = [["home", "index.html", ICO.home, "Home"], ["events", "events.html", ICO.events, "Events"], ["leaderboard", "leaderboard.html", ICO.board, "Leaderboard", "Leaderboard"], ["community", "community.html", ICO.comm, "Community", "Community"]];
   B.insertAdjacentHTML("beforeend",
     '<nav class="tabs" aria-label="Main">' + tabs.map(function (t) {
       return '<a' + (D.tab === t[0] ? ' class="on"' : '') + ' href="' + t[1] + '"' + (t[4] ? ' data-gate="' + t[4] + '"' : '') +
