@@ -318,11 +318,11 @@ html[data-theme="dark"] .toast{background:#EDE8F3;color:#131114}
   function esc(t){return String(t==null?"":t).replace(/[&<>"']/g,function(c){return{"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]})}
   function ago(iso){var m=Math.floor((Date.now()-new Date(iso))/60000);if(m<1)return "Just now";if(m<60)return m+" min ago";var h=Math.floor(m/60);if(h<24)return h+(h===1?" hour":" hours")+" ago";var d=Math.floor(h/24);if(d===1)return "Yesterday";if(d<7)return d+" days ago";return new Date(iso).toLocaleDateString([],{day:"numeric",month:"short"})}
   // a line like "Game room ID: 84721" or "Password: abc" gets a Copy button
-  function body(t){return String(t||"").split("\n").map(function(l){var m=/^(Game room ID|Password):\s*(.+)$/.exec(l);
+  function body(t){return String(t||"").split("\n").map(function(l){var m=/^(Game room ID|Tournament ID|Password):\s*(.+)$/.exec(l);
     return m?'<button type="button" class="cpy" data-copy="'+esc(m[2])+'">'+esc(m[1])+': <b>'+esc(m[2])+'</b> · Copy</button>':esc(l)}).join("\n").replace(/<\/button>\n/g,"</button>")}
   function render(){
     var g=GROUP[filter], shown=items.filter(function(n){return !g||g.indexOf(n.type)>-1});
-    listEl.innerHTML=shown.map(function(n){return '<article class="notif'+(reads[n.id]?"":" unread")+'" data-id="'+esc(n.id)+'"><div class="ico">'+(IC[n.type]||IC.account)+'</div><div><h3>'+esc(n.title)+'</h3><p>'+body(n.body)+'</p><time>'+ago(n.created_at)+'</time></div></article>'}).join("");
+    listEl.innerHTML=shown.map(function(n){return '<article class="notif'+(reads[n.id]?"":" unread")+'" data-id="'+esc(n.id)+'"><div class="ico">'+(IC[n.type]||IC.account)+'</div><div><h3>'+esc(n.title)+'</h3><p>'+body(n.body)+'</p><time>'+ago(n.created_at)+'</time>'+(n.link?'<a class="cpy" style="text-decoration:none" href="'+esc(n.link)+'">'+(/draw/.test(n.link)?"See the draw":"Open")+'</a>':'')+'</div></article>'}).join("");
     emptyEl.textContent=items.length?"Nothing here.":"No notifications yet. Messages about your tournaments and wallet show up here.";
     emptyEl.style.display=shown.length?"none":"block";
     var u=items.filter(function(n){return !reads[n.id]}).length; countEl.textContent=u?u+" unread":"No unread notifications";
@@ -343,7 +343,7 @@ html[data-theme="dark"] .toast{background:#EDE8F3;color:#131114}
     var s=(await sb.auth.getSession()).data.session; if(!s){location.replace("login.html?next=notifications.html");return}
     me=s.user.id;
     try{
-      var r=await Promise.all([sb.from("notifications").select("id,user_id,type,title,body,created_at").or("user_id.eq."+me+",user_id.is.null").order("created_at",{ascending:false}).limit(100),
+      var r=await Promise.all([sb.from("notifications").select("*").or("user_id.eq."+me+",user_id.is.null").order("created_at",{ascending:false}).limit(100),
         sb.from("notification_reads").select("notification_id").eq("user_id",me)]);
       if(r[0].error)throw r[0].error; items=r[0].data||[]; ((r[1]&&r[1].data)||[]).forEach(function(x){reads[x.notification_id]=1});
     }catch(e){console.error(e);emptyEl.textContent="Couldn't load your notifications. Check your connection and refresh.";emptyEl.style.display="block";return}

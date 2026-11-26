@@ -42,7 +42,7 @@
       if (x.stage === "done") return "";
       if (r.final) h += '<p class="cxnote"><b>You are in the final!</b></p>';
       else if (r.adv) h += '<p class="cxnote"><b>You moved on to the final.</b> The final room details will be sent to your notifications.</p>';
-      if (r.id) h += cxRow((r.final ? "Final" : r.label) + " · game room ID", r.id) + (r.pass ? cxRow("Password", r.pass) : "");
+      if (r.id) h += cxRow((r.final ? "Final" : r.label) + " · Tournament ID", r.id) + (r.pass ? cxRow("Password", r.pass) : "");
       else h += '<p class="cxnote">You are in <b>' + esc(r.label) + '</b>. Your room ID and password will be sent to your notifications soon.</p>';
       return h;
     }

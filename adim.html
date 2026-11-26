@@ -5,6 +5,13 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="robots" content="noindex,nofollow">
 <title>Countrex Admin</title>
+<link rel="manifest" href="admin.webmanifest">
+<meta name="theme-color" content="#5E3C88">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="CX Admin">
+<link rel="apple-touch-icon" href="icons/admin-180.png">
+
 <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,500;12..96,600;12..96,700;12..96,800&display=swap" rel="stylesheet">
 <script>(function(){try{if(localStorage.getItem("cx_admin_theme")==="dark")document.documentElement.setAttribute("data-theme","dark")}catch(e){}})();</script>
 <style>
@@ -110,6 +117,7 @@ dialog h2{margin-bottom:14px;font-size:19px}
 @media(min-width:640px){.stats{grid-template-columns:repeat(4,1fr)}main{padding:24px}}
 @media(min-width:1000px){.app{grid-template-columns:260px minmax(0,1fr)}.side{position:sticky;top:0;height:100vh;inset:auto;max-width:none;transform:none}.ib.m{display:none}.me{display:flex}.two{grid-template-columns:1fr 1fr}}
 </style>
+<script>if("serviceWorker"in navigator)addEventListener("load",function(){navigator.serviceWorker.register("admin-sw.js").catch(function(){})})</script>
 </head>
 <body>
 <div class="gate" id="gate"><div class="box"><h2>Countrex Admin</h2><p>Checking your access…</p></div></div>
@@ -533,7 +541,7 @@ dialog h2{margin-bottom:14px;font-size:19px}
       { k: "require_approval", l: "I approve players myself (they wait until I accept them)", t: "checkbox", v: t.id ? t.require_approval : true },
       { k: "room_size", l: "Players per game room (leave empty for a normal tournament)", t: "number", v: t.room_size, min: 2, dis: hasPlayers, ph: "8 for eFootball", hint: hasPlayers ? "Locked: players already joined." : "Example: 32 players with 8 per room makes 4 rooms. Players are put in a random room." },
       { k: "advance_per_room", l: "Players that move on from each room", t: "number", v: t.advance_per_room || 2, min: 1, dis: hasPlayers },
-      ...((t.id && !t.room_size) ? [] : [{ k: "room_lines", l: "Game room IDs and passwords (one line per room)", t: "textarea", v: t.room_lines || "", ph: "84721, pass123\n84722, pass456\n84723, pass789\n84724, pass000", hint: "Only for tournaments with rooms. First line = Room A, second line = Room B, and so on. Write the ID, a comma, then the password. Each player gets their room's ID and password in their notifications. If you change a line, the players in that room get the new details. A blank line leaves that room alone." }]),
+      ...((t.id && !t.room_size) ? [] : [{ k: "room_lines", l: "Tournament IDs and passwords (one line per room)", t: "textarea", v: t.room_lines || "", ph: "84721, pass123\n84722, pass456\n84723, pass789\n84724, pass000", hint: "Only for tournaments with rooms. First line = Room A, second line = Room B, and so on. Write the ID, a comma, then the password. Each player gets their room's Tournament ID and password in their notifications. If you change a line, the players in that room get the new details. A blank line leaves that room alone." }]),
       { k: "prize_1", l: "1st place prize (GHS)", t: "money", v: t.prize_1 ? t.prize_1 / 100 : 0 },
       { k: "prize_2", l: "2nd place prize (GHS)", t: "money", v: t.prize_2 ? t.prize_2 / 100 : 0 },
       { k: "prize_3", l: "3rd place prize (GHS)", t: "money", v: t.prize_3 ? t.prize_3 / 100 : 0, hint: "Only used for tournaments with rooms. The three prizes must not add up to more than the prize pool." },
@@ -632,31 +640,35 @@ dialog h2{margin-bottom:14px;font-size:19px}
   // ---------- ROOMS (one tournament, several game rooms) ----------
   async function openRooms(id) {
     var t = (await q(sb.from("tournaments").select("*").eq("id", id).single()));
-    var rooms = await q(sb.from("tournament_rooms").select("*, tournament_room_players(user_id, advanced, notified_at, profiles(username))").eq("tournament_id", id).order("stage").order("room_no"));
-    var groups = rooms.filter(function (r) { return r.stage === "group" }), fin = rooms.filter(function (r) { return r.stage === "final" })[0];
-    var total = groups.reduce(function (a, r) { return a + r.tournament_room_players.length }, 0), over = t.status === "finished" || t.status === "cancelled";
-    var stageName = { groups: "Group stage", final: "Final", done: "Finished" }[t.stage] || t.stage;
+    var rooms = await q(sb.from("tournament_rooms").select("*, tournament_room_players(user_id, advanced, notified_at, profiles(username))").eq("tournament_id", id).order("stage").order("round").order("room_no"));
+    var cur = t.current_round || 1;
+    var groups = rooms.filter(function (r) { return r.stage === "group" && (r.round || 1) === cur }), older = rooms.filter(function (r) { return r.stage === "group" && (r.round || 1) < cur }), fin = rooms.filter(function (r) { return r.stage === "final" })[0];
+    var total = rooms.filter(function (r) { return r.stage === "group" && (r.round || 1) === 1 }).reduce(function (a, r) { return a + r.tournament_room_players.length }, 0), over = t.status === "finished" || t.status === "cancelled";
+    var stageName = t.stage === "groups" ? "Round " + cur : ({ final: "Final", done: "Finished" }[t.stage] || t.stage);
+    var goingOn = groups.reduce(function (a, r) { return a + r.tournament_room_players.filter(function (p) { return p.advanced }).length }, 0),
+      allPicked = groups.length > 0 && groups.every(function (r) { var n = r.tournament_room_players.length; return n === 0 || r.tournament_room_players.filter(function (p) { return p.advanced }).length === Math.min(r.advance || t.advance_per_room, n) });
     function roomBox(r, isFinal) {
       var ps = r.tournament_room_players.slice().sort(function (a, b) { return String(a.profiles && a.profiles.username).localeCompare(String(b.profiles && b.profiles.username)) });
-      var need = Math.min(t.advance_per_room, ps.length), canPick = !isFinal && t.stage === "groups" && !over && ps.length > 0;
-      return '<div class="rm"><h4>' + esc(r.label) + ' <span class="mut" style="font-weight:400">' + ps.length + (isFinal ? "" : " / " + t.room_size) + ' players</span></h4>' +
-        (over ? "" : '<div class="rg"><div><label>Game room ID</label><input id="rid_' + r.id + '" value="' + esc(r.game_room_id || "") + '" autocomplete="off"></div><div><label>Password</label><input id="rpw_' + r.id + '" value="' + esc(r.game_password || "") + '" autocomplete="off"></div></div>' +
+      var need = Math.min(r.advance || t.advance_per_room, ps.length), canPick = !isFinal && !r.old && t.stage === "groups" && !over && ps.length > 0;
+      return '<div class="rm"><h4>' + esc(r.label) + ' <span class="mut" style="font-weight:400">' + ps.length + (isFinal || (r.round || 1) > 1 ? "" : " / " + t.room_size) + ' players</span></h4>' +
+        (over || r.old ? "" : '<div class="rg"><div><label>Tournament ID (from the game)</label><input id="rid_' + r.id + '" value="' + esc(r.game_room_id || "") + '" autocomplete="off"></div><div><label>Password</label><input id="rpw_' + r.id + '" value="' + esc(r.game_password || "") + '" autocomplete="off"></div></div>' +
         '<button class="btn sec sm" data-act="rsave" data-id="' + r.id + '">Save &amp; tell the players</button>') +
         (ps.length ? '<div class="pl">' + ps.map(function (p) { return '<label>' + (canPick ? '<input type="checkbox" data-q="' + r.id + '" value="' + p.user_id + '"' + (p.advanced ? " checked" : "") + ">" : (isFinal ? "" : (p.advanced ? "✓ " : ""))) + esc(p.profiles && p.profiles.username) + (isFinal && !r.game_room_id ? "" : ' <span class="mut" style="font-size:12px">' + (p.notified_at ? "✓ sent " + new Date(p.notified_at).toLocaleString([], { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" }) : (r.game_room_id ? "not sent" : "waiting for ID")) + "</span>") + "</label>" }).join("") + "</div>" : '<p class="mut" style="font-size:14px">Nobody here yet.</p>') +
         (canPick ? '<button class="btn sm" data-act="rqual" data-id="' + r.id + '">Save the ' + need + ' who moved on</button>' : "") + "</div>";
     }
     var acts_ = "";
     if (!over && t.status === "open") acts_ += '<button class="btn sec sm" data-act="rclose" data-id="' + t.id + '">Close sign-up now</button> ';
-    if (!over && t.stage === "groups") acts_ += '<button class="btn sm" data-act="rfinal" data-id="' + t.id + '">Start the final</button>';
+    if (!over && t.stage === "groups") acts_ += allPicked && goingOn > t.room_size ? '<button class="btn sm" data-act="rround" data-id="' + t.id + '">Start round ' + (cur + 1) + " (" + goingOn + ' players)</button>' : '<button class="btn sm" data-act="rfinal" data-id="' + t.id + '">Start the final</button>';
     if (!over && t.stage === "final") acts_ += '<button class="btn sm" data-act="rwin" data-id="' + t.id + '">Pick 1st, 2nd &amp; 3rd</button>';
     dlg.classList.add("wide");
     openDlg(t.name + " · rooms", '<p class="mut" style="font-size:14px;margin-bottom:12px">' + esc(stageName) + " · " + total + " of " + t.player_limit + ' players joined · prizes ' + money(t.prize_1) + " / " + money(t.prize_2) + " / " + money(t.prize_3) + '</p>' +
-      (t.stage === "groups" && !over ? '<p class="mut" style="font-size:14px;margin-bottom:12px">1) Type each room\'s game ID and password (players get it in their notifications). 2) After a room has played, tick the players who moved on and save. 3) When every room is done, press Start the final.</p>' : "") +
+      (t.stage === "groups" && !over ? '<p class="mut" style="font-size:14px;margin-bottom:12px">1) Create each room in the game, then type its Tournament ID (and password) here. The players get it in their notifications. 2) After a room has played, tick the players who moved on and save. 3) When every room is saved, press the button below: it starts the next round (the players who moved on are mixed into new rooms of ' + t.room_size + ') or the final when ' + t.room_size + ' or fewer are left.</p>' : "") +
       '<div class="acts" style="margin-bottom:12px">' + acts_ + '</div>' +
       (fin ? "<h3 style='font-size:16px;margin:4px 0 8px'>Final</h3>" + roomBox(fin, true) : "") +
-      "<h3 style='font-size:16px;margin:4px 0 8px'>Group rooms</h3>" + (groups.map(function (r) { return roomBox(r, false) }).join("") || '<p class="empty">No rooms yet.</p>') +
+      "<h3 style='font-size:16px;margin:4px 0 8px'>" + (cur > 1 ? "Round " + cur + " rooms" : "Group rooms") + "</h3>" + (groups.map(function (r) { return roomBox(r, false) }).join("") || '<p class="empty">No rooms yet.</p>') +
+      (older.length ? "<details style='margin:8px 0 14px'><summary style='cursor:pointer;font-weight:600'>Earlier rounds</summary><div style='margin-top:8px'>" + older.map(function (r) { r.old = true; return roomBox(r, false) }).join("") + "</div></details>" : "") +
       '<div class="fa"><button class="btn sec" data-close>Close</button></div>');
-    cache.rm = { t: t, groups: groups, fin: fin };
+    cache.rm = { t: t, groups: groups, fin: fin, goingOn: goingOn, cur: cur };
   }
   dlg.addEventListener("close", function () { dlg.classList.remove("wide") });
   acts.trooms = function (el) { return openRooms(el.dataset.id) };
@@ -672,11 +684,23 @@ dialog h2{margin-bottom:14px;font-size:19px}
     var t = cache.rm.t; if (!await confirmDlg("Close sign-up now?", "Nobody else can join " + esc(t.name) + ". Rooms keep the players they have. You can then run the rooms and start the final. To cancel instead and give everyone their money back, use Cancel &amp; refund.", "Close sign-up")) return;
     var n = await rpc("admin_close_signup", { p_tournament: t.id }); toast("Sign-up closed with " + n + " players"); reload(); await openRooms(t.id);
   };
+  acts.rround = function () {
+    var t = cache.rm.t, m = cache.rm.goingOn, n = Math.ceil(m / t.room_size), nr = cache.rm.cur + 1;
+    form("Start round " + nr, [
+      { k: "adv", l: "How many go on from each new room", t: "number", v: 2, min: 1 },
+      { k: "lines", l: "Tournament IDs and passwords (one line per room, optional)", t: "textarea", ph: "84721, pass123\n84722, pass456", hint: "You need " + n + " room" + (n > 1 ? "s" : "") + ". You can also type them later on the room cards." }
+    ], "Start round " + nr + " & notify", async function (v) {
+      var rooms = (v.lines || "").split("\n").map(function (l) { return l.trim() }).map(function (l) { if (!l) return {}; var mm = /^([^,]+?)\s*(?:,|\s)\s*(.*)$/.exec(l); return mm ? { id: mm[1].trim(), password: (mm[2] || "").trim() } : { id: l, password: "" } });
+      if (rooms.length > n) throw new Error("You typed " + rooms.length + " lines but round " + nr + " has " + n + " room" + (n > 1 ? "s" : ""));
+      var c = await rpc("admin_start_round", { p_tournament: t.id, p_advance: Number(v.adv), p_rooms: rooms.length ? rooms : null });
+      toast("Round " + nr + " started with " + c + " players. They have been told"); reload(); setTimeout(function () { openRooms(t.id) }, 0);
+    }, { intro: m + " players moved on. They are mixed at random into " + n + " new room" + (n > 1 ? "s" : "") + " of up to " + t.room_size + ". Everyone who was knocked out is told." });
+  };
   acts.rfinal = function () {
     var t = cache.rm.t;
-    form("Start the final", [{ k: "gid", l: "Final room ID", t: "text", req: 1 }, { k: "pw", l: "Final room password", t: "text" }], "Start the final & notify", async function (v) {
+    form("Start the final", [{ k: "gid", l: "Final Tournament ID", t: "text", req: 1 }, { k: "pw", l: "Final password (if the game has one)", t: "text" }], "Start the final & notify", async function (v) {
       var n = await rpc("admin_start_final", { p_tournament: t.id, p_game_room_id: v.gid, p_password: v.pw }); toast(n + " finalists told"); reload(); setTimeout(function () { openRooms(t.id) }, 0);
-    }, { intro: "The players you ticked in every room get this room ID and password in their notifications. The others are told they did not qualify." });
+    }, { intro: "The players you ticked get this Tournament ID in their notifications. The others are told they did not go through." });
   };
   acts.rwin = function () {
     var t = cache.rm.t, ps = cache.rm.fin.tournament_room_players.map(function (p) { return [p.user_id, (p.profiles && p.profiles.username) || "?"] });

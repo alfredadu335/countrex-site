@@ -42,8 +42,23 @@ a:focus-visible,button:focus-visible{outline:3px solid var(--accent);outline-off
 .head p{margin:0;color:var(--muted)}
 
 /* the three view tabs */
-.seg{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin:18px 20px 0;padding:5px;border-radius:999px;background:var(--field);border:1px solid var(--line)}
-.seg button{border:0;border-radius:999px;padding:10px 4px;background:none;font:inherit;font-weight:700;font-size:.95rem;color:var(--muted);cursor:pointer}
+.seg{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin:18px 20px 0;padding:5px;border-radius:999px;background:var(--field);border:1px solid var(--line)}
+.seg button{border:0;border-radius:999px;padding:10px 2px;background:none;font:inherit;font-weight:700;font-size:.95rem;color:var(--muted);cursor:pointer}
+.dw{border:1px solid var(--line);border-radius:18px;margin:0 0 12px;background:var(--bg,#fff);overflow:hidden}
+.dw>summary{list-style:none;cursor:pointer;display:flex;gap:10px;align-items:center;justify-content:space-between;padding:14px 16px}
+.dw>summary::-webkit-details-marker{display:none}
+.dw .dn{display:block;font-size:1.05rem;color:var(--ink)}.dw .ds{display:block;font-size:.85rem;color:var(--muted);margin-top:2px}
+.dw .tg{flex:none;font-size:.75rem;font-weight:800;padding:4px 10px;border-radius:999px;background:var(--field);color:var(--muted)}
+.dw .tg.live{background:#E6F6EE;color:#17724A}.dw .tg.done{background:var(--field);color:var(--muted)}
+.dw .db{padding:0 14px 14px}.dw .dnote{margin:0 2px 12px;font-size:.88rem;color:var(--muted)}
+.rm{border:1px solid var(--line);border-radius:14px;margin:0 0 10px;padding:10px 12px;background:var(--field)}
+.rm h3{margin:0 0 6px;font-size:.95rem;color:var(--ink);display:flex;justify-content:space-between}.rm h3 small{font-weight:600;color:var(--muted)}
+.rm ol{list-style:none;margin:0;padding:0}.rm li{display:flex;align-items:center;gap:10px;padding:7px 0;border-top:1px solid var(--line);font-size:.95rem;color:var(--ink)}
+.rm li:first-child{border-top:0}.rm li .n{width:22px;color:var(--muted);font-weight:700;font-size:.85rem}.rm li .w{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.rm li.me{font-weight:800}.rm li.me .w{color:var(--accent)}.rm li.open{color:var(--muted);font-style:italic}
+.rm .pill{flex:none;font-size:.72rem;font-weight:800;padding:3px 8px;border-radius:999px;background:#E6F6EE;color:#17724A}.rm .pill.pl{background:#FFF3D6;color:#8A5A00}
+.rm.final{border-color:var(--accent)}
+html[data-theme="dark"] .dw .tg.live,html[data-theme="dark"] .rm .pill{background:#173a2b;color:#7BE0AE}html[data-theme="dark"] .rm .pill.pl{background:#3d2f10;color:#F4C76A}
 .seg button[aria-selected="true"]{background:var(--accent);color:#fff;box-shadow:0 6px 14px -10px rgba(40,20,70,.45)}
 .seg button:not([aria-selected="true"]):hover{color:var(--ink)}
 
@@ -207,6 +222,7 @@ html[data-theme="dark"] .toast{background:#EDE8F3;color:#131114}
     <button type="button" role="tab" id="t-me" aria-selected="true" data-view="me">My rank</button>
     <button type="button" role="tab" id="t-global" aria-selected="false" data-view="global">Global</button>
     <button type="button" role="tab" id="t-country" aria-selected="false" data-view="country">Country</button>
+    <button type="button" role="tab" id="t-draws" aria-selected="false" data-view="draws">Draws</button>
   </div>
 
   <!-- Game filter. Only shows if your database has per-game points (see GAMES in the script). -->
@@ -327,10 +343,47 @@ html[data-theme="dark"] .toast{background:#EDE8F3;color:#131114}
     panel.innerHTML=head+listHtml(rows,state.session.user.id,rank,myRow);
   }
 
+  // ===== DRAWS: the groups of every tournament that uses rooms =====
+  var GN={codm:"Call of Duty: Mobile",eafc:"EA SPORTS FC",efootball:"eFootball"}, wantDraw=(new URLSearchParams(location.search)).get("draw");
+  function ord(n){return n+(n===1?"st":n===2?"nd":"rd")}
+  function roomHtml(r,size,t){
+    var fin=r.stage==="final", ps=r.players||[], h='<div class="rm'+(fin?' final':'')+'"><h3>'+esc(r.label)+'<small>'+ps.length+(fin?'':' / '+size)+' players</small></h3><ol>';
+    ps.forEach(function(p,i){
+      var tag=p.place?'<span class="pill pl">'+ord(p.place)+'</span>':(p.advanced&&!fin?'<span class="pill">Through</span>':'');
+      h+='<li class="'+(p.me?'me':'')+'"><span class="n">'+(i+1)+'</span><span class="w">'+esc(p.name)+(p.me?' (you)':'')+'</span>'+tag+'</li>';
+    });
+    if(!fin) for(var k=ps.length;k<size;k++) h+='<li class="open"><span class="n">'+(k+1)+'</span><span class="w">Open seat</span></li>';
+    return h+'</ol></div>';
+  }
+  function drawHtml(t,openIt){
+    var rooms=t.rooms||[], cur=t.round||1, mine=false, joined=0;
+    rooms.forEach(function(r){ if(r.stage==="group"&&(r.round||1)===1) joined+=r.players.length; r.players.forEach(function(p){ if(p.me) mine=true }) });
+    var st=t.status==="finished"?["Finished","done"]:t.stage==="final"?["Final","live"]:t.status==="live"?["Round "+cur,"live"]:["Open",""];
+    var multi=cur>1||t.stage==="final"||rooms.some(function(r){return (r.round||1)>1});
+    var note=t.status==="finished"?"The tournament is over. The final results are below.":t.stage==="final"?"All the rounds are done. The players who went through are in the final.":t.status==="live"?"Round "+cur+" is on. The players who go through are mixed into new groups for the next round.":"Players are put in a group as they are accepted. The best players in each group go through.";
+    var fin=rooms.filter(function(r){return r.stage==="final"})[0], rounds={};
+    rooms.filter(function(r){return r.stage==="group"}).forEach(function(r){ var k=r.round||1; (rounds[k]=rounds[k]||[]).push(r) });
+    var h='<details class="dw" id="d-'+esc(t.id)+'"'+(openIt?' open':'')+'><summary><span><b class="dn">'+esc(t.name)+(mine?' · you are in':'')+'</b><span class="ds">'+esc(GN[t.game]||t.game)+' · '+joined+' of '+t.limit+' players in the draw</span></span><span class="tg '+st[1]+'">'+st[0]+'</span></summary><div class="db"><p class="dnote">'+note+'</p>';
+    if(fin) h+=roomHtml(fin,t.room_size,t);
+    Object.keys(rounds).map(Number).sort(function(x,y){return y-x}).forEach(function(k){
+      if(multi) h+='<h4 style="margin:14px 0 6px;font-size:13px;opacity:.7">Round '+k+'</h4>';
+      h+=rounds[k].map(function(r){return roomHtml(r,t.room_size,t)}).join("");
+    });
+    return h+'</div></details>';
+  }
+  async function drawDraws(){
+    var r=await supabaseClient.rpc("public_draws"); if(r.error) throw r.error; var list=r.data||[];
+    if(!list.length){ panel.innerHTML='<div class="state"><b>No draws yet</b><span>When a tournament with groups opens and players join, the draw shows here.</span></div>'; return }
+    var first=wantDraw||(list[0]&&list[0].id);
+    panel.innerHTML='<p class="note" style="margin:0 0 12px">The draw shows which group every player is in. Tap a tournament to open it.</p>'+list.map(function(t){return drawHtml(t,t.id===first)}).join("");
+    if(wantDraw){ var el=document.getElementById("d-"+wantDraw); if(el) setTimeout(function(){el.scrollIntoView({block:"start"})},50); wantDraw=null }
+  }
+
   async function load(){
     skeleton();
     try{
       if(typeof supabaseClient==="undefined") throw new Error("no client");
+      if(state.view==="draws"){ await drawDraws(); return }
       if(!state.session){
         state.session=(await supabaseClient.auth.getSession()).data.session;
       }
@@ -370,6 +423,7 @@ html[data-theme="dark"] .toast{background:#EDE8F3;color:#131114}
       };
     });
   }
+  if(wantDraw){ state.view="draws"; document.querySelectorAll(".seg button").forEach(function(x){x.setAttribute("aria-selected",x.dataset.view==="draws")}) }
   load();
 })();
 </script>
