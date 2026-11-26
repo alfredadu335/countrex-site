@@ -1,0 +1,888 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex,nofollow">
+<title>Countrex Admin</title>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,500;12..96,600;12..96,700;12..96,800&display=swap" rel="stylesheet">
+<script>(function(){try{if(localStorage.getItem("cx_admin_theme")==="dark")document.documentElement.setAttribute("data-theme","dark")}catch(e){}})();</script>
+<style>
+/*
+  COUNTREX ADMIN. Every action here is checked again by the database (admin role + RLS + the admin_* functions),
+  so hiding or editing this page in the browser cannot give anybody extra power.
+  Needs next to it: js/supabase.js (your Supabase url + publishable key), login.html
+  Database: run 001, 002 and 003_admin.sql in Supabase first.
+*/
+:root{--accent:#5E3C88;--r:14px;--deep:#fff;--side:#F6F2FB;--card:#fff;--field:#F6F2FB;--line:#DDD4EA;--text:#1A0B2E;--muted:#6A5F7C;--ok:#1E8E5A;--warn:#A8620A;--bad:#C0213F;--tint:var(--accent);--hover:color-mix(in srgb,var(--accent),#fff 14%);--pad:16px}
+[data-theme=dark]{--deep:#120720;--side:#1A0B2E;--card:#21113A;--field:#2B1950;--line:#3B2862;--text:#fff;--muted:#BDB2D4;--ok:#5FD39A;--warn:#F2B84B;--bad:#FF6B86;--tint:color-mix(in srgb,var(--accent),#fff 50%)}
+*{box-sizing:border-box;margin:0;padding:0}
+[hidden]{display:none!important}
+body{font-family:"Bricolage Grotesque",system-ui,sans-serif;background:var(--deep);color:var(--text);line-height:1.45;-webkit-font-smoothing:antialiased}
+button{font-family:inherit;cursor:pointer;color:inherit}
+:focus-visible{outline:3px solid var(--tint);outline-offset:2px}
+.app{display:grid;grid-template-columns:minmax(0,1fr);min-height:100vh}
+.app>div{min-width:0}
+.side{position:fixed;inset:0 20% 0 0;max-width:270px;background:var(--side);border-right:1px solid var(--line);padding:18px 14px;overflow:auto;z-index:20;transform:translateX(-100%);transition:transform .2s}
+.side.open{transform:none}
+.logo{display:flex;align-items:center;gap:10px;font-weight:800;font-size:22px;letter-spacing:-.02em;padding:4px 8px 14px}
+.mark{width:34px;height:34px;border-radius:9px;background:var(--accent);display:grid;place-items:center;flex:none}
+.mark svg{width:22px;height:22px;fill:#fff}
+.grp{margin-top:14px;padding:0 10px 6px;font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted)}
+.nav{display:flex;align-items:center;gap:12px;width:100%;padding:10px;border:0;border-radius:calc(var(--r)*.7);background:none;font-size:15px;font-weight:500;color:var(--muted);text-align:left;position:relative}
+.ic,.nav svg{width:20px;height:20px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;flex:none}
+.nav:hover{color:var(--text);background:var(--field)}
+.nav[aria-current=page]{background:var(--accent);color:#fff}
+.rqs{display:grid;gap:2px}.rq{display:flex;gap:10px;align-items:center;padding:9px 6px;border-bottom:1px solid var(--line);font-size:15px}.rq input{width:auto}
+.nav .dot{margin-left:auto;min-width:20px;height:20px;border-radius:99px;background:var(--bad);color:#fff;font-size:12px;font-weight:700;display:grid;place-items:center;padding:0 6px}
+.top{position:sticky;top:0;z-index:10;display:flex;align-items:center;gap:12px;padding:12px 16px;background:var(--deep);border-bottom:1px solid var(--line)}
+.top h1{font-size:20px;font-weight:700;letter-spacing:-.01em;margin-right:auto}
+.ib{width:40px;height:40px;border-radius:calc(var(--r)*.7);border:1px solid var(--line);background:none;display:grid;place-items:center}
+.me{display:none;align-items:center;gap:10px;font-size:14px;color:var(--muted)}
+.av{width:34px;height:34px;border-radius:50%;background:var(--accent);display:grid;place-items:center;font-weight:700;color:#fff}
+main{padding:16px;max-width:1200px;width:100%}
+.grid{display:grid;gap:14px}
+.stats{grid-template-columns:1fr 1fr}
+.two{grid-template-columns:1fr}
+.box{background:var(--card);border:1px solid var(--line);border-radius:var(--r);padding:var(--pad);min-width:0;box-shadow:0 1px 3px rgba(26,11,46,.06);margin-bottom:14px}
+.grid .box{margin-bottom:0}
+.box h2{font-size:17px;font-weight:700;margin-bottom:10px}
+.stat b{display:block;font-size:26px;font-weight:800;letter-spacing:-.02em;overflow-wrap:anywhere}
+.stat span{color:var(--muted);font-size:14px}
+.stat small{display:block;color:var(--muted);font-size:12px;margin-top:2px}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;border:0;border-radius:calc(var(--r)*.7);padding:10px 18px;font-size:15px;font-weight:600;background:var(--accent);color:#fff}
+.btn:hover{background:var(--hover)}
+.btn:disabled{opacity:.5;cursor:not-allowed}
+.btn.sec{background:var(--field);color:var(--text);border:1px solid var(--line)}
+.btn.sm{padding:6px 12px;font-size:13px}
+.btn.bad{background:none;border:1px solid var(--bad);color:var(--bad)}
+.btn.dangerb{background:var(--bad)}
+.hd{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:12px;flex-wrap:wrap}
+.hd h2{margin:0}
+.q{display:flex;gap:10px;margin-bottom:12px;flex-wrap:wrap}
+.q input,.q select{flex:1;min-width:140px;width:auto}
+.qk{display:flex;gap:10px;flex-wrap:wrap}
+form{display:grid;gap:12px}
+label{display:block;font-size:13px;font-weight:600;margin-bottom:5px;color:var(--muted)}
+input,select,textarea{width:100%;padding:11px 12px;border:1px solid var(--line);border-radius:calc(var(--r)*.7);background:var(--field);color:var(--text);font-family:inherit;font-size:15px}
+input:disabled,select:disabled{opacity:.6}
+textarea{min-height:90px;resize:vertical}
+input:focus,select:focus,textarea:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px color-mix(in srgb,var(--accent),transparent 78%)}
+small.mut{display:block;margin-top:4px}
+.chk{display:flex;align-items:center;gap:10px;font-size:15px;color:var(--text)}
+.chk input{width:20px;height:20px;accent-color:var(--accent)}
+.bd{display:inline-block;padding:2px 10px;border-radius:99px;font-size:12px;font-weight:600;border:1px solid;white-space:nowrap}
+.ok{color:var(--ok)}.warn{color:var(--warn)}.bad{color:var(--bad)}.mut{color:var(--muted)}
+.err{color:var(--bad);font-size:14px;font-weight:600}
+.empty{color:var(--muted);padding:18px 0;text-align:center;font-size:15px}
+.tw{overflow:auto;border:1px solid var(--line);border-radius:var(--r)}
+table{border-collapse:collapse;width:100%;font-size:14px;min-width:560px}
+th{text-align:left;font-size:12px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);padding:10px 12px;background:var(--side);position:sticky;top:0;white-space:nowrap}
+td{padding:10px 12px;border-top:1px solid var(--line);vertical-align:middle}
+td.n,th.n{text-align:right;white-space:nowrap}
+tr.click:hover td{background:var(--field)}
+.pg{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-top:12px;color:var(--muted);font-size:14px}
+.acts{display:flex;gap:8px;flex-wrap:wrap}
+.wd{border:1px solid var(--line);border-radius:var(--r);padding:14px;margin-bottom:12px;display:grid;gap:10px;background:var(--card)}
+.wd .row{display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;align-items:baseline}
+.wd b.big{font-size:22px}
+.kv{display:grid;grid-template-columns:auto 1fr;gap:6px 14px;font-size:14px;margin-bottom:14px}
+.kv dt{color:var(--muted)}
+.kv dd{font-weight:600;overflow-wrap:anywhere}
+.alert{border:1px solid var(--warn);background:color-mix(in srgb,var(--warn),transparent 88%);border-radius:var(--r);padding:12px 14px;margin-bottom:14px;display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap}
+.chip{display:inline-flex;gap:8px;align-items:center;background:var(--field);border:1px solid var(--line);border-radius:99px;padding:4px 6px 4px 12px;font-size:13px;font-weight:600}
+.chip button{border:0;background:none;font-size:16px;line-height:1;padding:2px 6px}
+.msg{padding:10px 0;border-bottom:1px solid var(--line);display:flex;gap:10px;justify-content:space-between}
+.msg:last-child{border-bottom:0}
+.msg p{overflow-wrap:anywhere;font-size:14px}
+dialog{border:1px solid var(--line);border-radius:var(--r);background:var(--card);color:var(--text);padding:20px;width:min(560px,calc(100% - 24px));margin:auto;max-height:92vh;overflow:auto}
+dialog::backdrop{background:rgba(26,11,46,.55)}
+dialog h2{margin-bottom:14px;font-size:19px}
+.fa{display:flex;gap:10px;justify-content:flex-end;margin-top:4px;flex-wrap:wrap}
+.toast{position:fixed;left:50%;bottom:20px;transform:translateX(-50%);background:var(--accent);color:#fff;padding:10px 18px;border-radius:10px;font-weight:600;z-index:50;max-width:calc(100% - 24px)}
+.toast.bad{background:var(--bad)}
+.gate{min-height:100vh;display:grid;place-items:center;padding:24px;text-align:center}
+.gate .box{max-width:420px}
+.gate p{color:var(--muted);margin:8px 0 16px}
+.rm{border:1px solid var(--line);border-radius:12px;padding:12px;margin-bottom:12px}.rm h4{margin:0 0 8px;font-size:15px}.rm .rg{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px}.rm .pl{display:flex;flex-wrap:wrap;gap:6px 14px;margin:8px 0}.rm .pl label{display:flex;gap:6px;align-items:center;font-size:14px}dialog.wide{width:min(720px,calc(100% - 24px))}
+.pay{display:grid;grid-template-columns:auto 1fr 1fr 1fr;gap:8px;align-items:center;margin-bottom:8px}
+.pay input{padding:8px 10px}
+@media(min-width:640px){.stats{grid-template-columns:repeat(4,1fr)}main{padding:24px}}
+@media(min-width:1000px){.app{grid-template-columns:260px minmax(0,1fr)}.side{position:sticky;top:0;height:100vh;inset:auto;max-width:none;transform:none}.ib.m{display:none}.me{display:flex}.two{grid-template-columns:1fr 1fr}}
+</style>
+</head>
+<body>
+<div class="gate" id="gate"><div class="box"><h2>Countrex Admin</h2><p>Checking your access…</p></div></div>
+<div class="app" id="app" hidden>
+  <aside class="side" id="side" aria-label="Admin menu">
+    <div class="logo"><span class="mark"><svg viewBox="0 0 24 24"><path d="M7.5 6h9c2.6 0 4.2 2 4.9 5.6l.8 4.6c.3 1.9-.7 3.3-2.3 3.3-1 0-1.7-.5-2.4-1.5l-1-1.5H9.5l-1 1.5c-.7 1-1.4 1.5-2.4 1.5-1.6 0-2.6-1.4-2.3-3.3l.8-4.6C3.3 8 4.9 6 7.5 6Z"/></svg></span><span>Countrex</span></div>
+    <nav id="nav"></nav>
+  </aside>
+  <div>
+    <header class="top">
+      <button class="ib m" id="menu" aria-label="Menu"><svg class="ic" viewBox="0 0 24 24"><path d="M4 7h16M4 12h16M4 17h16"/></svg></button>
+      <h1 id="title">Dashboard</h1>
+      <div class="me"><span id="who">Admin</span><span class="av" id="av">A</span></div>
+      <button class="btn sec sm" id="out">Sign out</button>
+    </header>
+    <main id="main"></main>
+  </div>
+</div>
+<dialog id="dlg"><h2 id="dt"></h2><div id="db"></div></dialog>
+<div id="toast" class="toast" hidden></div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
+<script src="js/supabase.js"></script>
+<script>
+(function () {
+  "use strict";
+  var sb = window.supabaseClient || null;
+  var $ = function (i) { return document.getElementById(i) };
+  var esc = function (s) { return String(s == null ? "" : s).replace(/[&<>"']/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c] }) };
+
+  // ---------- small helpers ----------
+  // Money is stored as whole pesewas (1000 = GHS 10.00). These two convert between what you see and what is stored.
+  function money(n) { n = Number(n || 0); var neg = n < 0; n = Math.abs(n); return (neg ? "-" : "") + "GHS " + (n / 100).toLocaleString("en-GB", { minimumFractionDigits: 2, maximumFractionDigits: 2 }) }
+  function toMinor(v) { var s = String(v == null ? "" : v).replace(/[,\s]/g, ""); if (!/^-?\d+(\.\d{1,2})?$/.test(s)) return NaN; return Math.round(parseFloat(s) * 100) }
+  function fdate(s) { if (!s) return "–"; var d = new Date(s); return isNaN(d) ? "–" : d.toLocaleString("en-GB", { day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" }) }
+  function fday(s) { if (!s) return "–"; var d = new Date(s); return isNaN(d) ? "–" : d.toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" }) }
+  function toLocalInput(iso) { if (!iso) return ""; var d = new Date(iso); if (isNaN(d)) return ""; var p = function (n) { return String(n).padStart(2, "0") }; return d.getFullYear() + "-" + p(d.getMonth() + 1) + "-" + p(d.getDate()) + "T" + p(d.getHours()) + ":" + p(d.getMinutes()) }
+  function num(n) { return Number(n || 0).toLocaleString("en-GB") }
+  var toastT;
+  function toast(m, bad) { var t = $("toast"); t.textContent = m; t.className = "toast" + (bad ? " bad" : ""); t.hidden = false; clearTimeout(toastT); toastT = setTimeout(function () { t.hidden = true }, bad ? 5000 : 2600) }
+  async function q(p) { var r = await p; if (r.error) { var e = new Error(r.error.message || "Request failed"); e.code = r.error.code; throw e } return r.data }
+  var rpc = function (n, a) { return q(sb.rpc(n, a || {})) };
+  function fail(e) { console.error(e); var m = e && e.message ? e.message : "Something went wrong"; if (/require_approval|room_size|advance_per_room|prize_1|prize_2|prize_3|tournament_rooms|admin_accept_entries|admin_decline_entries|admin_set_room|admin_start_final|admin_finish_final|admin_set_qualifiers|admin_close_signup/.test(m) && /column|function|relation|schema cache/i.test(m)) m = /require_approval|admin_accept_entries|admin_decline_entries/.test(m) ? "Run 010_join_requests.sql in Supabase first, then try again." : "Run 009_rooms.sql in Supabase first, then try again."; if (/tournament_codes/.test(m)) m = "Run 008_tournament_codes.sql in Supabase first, then try again."; if (/cover_url/.test(m)) m = "Run 006_event_covers.sql in Supabase first, then try again."; toast(m, true) }
+  function badge(text, cls) { return '<span class="bd ' + (cls || "mut") + '">' + esc(text) + "</span>" }
+  var STATUS = { active: "ok", suspended: "warn", banned: "bad", completed: "ok", pending: "warn", failed: "bad", open: "ok", live: "warn", draft: "mut", finished: "mut", cancelled: "bad", unused: "ok", used: "mut", revoked: "bad" };
+  var stBadge = function (s) { return badge(s, STATUS[s] || "mut") };
+  var KIND = { deposit: "Deposit", entry_fee: "Entry fee", prize: "Prize", withdrawal: "Withdrawal", refund: "Refund", adjustment: "Adjustment" };
+  var GAMES = [["codm", "Call of Duty: Mobile"], ["eafc", "EA SPORTS FC"], ["efootball", "eFootball"]];
+  function gname(k) { var g = GAMES.filter(function (x) { return x[0] === k })[0]; return g ? g[1] : k }
+  var gameName = function (k) { for (var i = 0; i < GAMES.length; i++) if (GAMES[i][0] === k) return GAMES[i][1]; return k || "–" };
+
+  function table(cols, rows, opts) {
+    opts = opts || {};
+    if (!rows.length) return '<p class="empty">' + esc(opts.empty || "Nothing here yet.") + "</p>";
+    return '<div class="tw"><table><thead><tr>' + cols.map(function (c) { return '<th class="' + (c.n ? "n" : "") + '">' + esc(c.h) + "</th>" }).join("") + "</tr></thead><tbody>" +
+      rows.map(function (r, i) { return "<tr" + (opts.row ? " " + opts.row(r, i) : "") + ">" + cols.map(function (c) { return '<td class="' + (c.n ? "n" : "") + '">' + c.r(r, i) + "</td>" }).join("") + "</tr>" }).join("") + "</tbody></table></div>";
+  }
+  function pager(total, off, lim) {
+    if (!total) return "";
+    var to = Math.min(off + lim, total);
+    return '<div class="pg"><span>' + (off + 1) + "–" + to + " of " + num(total) + '</span><span class="acts"><button class="btn sec sm" data-pg="-1"' + (off <= 0 ? " disabled" : "") + '>Previous</button><button class="btn sec sm" data-pg="1"' + (to >= total ? " disabled" : "") + ">Next</button></span></div>";
+  }
+  function main(html) { $("main").innerHTML = html }
+
+  // ---------- dialogs ----------
+  var dlg = $("dlg");
+  function openDlg(title, html) { $("dt").textContent = title; $("db").innerHTML = html; if (!dlg.open) dlg.showModal() }
+  function closeDlg() { if (dlg.open) dlg.close() }
+  function fieldHtml(f) {
+    var id = "f_" + f.k, v = f.v == null ? "" : f.v, h;
+    if (f.t === "checkbox") return '<label class="chk"><input type="checkbox" id="' + id + '"' + (f.v ? " checked" : "") + (f.dis ? " disabled" : "") + "> " + esc(f.l) + "</label>";
+    if (f.t === "file") return '<div><label for="' + id + '">' + esc(f.l) + "</label>" + (f.v ? '<img src="' + esc(f.v) + '" alt="Current cover" style="display:block;width:100%;max-height:170px;object-fit:cover;border-radius:10px;margin-bottom:8px">' : "") + '<input id="' + id + '" type="file" accept="image/jpeg,image/png,image/webp">' + (f.hint ? '<small class="mut">' + esc(f.hint) + "</small>" : "") + "</div>";
+    h = '<div><label for="' + id + '">' + esc(f.l) + (f.req ? " *" : "") + "</label>";
+    if (f.t === "textarea") h += '<textarea id="' + id + '"' + (f.ph ? ' placeholder="' + esc(f.ph) + '"' : "") + ">" + esc(v) + "</textarea>";
+    else if (f.t === "select") h += '<select id="' + id + '"' + (f.dis ? " disabled" : "") + ">" + f.opts.map(function (o) { return '<option value="' + esc(o[0]) + '"' + (String(o[0]) === String(v) ? " selected" : "") + ">" + esc(o[1]) + "</option>" }).join("") + "</select>";
+    else h += '<input id="' + id + '" type="' + (f.t === "number" ? "number" : f.t === "datetime" ? "datetime-local" : "text") + '" value="' + esc(v) + '"' + (f.t === "money" ? ' inputmode="decimal"' : "") + (f.t === "number" && f.min != null ? ' min="' + f.min + '"' : "") + (f.ph ? ' placeholder="' + esc(f.ph) + '"' : "") + (f.dis ? " disabled" : "") + ' autocomplete="off">';
+    if (f.hint) h += '<small class="mut">' + esc(f.hint) + "</small>";
+    return h + "</div>";
+  }
+  function readForm(fields) {
+    var o = {};
+    fields.forEach(function (f) {
+      var el = $("f_" + f.k); if (!el) return;
+      if (f.t === "checkbox") { o[f.k] = el.checked; return }
+      if (f.t === "file") { o[f.k] = (el.files && el.files[0]) || null; return }
+      var v = String(el.value).trim();
+      if (f.req && !v && !f.dis) throw new Error(f.l + " is required");
+      if (f.t === "number") o[f.k] = v === "" ? null : Number(v);
+      else if (f.t === "money") { o[f.k] = v === "" ? null : toMinor(v); if (v !== "" && isNaN(o[f.k])) throw new Error(f.l + ": type an amount like 25 or 25.50") }
+      else if (f.t === "datetime") o[f.k] = v ? new Date(v).toISOString() : null;
+      else o[f.k] = v;
+    });
+    return o;
+  }
+  function form(title, fields, label, onSubmit, opts) {
+    opts = opts || {};
+    openDlg(title, (opts.intro ? '<p class="mut" style="margin-bottom:12px;font-size:14px">' + opts.intro + "</p>" : "") + '<form id="df" novalidate>' + fields.map(fieldHtml).join("") +
+      '<p class="err" id="ferr" hidden></p><div class="fa"><button type="button" class="btn sec" data-close>Cancel</button><button class="btn' + (opts.danger ? " dangerb" : "") + '" type="submit">' + esc(label) + "</button></div></form>");
+    $("df").onsubmit = async function (e) {
+      e.preventDefault();
+      var b = e.submitter || $("df").querySelector("button[type=submit]"); b.disabled = true; $("ferr").hidden = true;
+      try { await onSubmit(readForm(fields)); closeDlg() }
+      catch (x) { $("ferr").textContent = x.message || "Something went wrong"; $("ferr").hidden = false; b.disabled = false }
+    };
+  }
+  function confirmDlg(title, html, label, danger) {
+    return new Promise(function (res) {
+      openDlg(title, '<p style="margin-bottom:16px;line-height:1.5">' + html + '</p><div class="fa"><button class="btn sec" data-close>Cancel</button><button class="btn' + (danger ? " dangerb" : "") + '" id="cy">' + esc(label) + "</button></div>");
+      $("cy").onclick = function () { res(true); closeDlg() };
+      dlg.addEventListener("close", function h() { dlg.removeEventListener("close", h); res(false) });
+    });
+  }
+
+  // ---------- state ----------
+  var me = null, cur = "dash", cache = {}, views = {}, acts = {}, pageFn = null;
+  var NAV = [
+    ["Overview", [["dash", "Dashboard", "M3 12 12 4l9 8v8a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1v-8Z"]]],
+    ["People & money", [["players", "Players", "M16 11a4 4 0 1 0-8 0M4 21a8 8 0 0 1 16 0"], ["wallet", "Wallet", "M3 7h16a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7Zm0 0V6a2 2 0 0 1 2-2h12M16 14h2"]]],
+    ["Competition", [["requests", "Join requests", "M16 11a4 4 0 1 0-8 0M4 21a8 8 0 0 1 12-6.9M17 15v6M14 18h6"], ["tours", "Tournaments", "M8 21h8M12 17v4M7 4h10v5a5 5 0 0 1-10 0V4ZM7 6H4v2a3 3 0 0 0 3 3M17 6h3v2a3 3 0 0 1-3 3"], ["events", "Events", "M4 6h16v14H4V6Zm0 5h16M8 3v4M16 3v4"]]],
+    ["Community", [["news", "News & alerts", "M4 5h13v14H6a2 2 0 0 1-2-2V5Zm13 3h3v9a2 2 0 0 1-2 2M8 9h5M8 13h5"], ["chat", "Chat", "M4 5h16v11H9l-5 4V5Z"], ["invites", "Invite codes", "M3 8h18v3a2 2 0 0 0 0 4v3H3v-3a2 2 0 0 0 0-4V8Zm9 0v10"]]],
+    ["System", [["log", "Activity log", "M5 4h14v16H5V4Zm4 5h6M9 13h6M9 17h3"], ["settings", "Settings", "M4 6h9M17 6h3M4 12h3M11 12h9M4 18h11M19 18h1M15 4v4M9 10v4M17 16v4"]]]
+  ];
+  var TITLES = {};
+  function drawNav(pending) {
+    $("nav").innerHTML = NAV.map(function (g) {
+      return '<div class="grp">' + esc(g[0]) + "</div>" + g[1].map(function (n) {
+        TITLES[n[0]] = n[1];
+        return '<button class="nav" data-v="' + n[0] + '"' + (n[0] === cur ? ' aria-current="page"' : "") + '><svg viewBox="0 0 24 24"><path d="' + n[2] + '"/></svg>' + esc(n[1]) + (n[0] === "wallet" && pending ? '<span class="dot">' + pending + "</span>" : n[0] === "requests" && reqCount ? '<span class="dot">' + reqCount + "</span>" : "") + "</button>";
+      }).join("");
+    }).join("");
+  }
+  var pendingCount = 0, reqCount = 0;
+  async function go(v) {
+    if (!views[v]) v = "dash";
+    cur = v; pageFn = null; $("title").textContent = TITLES[v] || "Dashboard"; $("side").classList.remove("open");
+    drawNav(pendingCount); main('<p class="empty">Loading…</p>');
+    try { await views[v]() } catch (e) { console.error(e); main('<div class="box"><h2>Could not load this page</h2><p class="err">' + esc(e.message || e) + '</p><p class="mut" style="margin-top:8px">If this mentions a missing function, run 003_admin.sql in the Supabase SQL editor.</p></div>') }
+  }
+  async function refreshPending() {
+    try { var r = await rpc("admin_pending_withdrawals"); pendingCount = r.length } catch (e) { /* the page itself shows errors */ }
+    try { var c = await sb.from("tournament_entries").select("tournament_id", { count: "exact", head: true }).eq("status", "pending"); reqCount = c.count || 0 } catch (e) { }
+    drawNav(pendingCount);
+  }
+  var reload = function () { return go(cur) };
+
+  // ---------- DASHBOARD ----------
+  function stat(label, value, sub) { return '<div class="box stat"><b>' + value + "</b><span>" + esc(label) + "</span>" + (sub ? "<small>" + sub + "</small>" : "") + "</div>" }
+  views.dash = async function () {
+    var r = await Promise.all([rpc("admin_stats"), rpc("admin_audit", { p_limit: 8, p_offset: 0, p_action: null })]);
+    var s = r[0], log = r[1]; pendingCount = s.pending_count; drawNav(pendingCount);
+    main((s.pending_count ? '<div class="alert"><span><b>' + s.pending_count + " withdrawal" + (s.pending_count > 1 ? "s" : "") + " waiting</b> · " + money(s.pending_sum) + '</span><button class="btn sm" data-v="wallet">Review now</button></div>' : "") +
+      '<div class="grid stats">' +
+      stat("Players", num(s.players), "+" + num(s.new_24h) + " today · +" + num(s.new_7d) + " this week") +
+      stat("Active", num(s.active), num(s.suspended) + " suspended · " + num(s.banned) + " banned") +
+      stat("Money held for players", money(s.wallet_total), "Total of all wallets") +
+      stat("Unfinished sign-ups", num(s.incomplete), "Signed in but no username yet") +
+      stat("Deposited", money(s.deposits)) + stat("Withdrawn", money(s.withdrawn)) +
+      stat("Prizes paid", money(s.prizes)) + stat("Entry fees taken", money(s.fees)) +
+      stat("Open tournaments", num(s.tournaments_open), num(s.tournaments_live) + " live now") +
+      stat("Upcoming events", num(s.events_upcoming)) + stat("Chat messages (24h)", num(s.messages_24h)) + stat("Admins", num(s.admins)) + "</div>" +
+      '<div class="box" style="margin-top:14px"><div class="hd"><h2>Latest activity</h2><button class="btn sec sm" data-v="log">See all</button></div>' + auditTable(log) + "</div>");
+  };
+
+  // ---------- ACTIVITY LOG ----------
+  function metaStr(m) {
+    m = m || {}; var skip = { id: 1 };
+    return Object.keys(m).filter(function (k) { return !skip[k] && m[k] !== "" && m[k] != null }).map(function (k) {
+      var v = m[k]; if (typeof v === "number" && /amount|paid|fee|balance_after/.test(k)) v = money(v);
+      return k.replace(/_/g, " ") + ": " + v;
+    }).join(" · ");
+  }
+  function auditTable(rows) {
+    return table([
+      { h: "When", r: function (a) { return esc(fdate(a.at)) } },
+      { h: "Who", r: function (a) { return esc(a.actor_name || (a.actor ? "(deleted)" : "system")) } },
+      { h: "Did", r: function (a) { return "<b>" + esc(a.action) + "</b>" } },
+      { h: "To", r: function (a) { return esc(a.target_name || "–") } },
+      { h: "Details", r: function (a) { return '<span class="mut">' + esc(metaStr(a.meta)) + "</span>" } }
+    ], rows, { empty: "No activity yet." });
+  }
+  var L = { off: 0, lim: 50, action: "" };
+  views.log = async function () {
+    main('<div class="box"><div class="q"><select id="la"><option value="">Everything</option><option value="wallet">Wallet adjustments</option><option value="withdrawal">Withdrawals</option><option value="tournament">Tournaments</option><option value="role">Role changes</option><option value="account_status">Bans and suspensions</option><option value="award_points">Points</option><option value="message">Chat moderation</option><option value="site_settings">Settings</option></select></div><div id="ll"></div></div>');
+    $("la").value = L.action;
+    $("la").onchange = function () { L.action = this.value; L.off = 0; load() };
+    async function load() {
+      var rows = await rpc("admin_audit", { p_limit: L.lim, p_offset: L.off, p_action: L.action || null });
+      $("ll").innerHTML = auditTable(rows) + pager(rows.length ? Number(rows[0].total_count) : 0, L.off, L.lim);
+    }
+    pageFn = function (d) { L.off = Math.max(0, L.off + d * L.lim); return load() };
+    await load();
+  };
+
+  // ---------- PLAYERS ----------
+  var P = { search: "", status: "", off: 0, lim: 25 }, pT;
+  views.players = async function () {
+    main('<div class="box"><div class="q"><input id="ps" type="search" placeholder="Search username, phone or email" value="' + esc(P.search) + '"><select id="pst"><option value="">All players</option><option value="active">Active</option><option value="suspended">Suspended</option><option value="banned">Banned</option></select></div><div id="pl"></div></div>');
+    $("pst").value = P.status;
+    $("ps").oninput = function () { var v = this.value; clearTimeout(pT); pT = setTimeout(function () { P.search = v.trim(); P.off = 0; load().catch(fail) }, 300) };
+    $("pst").onchange = function () { P.status = this.value; P.off = 0; load().catch(fail) };
+    async function load() {
+      var rows = await rpc("admin_players", { p_search: P.search || null, p_status: P.status || null, p_limit: P.lim, p_offset: P.off });
+      cache.players = {}; rows.forEach(function (p) { cache.players[p.id] = p });
+      $("pl").innerHTML = table([
+        { h: "Player", r: function (p) { return "<b>" + esc(p.username) + "</b>" + (p.role === "admin" ? " " + badge("admin", "warn") : "") + '<br><small class="mut">' + esc(p.country || "No country") + "</small>" } },
+        { h: "Status", r: function (p) { return stBadge(p.status) } },
+        { h: "Wallet", n: 1, r: function (p) { return money(p.balance) } },
+        { h: "Points", n: 1, r: function (p) { return num(p.points) } },
+        { h: "Joined", r: function (p) { return esc(fday(p.created_at)) } },
+        { h: "", n: 1, r: function (p) { return '<button class="btn sec sm" data-act="player" data-id="' + p.id + '">Manage</button>' } }
+      ], rows, { empty: "No players match.", row: function (p) { return 'class="click" data-act="player" data-id="' + p.id + '"' } }) + pager(rows.length ? Number(rows[0].total_count) : 0, P.off, P.lim);
+    }
+    pageFn = function (d) { P.off = Math.max(0, P.off + d * P.lim); return load() };
+    await load();
+  };
+  acts.player = function (el) { openPlayer(el.dataset.id) };
+  function openPlayer(id) {
+    var p = cache.players && cache.players[id]; if (!p) return;
+    var self = p.id === me.id;
+    openDlg(p.username, '<dl class="kv">' +
+      "<dt>Status</dt><dd>" + stBadge(p.status) + (p.status_reason ? ' <span class="mut">' + esc(p.status_reason) + "</span>" : "") + "</dd>" +
+      "<dt>Role</dt><dd>" + esc(p.role) + "</dd><dt>Wallet</dt><dd>" + money(p.balance) + "</dd>" +
+      "<dt>Points</dt><dd>" + num(p.points) + ' <span class="mut">(CODM ' + num(p.points_codm) + " · FC " + num(p.points_eafc) + " · eFootball " + num(p.points_efootball) + ")</span></dd>" +
+      "<dt>Country</dt><dd>" + esc(p.country || "–") + "</dd><dt>Phone</dt><dd>" + esc(p.phone ? "+" + p.phone : "–") + "</dd><dt>Email</dt><dd>" + esc(p.email || "–") + "</dd>" +
+      "<dt>Joined</dt><dd>" + esc(fdate(p.created_at)) + "</dd><dt>Last sign-in</dt><dd>" + esc(fdate(p.last_sign_in_at)) + "</dd></dl>" +
+      '<div class="acts">' +
+      '<button class="btn sm" data-act="padjust" data-id="' + p.id + '"' + (self ? " disabled" : "") + ">Adjust wallet</button>" +
+      '<button class="btn sm" data-act="ppoints" data-id="' + p.id + '">Give / remove points</button>' +
+      '<button class="btn sec sm" data-act="ptx" data-id="' + p.id + '">Transactions</button>' +
+      '<button class="btn sec sm" data-act="ppin" data-id="' + p.id + '">Reset wallet PIN</button>' +
+      (p.status !== "active" ? '<button class="btn sec sm" data-act="pstatus" data-st="active" data-id="' + p.id + '">Restore account</button>' : "") +
+      (p.status === "active" ? '<button class="btn bad sm" data-act="pstatus" data-st="suspended" data-id="' + p.id + '"' + (self ? " disabled" : "") + ">Suspend</button>" : "") +
+      (p.status !== "banned" ? '<button class="btn bad sm" data-act="pstatus" data-st="banned" data-id="' + p.id + '"' + (self ? " disabled" : "") + ">Ban</button>" : "") +
+      '<button class="btn sec sm" data-act="prole" data-id="' + p.id + '"' + (self ? " disabled" : "") + ">" + (p.role === "admin" ? "Remove admin" : "Make admin") + "</button>" +
+      '</div><div class="fa" style="margin-top:14px"><button class="btn sec" data-close>Close</button></div>');
+  }
+  acts.padjust = function (el) {
+    var p = cache.players[el.dataset.id];
+    form("Adjust wallet: " + p.username, [
+      { k: "amt", l: "Amount in GHS (use a minus sign to take money away)", t: "money", req: 1, ph: "e.g. 20 or -5.50", hint: "Current balance: " + money(p.balance) + ". Up to GHS 10,000 each time." },
+      { k: "why", l: "Reason", t: "text", req: 1, ph: "e.g. Refund for failed deposit", hint: "Saved in the activity log forever." }
+    ], "Apply", async function (v) {
+      if (!v.amt) throw new Error("Amount cannot be zero");
+      var bal = await rpc("admin_adjust_wallet", { p_user: p.id, p_amount: v.amt, p_reason: v.why });
+      toast("Done. New balance " + money(bal)); setTimeout(reload, 0); refreshPending();
+    }, { intro: "This changes the player's real balance and is recorded in the ledger." });
+  };
+  acts.ppoints = function (el) {
+    var p = cache.players[el.dataset.id];
+    form("Points: " + p.username, [
+      { k: "game", l: "Game", t: "select", opts: GAMES, v: "codm" },
+      { k: "pts", l: "Points (negative removes)", t: "number", req: 1, ph: "e.g. 50 or -20" }
+    ], "Apply", async function (v) {
+      if (!v.pts) throw new Error("Points cannot be zero");
+      await rpc("award_points", { p_user: p.id, p_game: v.game, p_points: v.pts }); toast("Points updated"); setTimeout(reload, 0);
+    });
+  };
+  acts.pstatus = function (el) {
+    var p = cache.players[el.dataset.id], st = el.dataset.st, word = { active: "Restore", suspended: "Suspend", banned: "Ban" }[st];
+    form(word + " " + p.username, [{ k: "why", l: "Reason" + (st === "active" ? " (optional)" : ""), t: "text", req: st !== "active", ph: "Shown in the activity log" }], word, async function (v) {
+      await rpc("set_account_status", { p_user: p.id, p_status: st, p_reason: v.why || null }); toast(p.username + " is now " + st); setTimeout(reload, 0);
+    }, { danger: st !== "active", intro: st === "banned" ? "A banned player is signed out and cannot sign in again until restored." : st === "suspended" ? "A suspended player cannot join, bet, chat or withdraw." : "" });
+  };
+  acts.prole = async function (el) {
+    var p = cache.players[el.dataset.id], to = p.role === "admin" ? "player" : "admin";
+    if (!await confirmDlg((to === "admin" ? "Make " : "Remove ") + p.username + (to === "admin" ? " an admin?" : " as admin?"), to === "admin" ? "Admins can see every player, move money and change anything on this page. Only do this for someone you fully trust." : "They will lose all admin access.", to === "admin" ? "Make admin" : "Remove admin", to === "admin")) return;
+    try { await rpc("admin_set_role", { p_user: p.id, p_role: to }); toast("Role updated"); reload() } catch (e) { fail(e) }
+  };
+  acts.ppin = async function (el) {
+    var p = cache.players[el.dataset.id];
+    if (!await confirmDlg("Reset " + esc(p.username) + "'s wallet PIN?", "Only do this after you are sure it is really " + esc(p.username) + " (for example, they contact support from their own number). Their wallet locks and they create a new PIN next time they open it.", "Reset PIN", true)) return;
+    try { await rpc("admin_reset_wallet_pin", { p_user: p.id }); toast("PIN reset. " + p.username + " can create a new one now") } catch (e) { if (/does not exist/.test(e.message || "")) e.message = "Run 007_wallet_security.sql in Supabase first."; fail(e) }
+  };
+  acts.ptx = function (el) { W.user = el.dataset.id; W.userName = cache.players[el.dataset.id].username; W.off = 0; closeDlg(); go("wallet") };
+
+  // ---------- WALLET ----------
+  var W = { user: null, userName: "", kind: "", status: "", off: 0, lim: 25 };
+  views.wallet = async function () {
+    var r = await Promise.all([rpc("admin_stats"), rpc("admin_pending_withdrawals"), q(sb.from("site_settings").select("key,value"))]);
+    var s = r[0], pend = r[1], set = {}; r[2].forEach(function (x) { set[x.key] = x.value });
+    cache.pend = {}; pend.forEach(function (w) { cache.pend[w.tx_id] = w }); pendingCount = pend.length; drawNav(pendingCount);
+    main('<div class="grid stats">' + stat("Held in wallets", money(s.wallet_total), "What you owe players") + stat("Deposited", money(s.deposits)) + stat("Withdrawn", money(s.withdrawn)) + stat("Waiting to be paid", money(s.pending_sum), s.pending_count + " request" + (s.pending_count === 1 ? "" : "s")) + "</div>" +
+      '<div class="box" style="margin-top:14px"><h2>Withdrawal requests</h2>' + (pend.length ? pend.map(function (w) {
+        return '<div class="wd"><div class="row"><b class="big">' + money(w.amount) + "</b><span><b>" + esc(w.username) + '</b> <span class="mut">· ' + esc(fdate(w.created_at)) + "</span></span></div>" +
+          '<dl class="kv" style="margin:0"><dt>Send to</dt><dd>' + esc((w.method || "No payout account").replace("_", " ")) + " · " + esc(w.account_name || "–") + " · <span style=\"user-select:all\">" + esc(w.account_number || "–") + "</span></dd>" +
+          "<dt>Contact</dt><dd>" + esc(w.phone ? "+" + w.phone : "–") + " · " + esc(w.email || "no email") + "</dd><dt>Wallet left</dt><dd>" + money(w.balance) + "</dd></dl>" +
+          '<div class="acts"><button class="btn sm" data-act="wpay" data-id="' + w.tx_id + '">Mark as paid</button><button class="btn bad sm" data-act="wrej" data-id="' + w.tx_id + '">Reject &amp; refund</button></div></div>';
+      }).join("") : '<p class="empty">No withdrawals waiting. You are all caught up.</p>') + "</div>" +
+      '<div class="box"><h2>Withdrawal controls</h2><form id="wset" novalidate><label class="chk"><input type="checkbox" id="we"' + (set.withdrawals_enabled === false ? "" : " checked") + '> Players can request withdrawals</label>' +
+      '<div class="grid two"><div><label for="wmin">Smallest withdrawal (GHS)</label><input id="wmin" inputmode="decimal" value="' + ((set.min_withdrawal || 1000) / 100) + '"></div><div><label for="wmax">Largest withdrawal (GHS)</label><input id="wmax" inputmode="decimal" value="' + ((set.max_withdrawal || 500000) / 100) + '"></div></div>' +
+      '<p class="err" id="werr" hidden></p><div><button class="btn" type="submit">Save controls</button></div></form><p class="mut" style="font-size:13px;margin-top:8px">Turn withdrawals off to pause every payout at once, for example if you suspect fraud.</p></div>' +
+      '<div class="box"><div class="hd"><h2>Transactions</h2>' + (W.user ? '<span class="chip">' + esc(W.userName) + '<button data-act="wclear" aria-label="Show everyone">×</button></span>' : "") + "</div>" +
+      '<div class="q"><select id="wk"><option value="">All types</option>' + Object.keys(KIND).map(function (k) { return '<option value="' + k + '">' + KIND[k] + "</option>" }).join("") + '</select><select id="ws"><option value="">All statuses</option><option value="completed">Completed</option><option value="pending">Pending</option><option value="failed">Failed</option></select></div><div id="wl"></div></div>');
+    $("wk").value = W.kind; $("ws").value = W.status;
+    $("wk").onchange = function () { W.kind = this.value; W.off = 0; load().catch(fail) };
+    $("ws").onchange = function () { W.status = this.value; W.off = 0; load().catch(fail) };
+    $("wset").onsubmit = async function (e) {
+      e.preventDefault(); var er = $("werr"); er.hidden = true;
+      var mn = toMinor($("wmin").value), mx = toMinor($("wmax").value);
+      if (isNaN(mn) || isNaN(mx) || mn < 100 || mx < mn) { er.textContent = "Enter valid amounts. The smallest must be at least GHS 1 and not more than the largest."; er.hidden = false; return }
+      try {
+        await q(sb.from("site_settings").upsert([{ key: "withdrawals_enabled", value: $("we").checked }, { key: "min_withdrawal", value: mn }, { key: "max_withdrawal", value: mx }], { onConflict: "key" }));
+        toast("Controls saved");
+      } catch (x) { fail(x) }
+    };
+    async function load() {
+      var rows = await rpc("admin_transactions", { p_user: W.user || null, p_kind: W.kind || null, p_status: W.status || null, p_limit: W.lim, p_offset: W.off });
+      $("wl").innerHTML = table([
+        { h: "When", r: function (t) { return esc(fdate(t.created_at)) } },
+        { h: "Player", r: function (t) { return esc(t.username || "–") } },
+        { h: "Type", r: function (t) { return esc(KIND[t.kind] || t.kind) } },
+        { h: "Amount", n: 1, r: function (t) { return '<b class="' + (t.amount < 0 ? "bad" : "ok") + '">' + (t.amount > 0 ? "+" : "") + money(t.amount) + "</b>" } },
+        { h: "Balance after", n: 1, r: function (t) { return money(t.balance_after) } },
+        { h: "Status", r: function (t) { return stBadge(t.status) } }
+      ], rows, { empty: "No transactions match." }) + pager(rows.length ? Number(rows[0].total_count) : 0, W.off, W.lim);
+    }
+    pageFn = function (d) { W.off = Math.max(0, W.off + d * W.lim); return load() };
+    await load();
+  };
+  acts.wclear = function () { W.user = null; W.userName = ""; W.off = 0; reload() };
+  acts.wpay = async function (el) {
+    var w = cache.pend[el.dataset.id];
+    if (!await confirmDlg("Mark as paid?", "Only continue after you have <b>sent " + money(w.amount) + "</b> to <b>" + esc(w.account_name || w.username) + "</b> (" + esc(w.account_number || "–") + "). The money stays deducted from the player's wallet.", "Yes, I have paid")) return;
+    try { await rpc("admin_resolve_withdrawal", { p_tx: w.tx_id, p_approve: true }); toast("Marked as paid"); reload() } catch (e) { fail(e); reload() }
+  };
+  acts.wrej = async function (el) {
+    var w = cache.pend[el.dataset.id];
+    if (!await confirmDlg("Reject and refund?", money(w.amount) + " goes back into " + esc(w.username) + "'s wallet. Nothing is sent to them.", "Reject and refund", true)) return;
+    try { await rpc("admin_resolve_withdrawal", { p_tx: w.tx_id, p_approve: false }); toast("Rejected and refunded"); reload() } catch (e) { fail(e); reload() }
+  };
+
+  // ---------- COVER PICTURES (Supabase Storage bucket "tournament-covers", made by 004_covers.sql) ----------
+  var COVER_BUCKET = "tournament-covers";
+  async function uploadCover(file) {
+    if (!/^image\/(jpeg|png|webp)$/.test(file.type)) throw new Error("The cover must be a JPG, PNG or WebP picture");
+    if (file.size > 15 * 1024 * 1024) throw new Error("That picture is too big (15 MB at most)");
+    var bmp; try { bmp = await createImageBitmap(file) } catch (e) { throw new Error("Could not read that picture") }
+    var sc = Math.min(1, 1280 / bmp.width), w = Math.max(1, Math.round(bmp.width * sc)), h = Math.max(1, Math.round(bmp.height * sc));
+    var c = document.createElement("canvas"); c.width = w; c.height = h;
+    var x = c.getContext("2d"); x.fillStyle = "#fff"; x.fillRect(0, 0, w, h); x.drawImage(bmp, 0, 0, w, h);
+    var blob = await new Promise(function (r) { c.toBlob(r, "image/jpeg", 0.85) });
+    if (!blob) throw new Error("Could not process that picture");
+    var path = "covers/" + crypto.randomUUID() + ".jpg";
+    var r = await sb.storage.from(COVER_BUCKET).upload(path, blob, { contentType: "image/jpeg", cacheControl: "31536000", upsert: false });
+    if (r.error) throw new Error(/bucket/i.test(r.error.message || "") ? "The cover storage is not set up yet. Run 004_covers.sql in Supabase." : (r.error.message || "Upload failed"));
+    return sb.storage.from(COVER_BUCKET).getPublicUrl(path).data.publicUrl;
+  }
+  function coverPath(url) { var k = "/" + COVER_BUCKET + "/", i = String(url || "").indexOf(k); return i < 0 ? null : url.slice(i + k.length).split("?")[0] }
+  async function dropCover(url) { var p = coverPath(url); if (p) { try { await sb.storage.from(COVER_BUCKET).remove([p]) } catch (e) { console.error(e) } } }
+
+  // ---------- TOURNAMENTS ----------
+  // ---------- JOIN REQUESTS (accept / decline players) ----------
+  views.requests = async function () {
+    var ts = await q(sb.from("tournaments").select("id,name,game_key,entry_fee,player_limit,status,stage,require_approval,join_closes_at,tournament_entries(user_id,status,joined_at,profiles(username))").in("status", ["open", "live"]).eq("stage", "groups").order("join_closes_at"));
+    ts = ts.filter(function (t) { return t.tournament_entries.length || t.require_approval });
+    cache.req = {}; ts.forEach(function (t) { cache.req[t.id] = t });
+    var waiting = ts.reduce(function (a, t) { return a + t.tournament_entries.filter(function (e) { return e.status === "pending" }).length }, 0); reqCount = waiting; drawNav(pendingCount);
+    function who(e) { return esc((e.profiles && e.profiles.username) || "player") }
+    function row(t, e, kind) {
+      return '<label class="rq"><input type="checkbox" data-r="' + t.id + '" data-k="' + kind + '" value="' + e.user_id + '"> <b>' + who(e) + '</b> <span class="mut">· asked ' + esc(fdate(e.joined_at)) + (t.entry_fee > 0 ? " · paid " + money(t.entry_fee) : " · free") + "</span></label>";
+    }
+    main((waiting ? '<div class="alert"><span><b>' + waiting + " player" + (waiting > 1 ? "s" : "") + " waiting</b> for you to accept or decline.</span></div>" : "") +
+      (ts.length ? ts.map(function (t) {
+        var pend = t.tournament_entries.filter(function (e) { return e.status === "pending" }).sort(function (a, b) { return new Date(a.joined_at) - new Date(b.joined_at) }),
+          acc = t.tournament_entries.filter(function (e) { return e.status === "accepted" }).sort(function (a, b) { return new Date(a.joined_at) - new Date(b.joined_at) });
+        return '<div class="box" data-t="' + t.id + '"><div class="hd"><h2>' + esc(t.name) + '</h2><span class="mut">' + esc(gname(t.game_key)) + " · " + (pend.length + acc.length) + " / " + t.player_limit + " seats taken" + (t.require_approval ? "" : " · no approval needed") + "</span></div>" +
+          "<h3 style='font-size:15px;margin:10px 0 6px'>Waiting for you (" + pend.length + ")</h3>" +
+          (pend.length ? '<div class="rqs">' + pend.map(function (e) { return row(t, e, "p") }).join("") + '</div><div class="acts"><button class="btn sm" data-act="rsel" data-id="' + t.id + '" data-k="p">Select all</button><button class="btn sm" data-act="racc" data-id="' + t.id + '">Accept selected</button><button class="btn sm" data-act="raccall" data-id="' + t.id + '">Accept all (' + pend.length + ')</button><button class="btn bad sm" data-act="rdec" data-id="' + t.id + '" data-k="p">Decline selected</button></div>' : '<p class="mut" style="font-size:14px">Nobody is waiting.</p>') +
+          '<details style="margin-top:14px"><summary style="cursor:pointer;font-weight:600">Accepted players (' + acc.length + ')</summary>' + (acc.length ? '<div class="rqs" style="margin-top:8px">' + acc.map(function (e) { return row(t, e, "a") }).join("") + '</div><div class="acts"><button class="btn bad sm" data-act="rdec" data-id="' + t.id + '" data-k="a">Remove selected &amp; refund</button></div>' : '<p class="mut" style="font-size:14px;margin-top:6px">Nobody accepted yet.</p>') + "</details></div>";
+      }).join("") : '<div class="box"><p class="empty">No requests yet. When a player taps Join on a tournament that needs your approval, they show up here.</p></div>'));
+  };
+  function picked(id, k) { return Array.prototype.map.call(document.querySelectorAll('input[data-r="' + id + '"][data-k="' + k + '"]:checked'), function (c) { return c.value }) }
+  acts.rsel = function (el) { var boxes = document.querySelectorAll('input[data-r="' + el.dataset.id + '"][data-k="' + el.dataset.k + '"]'), all = Array.prototype.every.call(boxes, function (c) { return c.checked }); Array.prototype.forEach.call(boxes, function (c) { c.checked = !all }) };
+  acts.racc = async function (el) {
+    var ids = picked(el.dataset.id, "p"); if (!ids.length) { toast("Tick the players you want to accept"); return }
+    var n = await rpc("admin_accept_entries", { p_tournament: el.dataset.id, p_users: ids }); toast(n + " accepted and told"); reload(); refreshPending();
+  };
+  acts.raccall = async function (el) {
+    var t = cache.req[el.dataset.id]; if (!await confirmDlg("Accept everyone waiting?", "Every waiting player for " + esc(t.name) + " is accepted and told straight away. Players in a tournament with rooms are put in a random room.", "Accept all")) return;
+    var n = await rpc("admin_accept_entries", { p_tournament: t.id, p_users: null }); toast(n + " accepted and told"); reload(); refreshPending();
+  };
+  acts.rdec = function (el) {
+    var id = el.dataset.id, k = el.dataset.k, ids = picked(id, k), t = cache.req[id];
+    if (!ids.length) { toast("Tick the players first"); return }
+    form(k === "p" ? "Decline " + ids.length + " player" + (ids.length > 1 ? "s" : "") : "Remove " + ids.length + " player" + (ids.length > 1 ? "s" : ""), [{ k: "why", l: "Reason (the players will see this)", t: "textarea", ph: "Optional" }], k === "p" ? "Decline & refund" : "Remove & refund", async function (v) {
+      var n = await rpc("admin_decline_entries", { p_tournament: id, p_users: ids, p_reason: v.why || null }); toast(n + " removed. Entry fees returned"); reload(); refreshPending();
+    }, { intro: (t.entry_fee > 0 ? "Each player gets their " + money(t.entry_fee) + " entry fee back in their wallet. " : "") + "They are told in their notifications." });
+  };
+
+  views.tours = async function () {
+    var rows = await q(sb.from("tournaments").select("*, tournament_entries(count)").order("created_at", { ascending: false }));
+    cache.tours = {}; rows.forEach(function (t) { t.n = t.tournament_entries && t.tournament_entries[0] ? t.tournament_entries[0].count : 0; cache.tours[t.id] = t });
+    main('<div class="box"><div class="hd"><h2>Tournaments</h2><button class="btn" data-act="tnew">New tournament</button></div>' + table([
+      { h: "Tournament", r: function (t) { return '<div style="display:flex;gap:10px;align-items:center">' + (t.cover_url ? '<img src="' + esc(t.cover_url) + '" alt="" style="width:64px;height:36px;object-fit:cover;border-radius:6px;flex:none">' : "") + "<div><b>" + esc(t.name) + '</b><br><small class="mut">' + esc(gameName(t.game_key)) + "</small></div></div>" } },
+      { h: "Entry", n: 1, r: function (t) { return t.entry_fee ? money(t.entry_fee) : "Free" } },
+      { h: "Prize pool", n: 1, r: function (t) { return money(t.prize_pool) } },
+      { h: "Players", n: 1, r: function (t) { return t.n + " / " + t.player_limit } },
+      { h: "Closes", r: function (t) { return esc(fdate(t.join_closes_at)) } },
+      { h: "Status", r: function (t) { return stBadge(t.status) } },
+      { h: "", r: function (t) {
+        var done = t.status === "finished" || t.status === "cancelled";
+        return '<div class="acts"><button class="btn sec sm" data-act="tedit" data-id="' + t.id + '">Edit</button><button class="btn sec sm" data-act="tfix" data-id="' + t.id + '">Fixtures</button>' +
+          (t.room_size ? '<button class="btn sm" data-act="trooms" data-id="' + t.id + '">Rooms</button>' : "") +
+          ((t.room_size && !done) ? "" : '<button class="btn sm" data-act="tpay" data-id="' + t.id + '">' + (done ? "Results" : "Players &amp; payout") + "</button>") +
+          (done ? "" : '<button class="btn bad sm" data-act="tcancel" data-id="' + t.id + '">Cancel &amp; refund</button>') +
+          '<button class="btn bad sm" data-act="tdel" data-id="' + t.id + '"' + (t.n > 0 ? ' disabled title="Has players. Cancel it instead so fees are refunded."' : "") + ">Delete</button></div>";
+      } }
+    ], rows, { empty: "No tournaments yet. Create the first one." }) + "</div>");
+  };
+  function tourFields(t) {
+    t = t || {}; var locked = t.status === "finished" || t.status === "cancelled", hasPlayers = (t.n || 0) > 0;
+    var f = [
+      { k: "game_key", l: "Game", t: "select", opts: GAMES, v: t.game_key || "codm" },
+      { k: "name", l: "Name", t: "text", req: 1, v: t.name, ph: "e.g. Friday Night Cup" },
+      { k: "rules", l: "Rules", t: "textarea", v: t.rules },
+      { k: "player_limit", l: "Player limit", t: "number", req: 1, v: t.player_limit || 16, min: 2 },
+      { k: "entry_fee", l: "Entry fee (GHS, 0 = free)", t: "money", v: t.entry_fee != null ? t.entry_fee / 100 : 0, dis: hasPlayers, hint: hasPlayers ? "Locked: players already paid this price." : "" },
+      { k: "prize_pool", l: "Prize pool (GHS)", t: "money", v: t.prize_pool != null ? t.prize_pool / 100 : 0 },
+      { k: "join_closes_at", l: "Registration closes", t: "datetime", req: 1, v: toLocalInput(t.join_closes_at) },
+      { k: "game_code", l: "In-game tournament ID / code", t: "text", v: t.game_code, ph: "e.g. the room ID or code from the game", hint: "Players who join see this and copy it into the game. Not shown to the public." },
+      { k: "require_approval", l: "I approve players myself (they wait until I accept them)", t: "checkbox", v: t.id ? t.require_approval : true },
+      { k: "room_size", l: "Players per game room (leave empty for a normal tournament)", t: "number", v: t.room_size, min: 2, dis: hasPlayers, ph: "8 for eFootball", hint: hasPlayers ? "Locked: players already joined." : "Example: 32 players with 8 per room makes 4 rooms. Players are put in a random room." },
+      { k: "advance_per_room", l: "Players that move on from each room", t: "number", v: t.advance_per_room || 2, min: 1, dis: hasPlayers },
+      ...(t.id ? [] : [{ k: "room_lines", l: "Game room IDs and passwords (one line per room)", t: "textarea", ph: "84721, pass123\n84722, pass456\n84723, pass789\n84724, pass000", hint: "Only for tournaments with rooms. First line = Room A, second line = Room B, and so on. Each player gets their room's ID and password in their notifications. You can leave this empty and add them later under Rooms." }]),
+      { k: "prize_1", l: "1st place prize (GHS)", t: "money", v: t.prize_1 ? t.prize_1 / 100 : 0 },
+      { k: "prize_2", l: "2nd place prize (GHS)", t: "money", v: t.prize_2 ? t.prize_2 / 100 : 0 },
+      { k: "prize_3", l: "3rd place prize (GHS)", t: "money", v: t.prize_3 ? t.prize_3 / 100 : 0, hint: "Only used for tournaments with rooms. The three prizes must not add up to more than the prize pool." },
+      { k: "betting_enabled", l: "Allow betting on this tournament", t: "checkbox", v: !!t.betting_enabled },
+      { k: "cover", l: "Cover picture", t: "file", v: t.cover_url, hint: "JPG, PNG or WebP. A wide 16:9 picture looks best. It is resized for you." }
+    ];
+    if (t.cover_url) f.push({ k: "rmcover", l: "Remove the current cover", t: "checkbox" });
+    if (!locked) f.push({ k: "status", l: "Status", t: "select", opts: [["draft", "Draft (hidden from players)"], ["open", "Open for sign-up"], ["live", "Live"]], v: t.status || "open", hint: "To finish a tournament use Players & payout. To stop one use Cancel & refund." });
+    return f;
+  }
+  function tourSave(id) {
+    return async function (v) {
+      var row = { game_key: v.game_key, name: v.name, rules: v.rules || null, player_limit: v.player_limit, entry_fee: v.entry_fee || 0, prize_pool: v.prize_pool || 0, join_closes_at: v.join_closes_at, betting_enabled: v.betting_enabled,
+        require_approval: !!v.require_approval, room_size: v.room_size || null, advance_per_room: v.advance_per_room || 2, prize_1: v.prize_1 || 0, prize_2: v.prize_2 || 0, prize_3: v.prize_3 || 0 };
+      if ((row.prize_1 + row.prize_2 + row.prize_3) > row.prize_pool) throw new Error("1st + 2nd + 3rd prizes are more than the prize pool");
+      if (row.room_size && row.room_size > row.player_limit) throw new Error("Players per room cannot be more than the player limit");
+      var roomLines = [];
+      if (!id && row.room_size && (v.room_lines || "").trim()) {
+        roomLines = v.room_lines.split("\n").map(function (l) { return l.trim() }).filter(Boolean).map(function (l) { var m = /^([^,]+?)\s*(?:,|\s)\s*(.*)$/.exec(l); return m ? [m[1].trim(), (m[2] || "").trim()] : [l, ""] });
+        if (roomLines.length > Math.ceil(row.player_limit / row.room_size)) throw new Error("You typed " + roomLines.length + " room lines but this tournament only has " + Math.ceil(row.player_limit / row.room_size) + " rooms");
+      }
+      var isNew = !id;
+      if (v.status) row.status = v.status;
+      if (!(v.player_limit >= 2)) throw new Error("Player limit must be at least 2");
+      if (row.entry_fee < 0 || row.prize_pool < 0) throw new Error("Amounts cannot be negative");
+      var oldUrl = id ? (cache.tours[id].cover_url || null) : null, newUrl = oldUrl;
+      if (v.cover) newUrl = await uploadCover(v.cover); else if (v.rmcover) newUrl = null;
+      row.cover_url = newUrl;
+      try {
+        if (id) { if (!("entry_fee" in v) || document.getElementById("f_entry_fee").disabled) delete row.entry_fee; if (document.getElementById("f_room_size").disabled) { delete row.room_size; delete row.advance_per_room } await q(sb.from("tournaments").update(row).eq("id", id)) }
+        else { var nr = await q(sb.from("tournaments").insert(row).select("id")); id = nr && nr[0] && nr[0].id }
+        var gc = (v.game_code || "").trim();
+        if (id) { if (gc) await q(sb.from("tournament_codes").upsert({ tournament_id: id, code: gc, updated_at: new Date().toISOString() })); else await q(sb.from("tournament_codes").delete().eq("tournament_id", id)) }
+      } catch (e) { if (newUrl && newUrl !== oldUrl) dropCover(newUrl); throw e }   // do not leave a picture nobody uses
+      if (oldUrl && oldUrl !== newUrl) dropCover(oldUrl);
+      if (roomLines.length) {
+        var rms = await q(sb.from("tournament_rooms").select("id,room_no").eq("tournament_id", id).eq("stage", "group").order("room_no"));
+        for (var i = 0; i < roomLines.length && i < rms.length; i++) await rpc("admin_set_room", { p_room: rms[i].id, p_game_room_id: roomLines[i][0], p_password: roomLines[i][1] });
+      }
+      toast("Saved"); setTimeout(reload, 0);
+      if (isNew && row.room_size) setTimeout(function () { openRooms(id) }, 500);
+    };
+  }
+  acts.tnew = function () { form("New tournament", tourFields(), "Create", tourSave(null)) };
+  acts.tedit = async function (el) { var t = cache.tours[el.dataset.id]; try { var cd = await q(sb.from("tournament_codes").select("code").eq("tournament_id", t.id).maybeSingle()); t.game_code = cd ? cd.code : "" } catch (e) { } form("Edit tournament", tourFields(t), "Save", tourSave(t.id)) };
+  acts.tdel = async function (el) {
+    var t = cache.tours[el.dataset.id];
+    if (!await confirmDlg("Delete " + esc(t.name) + "?", "This removes it and its fixtures for good.", "Delete", true)) return;
+    try { await q(sb.from("tournaments").delete().eq("id", t.id)); dropCover(t.cover_url); toast("Deleted"); reload() } catch (e) { fail(e) }
+  };
+  acts.tcancel = function (el) {
+    var t = cache.tours[el.dataset.id];
+    form("Cancel " + t.name, [{ k: "why", l: "Reason (saved in the activity log)", t: "text", req: 1 }], "Cancel tournament & refund", async function (v) {
+      var n = await rpc("admin_cancel_tournament", { p_tournament: t.id, p_reason: v.why }); toast("Cancelled. " + n + " player" + (n === 1 ? "" : "s") + " refunded"); setTimeout(reload, 0); refreshPending();
+    }, { danger: true, intro: "Every player who paid an entry fee gets exactly what they paid back into their wallet. This cannot be undone." });
+  };
+  acts.tpay = async function (el) {
+    var t = cache.tours[el.dataset.id], done = t.status === "finished" || t.status === "cancelled";
+    var ents = await q(sb.from("tournament_entries").select("user_id, placement, profiles(username)").eq("tournament_id", t.id));
+    ents.sort(function (a, b) { return (a.placement || 999) - (b.placement || 999) });
+    if (!ents.length) { openDlg(t.name, '<p class="empty">Nobody has joined yet.</p><div class="fa"><button class="btn sec" data-close>Close</button></div>'); return }
+    if (done) {
+      openDlg(t.name + " · " + t.status, table([{ h: "Place", r: function (e) { return e.placement || "–" } }, { h: "Player", r: function (e) { return esc(e.profiles && e.profiles.username) } }], ents) + '<div class="fa" style="margin-top:12px"><button class="btn sec" data-close>Close</button></div>'); return;
+    }
+    openDlg("Pay out: " + t.name, '<p class="mut" style="font-size:14px;margin-bottom:12px">Tick the winners, give each a place and a prize. Prizes are paid into their wallets straight away and the tournament is closed. Prize pool: <b>' + money(t.prize_pool) + '</b>. This can only be done once.</p>' +
+      '<form id="df" novalidate><div class="pay mut" style="font-size:12px"><span></span><span>Player</span><span>Place</span><span>Prize (GHS)</span></div>' +
+      ents.map(function (e, i) { return '<div class="pay"><input type="checkbox" data-w="' + i + '" aria-label="Winner"><b>' + esc(e.profiles && e.profiles.username) + '</b><input data-p="' + i + '" type="number" min="1" placeholder="1" aria-label="Place"><input data-m="' + i + '" inputmode="decimal" placeholder="0" aria-label="Prize in GHS"></div>' }).join("") +
+      '<p class="mut" id="psum" style="font-size:14px">Total: ' + money(0) + '</p><p class="err" id="ferr" hidden></p><div class="fa"><button type="button" class="btn sec" data-close>Cancel</button><button class="btn" type="submit">Pay out &amp; finish</button></div></form>');
+    var sum = function () { var tot = 0; ents.forEach(function (e, i) { if (document.querySelector('[data-w="' + i + '"]').checked) { var m = toMinor(document.querySelector('[data-m="' + i + '"]').value || "0"); if (!isNaN(m)) tot += m } }); $("psum").innerHTML = "Total: <b>" + money(tot) + "</b> of " + money(t.prize_pool); $("psum").className = tot > t.prize_pool ? "err" : "mut"; return tot };
+    $("df").oninput = sum;
+    $("df").onsubmit = async function (e) {
+      e.preventDefault(); var b = e.submitter || $("df").querySelector("button[type=submit]"), er = $("ferr"); er.hidden = true;
+      try {
+        var win = [];
+        ents.forEach(function (en, i) {
+          if (!document.querySelector('[data-w="' + i + '"]').checked) return;
+          var place = Number(document.querySelector('[data-p="' + i + '"]').value), prize = toMinor(document.querySelector('[data-m="' + i + '"]').value || "0");
+          if (!(place >= 1)) throw new Error("Give " + (en.profiles && en.profiles.username) + " a place (1, 2, 3…)");
+          if (isNaN(prize) || prize < 0) throw new Error("Prize for " + (en.profiles && en.profiles.username) + ": type an amount like 50 or 12.50");
+          win.push({ user: en.user_id, place: place, prize: prize });
+        });
+        if (!win.length) throw new Error("Tick at least one winner");
+        if (sum() > t.prize_pool) throw new Error("The prizes add up to more than the prize pool");
+        b.disabled = true;
+        await rpc("admin_tournament_payout", { p_tournament: t.id, p_winners: win });
+        toast("Paid out. Tournament finished"); closeDlg(); reload(); refreshPending();
+      } catch (x) { er.textContent = x.message; er.hidden = false; b.disabled = false }
+    };
+  };
+  // ---------- ROOMS (one tournament, several game rooms) ----------
+  async function openRooms(id) {
+    var t = (await q(sb.from("tournaments").select("*").eq("id", id).single()));
+    var rooms = await q(sb.from("tournament_rooms").select("*, tournament_room_players(user_id, advanced, notified_at, profiles(username))").eq("tournament_id", id).order("stage").order("room_no"));
+    var groups = rooms.filter(function (r) { return r.stage === "group" }), fin = rooms.filter(function (r) { return r.stage === "final" })[0];
+    var total = groups.reduce(function (a, r) { return a + r.tournament_room_players.length }, 0), over = t.status === "finished" || t.status === "cancelled";
+    var stageName = { groups: "Group stage", final: "Final", done: "Finished" }[t.stage] || t.stage;
+    function roomBox(r, isFinal) {
+      var ps = r.tournament_room_players.slice().sort(function (a, b) { return String(a.profiles && a.profiles.username).localeCompare(String(b.profiles && b.profiles.username)) });
+      var need = Math.min(t.advance_per_room, ps.length), canPick = !isFinal && t.stage === "groups" && !over && ps.length > 0;
+      return '<div class="rm"><h4>' + esc(r.label) + ' <span class="mut" style="font-weight:400">' + ps.length + (isFinal ? "" : " / " + t.room_size) + ' players</span></h4>' +
+        (over ? "" : '<div class="rg"><div><label>Game room ID</label><input id="rid_' + r.id + '" value="' + esc(r.game_room_id || "") + '" autocomplete="off"></div><div><label>Password</label><input id="rpw_' + r.id + '" value="' + esc(r.game_password || "") + '" autocomplete="off"></div></div>' +
+        '<button class="btn sec sm" data-act="rsave" data-id="' + r.id + '">Save &amp; tell the players</button>') +
+        (ps.length ? '<div class="pl">' + ps.map(function (p) { return '<label>' + (canPick ? '<input type="checkbox" data-q="' + r.id + '" value="' + p.user_id + '"' + (p.advanced ? " checked" : "") + ">" : (isFinal ? "" : (p.advanced ? "✓ " : ""))) + esc(p.profiles && p.profiles.username) + (isFinal && !r.game_room_id ? "" : ' <span class="mut" style="font-size:12px">' + (p.notified_at ? "✓ sent " + new Date(p.notified_at).toLocaleString([], { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" }) : (r.game_room_id ? "not sent" : "waiting for ID")) + "</span>") + "</label>" }).join("") + "</div>" : '<p class="mut" style="font-size:14px">Nobody here yet.</p>') +
+        (canPick ? '<button class="btn sm" data-act="rqual" data-id="' + r.id + '">Save the ' + need + ' who moved on</button>' : "") + "</div>";
+    }
+    var acts_ = "";
+    if (!over && t.status === "open") acts_ += '<button class="btn sec sm" data-act="rclose" data-id="' + t.id + '">Close sign-up now</button> ';
+    if (!over && t.stage === "groups") acts_ += '<button class="btn sm" data-act="rfinal" data-id="' + t.id + '">Start the final</button>';
+    if (!over && t.stage === "final") acts_ += '<button class="btn sm" data-act="rwin" data-id="' + t.id + '">Pick 1st, 2nd &amp; 3rd</button>';
+    dlg.classList.add("wide");
+    openDlg(t.name + " · rooms", '<p class="mut" style="font-size:14px;margin-bottom:12px">' + esc(stageName) + " · " + total + " of " + t.player_limit + ' players joined · prizes ' + money(t.prize_1) + " / " + money(t.prize_2) + " / " + money(t.prize_3) + '</p>' +
+      (t.stage === "groups" && !over ? '<p class="mut" style="font-size:14px;margin-bottom:12px">1) Type each room\'s game ID and password (players get it in their notifications). 2) After a room has played, tick the players who moved on and save. 3) When every room is done, press Start the final.</p>' : "") +
+      '<div class="acts" style="margin-bottom:12px">' + acts_ + '</div>' +
+      (fin ? "<h3 style='font-size:16px;margin:4px 0 8px'>Final</h3>" + roomBox(fin, true) : "") +
+      "<h3 style='font-size:16px;margin:4px 0 8px'>Group rooms</h3>" + (groups.map(function (r) { return roomBox(r, false) }).join("") || '<p class="empty">No rooms yet.</p>') +
+      '<div class="fa"><button class="btn sec" data-close>Close</button></div>');
+    cache.rm = { t: t, groups: groups, fin: fin };
+  }
+  dlg.addEventListener("close", function () { dlg.classList.remove("wide") });
+  acts.trooms = function (el) { return openRooms(el.dataset.id) };
+  acts.rsave = async function (el) {
+    var rid = el.dataset.id, n = await rpc("admin_set_room", { p_room: rid, p_game_room_id: $("rid_" + rid).value, p_password: $("rpw_" + rid).value });
+    toast("Saved. " + n + " player" + (n === 1 ? "" : "s") + " told"); await openRooms(cache.rm.t.id);
+  };
+  acts.rqual = async function (el) {
+    var rid = el.dataset.id, ids = Array.prototype.map.call(document.querySelectorAll('[data-q="' + rid + '"]:checked'), function (c) { return c.value });
+    await rpc("admin_set_qualifiers", { p_room: rid, p_users: ids }); toast("Saved"); await openRooms(cache.rm.t.id);
+  };
+  acts.rclose = async function (el) {
+    var t = cache.rm.t; if (!await confirmDlg("Close sign-up now?", "Nobody else can join " + esc(t.name) + ". Rooms keep the players they have. You can then run the rooms and start the final. To cancel instead and give everyone their money back, use Cancel &amp; refund.", "Close sign-up")) return;
+    var n = await rpc("admin_close_signup", { p_tournament: t.id }); toast("Sign-up closed with " + n + " players"); reload(); await openRooms(t.id);
+  };
+  acts.rfinal = function () {
+    var t = cache.rm.t;
+    form("Start the final", [{ k: "gid", l: "Final room ID", t: "text", req: 1 }, { k: "pw", l: "Final room password", t: "text" }], "Start the final & notify", async function (v) {
+      var n = await rpc("admin_start_final", { p_tournament: t.id, p_game_room_id: v.gid, p_password: v.pw }); toast(n + " finalists told"); reload(); setTimeout(function () { openRooms(t.id) }, 0);
+    }, { intro: "The players you ticked in every room get this room ID and password in their notifications. The others are told they did not qualify." });
+  };
+  acts.rwin = function () {
+    var t = cache.rm.t, ps = cache.rm.fin.tournament_room_players.map(function (p) { return [p.user_id, (p.profiles && p.profiles.username) || "?"] });
+    var opts = [["", "Choose a player"]].concat(ps);
+    form("Pick the winners", [{ k: "a", l: "1st place (wins " + money(t.prize_1) + ")", t: "select", opts: opts, v: "" }, { k: "b", l: "2nd place (wins " + money(t.prize_2) + ")", t: "select", opts: opts, v: "" }, { k: "c", l: "3rd place (wins " + money(t.prize_3) + ")", t: "select", opts: opts, v: "" }], "Pay out & finish", async function (v) {
+      if (!v.a || !v.b) throw new Error("Choose 1st and 2nd place");
+      await rpc("admin_finish_final", { p_tournament: t.id, p_first: v.a, p_second: v.b, p_third: v.c || null }); toast("Paid out. Tournament finished"); reload(); refreshPending();
+    }, { intro: "Prizes go into the winners' wallets straight away and the tournament is closed. This cannot be undone." });
+  };
+  acts.tfix = async function (el) {
+    var t = cache.tours[el.dataset.id];
+    var r = await Promise.all([q(sb.from("fixtures").select("*").eq("tournament_id", t.id).order("scheduled_at")), q(sb.from("tournament_entries").select("user_id, profiles(username)").eq("tournament_id", t.id))]);
+    var names = {}; r[1].forEach(function (e) { names[e.user_id] = e.profiles && e.profiles.username });
+    cache.fix = { t: t, names: names, rows: {}, ents: r[1] }; r[0].forEach(function (f) { cache.fix.rows[f.id] = f });
+    openDlg("Fixtures: " + t.name, (r[0].length ? r[0].map(function (f) {
+      return '<div class="msg"><div><b>' + esc(names[f.player_a] || "?") + (f.score_a != null ? " " + f.score_a + " – " + f.score_b + " " : " vs ") + esc(names[f.player_b] || "?") + "</b><br><small class=\"mut\">" + esc(fdate(f.scheduled_at)) + " · " + f.status + '</small></div><div class="acts"><button class="btn sec sm" data-act="fres" data-id="' + f.id + '">Result</button><button class="btn bad sm" data-act="fdel" data-id="' + f.id + '">×</button></div></div>';
+    }).join("") : '<p class="empty">No fixtures yet.</p>') + '<div class="fa" style="margin-top:14px"><button class="btn sec" data-close>Close</button><button class="btn" data-act="fnew"' + (r[1].length < 2 ? ' disabled title="Needs at least 2 players"' : "") + ">Add fixture</button></div>");
+  };
+  acts.fnew = function () {
+    var c = cache.fix, opts = c.ents.map(function (e) { return [e.user_id, e.profiles && e.profiles.username] });
+    form("Add fixture", [{ k: "a", l: "Player A", t: "select", opts: opts, v: opts[0][0] }, { k: "b", l: "Player B", t: "select", opts: opts, v: opts[1][0] }, { k: "at", l: "When", t: "datetime", req: 1 }], "Add", async function (v) {
+      if (v.a === v.b) throw new Error("Pick two different players");
+      await q(sb.from("fixtures").insert({ tournament_id: c.t.id, player_a: v.a, player_b: v.b, scheduled_at: v.at })); toast("Fixture added");
+      setTimeout(function () { acts.tfix({ dataset: { id: c.t.id } }) }, 0);
+    });
+  };
+  acts.fres = function (el) {
+    var c = cache.fix, f = c.rows[el.dataset.id];
+    form(c.names[f.player_a] + " vs " + c.names[f.player_b], [
+      { k: "sa", l: "Score: " + c.names[f.player_a], t: "number", min: 0, v: f.score_a }, { k: "sb", l: "Score: " + c.names[f.player_b], t: "number", min: 0, v: f.score_b },
+      { k: "st", l: "Status", t: "select", opts: [["scheduled", "Scheduled"], ["live", "Live"], ["done", "Done"], ["disputed", "Disputed"]], v: f.status }
+    ], "Save", async function (v) {
+      if (v.st === "done" && (v.sa == null || v.sb == null)) throw new Error("Enter both scores to mark it done");
+      await q(sb.from("fixtures").update({ score_a: v.sa, score_b: v.sb, status: v.st }).eq("id", f.id)); toast("Saved");
+      setTimeout(function () { acts.tfix({ dataset: { id: c.t.id } }) }, 0);
+    });
+  };
+  acts.fdel = async function (el) {
+    var c = cache.fix, f = c.rows[el.dataset.id];
+    try { await q(sb.from("fixtures").delete().eq("id", f.id)); toast("Removed"); acts.tfix({ dataset: { id: c.t.id } }) } catch (e) { fail(e) }
+  };
+
+  // ---------- EVENTS ----------
+  views.events = async function () {
+    var rows = await q(sb.from("events").select("*, event_entries(count)").order("starts_at", { ascending: false }));
+    cache.evts = {}; rows.forEach(function (e) { e.n = e.event_entries && e.event_entries[0] ? e.event_entries[0].count : 0; cache.evts[e.id] = e });
+    main('<div class="box"><div class="hd"><h2>Events</h2><button class="btn" data-act="enew">New event</button></div>' + table([
+      { h: "Event", r: function (e) { return '<div style="display:flex;gap:10px;align-items:center">' + (e.cover_url ? '<img src="' + esc(e.cover_url) + '" alt="" style="width:64px;height:36px;object-fit:cover;border-radius:6px;flex:none">' : "") + "<div><b>" + esc(e.name) + '</b><br><small class="mut">' + esc(e.category) + "</small></div></div>" } },
+      { h: "Starts", r: function (e) { return esc(fdate(e.starts_at)) } },
+      { h: "Prize", r: function (e) { return esc(e.prize || "–") } },
+      { h: "Joined", n: 1, r: function (e) { return e.n + (e.join_limit ? " / " + e.join_limit : "") } },
+      { h: "", r: function (e) { return '<div class="acts"><button class="btn sec sm" data-act="eedit" data-id="' + e.id + '">Edit</button><button class="btn bad sm" data-act="edel" data-id="' + e.id + '">Delete</button></div>' } }
+    ], rows, { empty: "No events yet." }) + "</div>");
+  };
+  function evtFields(e) {
+    e = e || {};
+    return [{ k: "name", l: "Name", t: "text", req: 1, v: e.name }, { k: "category", l: "Category", t: "text", req: 1, v: e.category || "Community", ph: "Community, Giveaway, Meetup…" },
+      { k: "join_limit", l: "Seat limit (leave empty for no limit)", t: "number", min: 1, v: e.join_limit }, { k: "prize", l: "Prize (text)", t: "text", v: e.prize, ph: "e.g. GHS 200 + a trophy" },
+      { k: "starts_at", l: "Starts", t: "datetime", req: 1, v: toLocalInput(e.starts_at) },
+      { k: "cover", l: "Cover picture", t: "file", v: e.cover_url, hint: "JPG, PNG or WebP. A wide 16:9 picture looks best. It is resized for you." }]
+      .concat(e.cover_url ? [{ k: "rmcover", l: "Remove the current cover", t: "checkbox" }] : []);
+  }
+  function evtSave(id) {
+    return async function (v) {
+      var row = { name: v.name, category: v.category, join_limit: v.join_limit, prize: v.prize || null, starts_at: v.starts_at };
+      var oldUrl = id ? (cache.evts[id].cover_url || null) : null, newUrl = oldUrl;
+      if (v.cover) newUrl = await uploadCover(v.cover); else if (v.rmcover) newUrl = null;
+      row.cover_url = newUrl;
+      try { if (id) await q(sb.from("events").update(row).eq("id", id)); else await q(sb.from("events").insert(row)) }
+      catch (x) { if (newUrl && newUrl !== oldUrl) dropCover(newUrl); throw x }
+      if (oldUrl && oldUrl !== newUrl) dropCover(oldUrl);
+      toast("Saved"); setTimeout(reload, 0);
+    };
+  }
+  acts.enew = function () { form("New event", evtFields(), "Create", evtSave(null)) };
+  acts.eedit = function (el) { var e = cache.evts[el.dataset.id]; form("Edit event", evtFields(e), "Save", evtSave(e.id)) };
+  acts.edel = async function (el) {
+    var e = cache.evts[el.dataset.id];
+    if (!await confirmDlg("Delete " + esc(e.name) + "?", "Everyone who joined is removed from it.", "Delete", true)) return;
+    try { await q(sb.from("events").delete().eq("id", e.id)); dropCover(e.cover_url); toast("Deleted"); reload() } catch (x) { fail(x) }
+  };
+
+  // ---------- NEWS & NOTIFICATIONS ----------
+  views.news = async function () {
+    var r = await Promise.all([q(sb.from("posts").select("*").order("created_at", { ascending: false }).limit(50)), q(sb.from("notifications").select("*").order("created_at", { ascending: false }).limit(30))]);
+    cache.posts = {}; r[0].forEach(function (p) { cache.posts[p.id] = p }); cache.notes = {}; r[1].forEach(function (n) { cache.notes[n.id] = n });
+    main('<div class="box"><div class="hd"><h2>News &amp; announcements</h2><button class="btn" data-act="pnew">New post</button></div>' + table([
+      { h: "Post", r: function (p) { return "<b>" + esc(p.title) + "</b><br>" + badge(p.kind, p.kind === "Announcement" ? "warn" : "mut") } },
+      { h: "Posted", r: function (p) { return esc(fdate(p.created_at)) } },
+      { h: "", r: function (p) { return '<div class="acts"><button class="btn sec sm" data-act="pedit" data-id="' + p.id + '">Edit</button><button class="btn bad sm" data-act="pdel" data-id="' + p.id + '">Delete</button></div>' } }
+    ], r[0], { empty: "No posts yet." }) + "</div>" +
+      '<div class="box"><div class="hd"><h2>Notifications</h2><button class="btn" data-act="nnew">Send notification</button></div>' + table([
+        { h: "Message", r: function (n) { return "<b>" + esc(n.title) + '</b><br><small class="mut">' + esc(n.body) + "</small>" } },
+        { h: "To", r: function (n) { return n.user_id ? "One player" : "Everyone" } },
+        { h: "Type", r: function (n) { return esc(n.type) } }, { h: "Sent", r: function (n) { return esc(fdate(n.created_at)) } },
+        { h: "", r: function (n) { return '<button class="btn bad sm" data-act="ndel" data-id="' + n.id + '">Delete</button>' } }
+      ], r[1], { empty: "Nothing sent yet." }) + "</div>");
+  };
+  function postFields(p) { p = p || {}; return [{ k: "kind", l: "Type", t: "select", opts: [["News", "News"], ["Announcement", "Announcement"]], v: p.kind || "News" }, { k: "title", l: "Title", t: "text", req: 1, v: p.title }, { k: "body", l: "Text", t: "textarea", req: 1, v: p.body }] }
+  function postSave(id) { return async function (v) { var row = { kind: v.kind, title: v.title, body: v.body }; if (id) await q(sb.from("posts").update(row).eq("id", id)); else await q(sb.from("posts").insert(row)); toast("Saved"); setTimeout(reload, 0) } }
+  acts.pnew = function () { form("New post", postFields(), "Publish", postSave(null)) };
+  acts.pedit = function (el) { var p = cache.posts[el.dataset.id]; form("Edit post", postFields(p), "Save", postSave(p.id)) };
+  acts.pdel = async function (el) { var p = cache.posts[el.dataset.id]; if (!await confirmDlg("Delete this post?", esc(p.title), "Delete", true)) return; try { await q(sb.from("posts").delete().eq("id", p.id)); toast("Deleted"); reload() } catch (e) { fail(e) } };
+  acts.nnew = function () {
+    form("Send notification", [
+      { k: "to", l: "Send to", t: "select", opts: [["all", "Everyone"], ["one", "One player"]], v: "all" },
+      { k: "who", l: "Username (only if sending to one player)", t: "text" },
+      { k: "type", l: "Type", t: "select", opts: [["news", "News"], ["events", "Events"], ["matches", "Matches"], ["wallet", "Wallet"], ["community", "Community"], ["account", "Account"]], v: "news" },
+      { k: "title", l: "Title", t: "text", req: 1 }, { k: "body", l: "Message", t: "textarea", req: 1 }
+    ], "Send", async function (v) {
+      var uid = null;
+      if (v.to === "one") {
+        if (!v.who) throw new Error("Type the player's username");
+        var u = await q(sb.from("profiles").select("id").eq("username", v.who).maybeSingle());
+        if (!u) throw new Error("No player called " + v.who); uid = u.id;
+      }
+      await q(sb.from("notifications").insert({ user_id: uid, type: v.type, title: v.title, body: v.body })); toast(uid ? "Sent" : "Sent to everyone"); setTimeout(reload, 0);
+    });
+  };
+  acts.ndel = async function (el) { var n = cache.notes[el.dataset.id]; if (!await confirmDlg("Delete this notification?", esc(n.title), "Delete", true)) return; try { await q(sb.from("notifications").delete().eq("id", n.id)); toast("Deleted"); reload() } catch (e) { fail(e) } };
+
+  // ---------- CHAT ----------
+  var C = { room: null };
+  views.chat = async function () {
+    var rooms = await q(sb.from("rooms").select("*").order("created_at"));
+    cache.rooms = {}; rooms.forEach(function (r) { cache.rooms[r.id] = r });
+    if (!C.room || !cache.rooms[C.room]) C.room = rooms[0] && rooms[0].id;
+    main('<div class="box"><div class="hd"><h2>Rooms</h2><button class="btn" data-act="rnew">New room</button></div>' + table([
+      { h: "Room", r: function (r) { return esc(r.emoji) + " <b>" + esc(r.name) + '</b><br><small class="mut">' + esc(r.description || "") + "</small>" } },
+      { h: "Who can write", r: function (r) { return r.admin_only ? badge("Admins only", "warn") : badge("Everyone", "ok") } },
+      { h: "", r: function (r) { return '<div class="acts"><button class="btn sec sm" data-act="rview" data-id="' + r.id + '">Messages</button><button class="btn sec sm" data-act="redit" data-id="' + r.id + '">Edit</button><button class="btn bad sm" data-act="rdel" data-id="' + r.id + '">Delete</button></div>' } }
+    ], rooms, { empty: "No rooms yet." }) + '</div><div class="box" id="msgs"></div>');
+    if (C.room) await showMsgs(); else $("msgs").innerHTML = '<p class="empty">Create a room to start.</p>';
+  };
+  async function showMsgs() {
+    var r = cache.rooms[C.room], rows = await q(sb.from("messages").select("id, body, created_at, profiles(username)").eq("room_id", C.room).order("created_at", { ascending: false }).limit(50));
+    $("msgs").innerHTML = '<div class="hd"><h2>' + esc(r.emoji) + " " + esc(r.name) + '</h2></div><form id="mpost" class="q" novalidate><input id="mt" placeholder="Post a message as admin…" maxlength="1000"><button class="btn" type="submit">Post</button></form>' +
+      (rows.length ? rows.map(function (m) { return '<div class="msg"><div><b>' + esc(m.profiles && m.profiles.username) + '</b> <small class="mut">' + esc(fdate(m.created_at)) + "</small><p>" + esc(m.body) + '</p></div><button class="btn bad sm" data-act="mdel" data-id="' + m.id + '">Delete</button></div>' }).join("") : '<p class="empty">No messages yet.</p>');
+    $("mpost").onsubmit = async function (e) { e.preventDefault(); var v = $("mt").value.trim(); if (!v) return; try { await q(sb.from("messages").insert({ room_id: C.room, body: v })); showMsgs() } catch (x) { fail(x) } };
+  }
+  acts.rview = function (el) { C.room = el.dataset.id; showMsgs().catch(fail) };
+  acts.mdel = async function (el) { try { await q(sb.from("messages").delete().eq("id", el.dataset.id)); toast("Message deleted"); showMsgs() } catch (e) { fail(e) } };
+  function roomFields(r) { r = r || {}; return [{ k: "emoji", l: "Emoji", t: "text", v: r.emoji || "💬" }, { k: "name", l: "Name", t: "text", req: 1, v: r.name }, { k: "description", l: "Description", t: "text", v: r.description }, { k: "admin_only", l: "Only admins can write here (announcements)", t: "checkbox", v: !!r.admin_only }] }
+  function roomSave(id) { return async function (v) { var row = { emoji: v.emoji || "💬", name: v.name, description: v.description || null, admin_only: v.admin_only }; if (id) await q(sb.from("rooms").update(row).eq("id", id)); else await q(sb.from("rooms").insert(row)); toast("Saved"); setTimeout(reload, 0) } }
+  acts.rnew = function () { form("New room", roomFields(), "Create", roomSave(null)) };
+  acts.redit = function (el) { var r = cache.rooms[el.dataset.id]; form("Edit room", roomFields(r), "Save", roomSave(r.id)) };
+  acts.rdel = async function (el) { var r = cache.rooms[el.dataset.id]; if (!await confirmDlg("Delete " + esc(r.name) + "?", "All messages in it are deleted too.", "Delete", true)) return; try { await q(sb.from("rooms").delete().eq("id", r.id)); toast("Deleted"); reload() } catch (e) { fail(e) } };
+
+  // ---------- INVITES ----------
+  views.invites = async function () {
+    var rows = await q(sb.from("invites").select("*").order("created_at", { ascending: false }).limit(200)), ids = [];
+    rows.forEach(function (i) { if (i.owner_id) ids.push(i.owner_id); if (i.used_by) ids.push(i.used_by) });
+    var names = {}; if (ids.length) (await q(sb.from("profiles").select("id,username").in("id", ids))).forEach(function (p) { names[p.id] = p.username });
+    cache.inv = {}; rows.forEach(function (i) { cache.inv[i.code] = i });
+    main('<div class="box"><div class="hd"><h2>Invite codes</h2><button class="btn" data-act="inew">Create codes</button></div>' + table([
+      { h: "Code", r: function (i) { return '<b style="letter-spacing:.08em;user-select:all">' + esc(i.code) + "</b>" } },
+      { h: "Status", r: function (i) { var exp = i.status === "unused" && new Date(i.expires_at) < new Date(); return exp ? badge("expired", "warn") : stBadge(i.status) } },
+      { h: "Belongs to", r: function (i) { return esc(names[i.owner_id] || "–") } }, { h: "Used by", r: function (i) { return esc(names[i.used_by] || "–") } },
+      { h: "Expires", r: function (i) { return esc(fday(i.expires_at)) } }, { h: "Note", r: function (i) { return esc(i.note || "") } },
+      { h: "", r: function (i) { return i.status === "unused" ? '<button class="btn bad sm" data-act="irev" data-id="' + esc(i.code) + '">Revoke</button>' : "" } }
+    ], rows, { empty: "No codes yet." }) + "</div>");
+  };
+  function makeCode() { var A = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789", b = new Uint32Array(8); crypto.getRandomValues(b); return Array.prototype.map.call(b, function (x) { return A[x % A.length] }).join("") }
+  acts.inew = function () {
+    form("Create invite codes", [{ k: "n", l: "How many", t: "number", min: 1, req: 1, v: 1 }, { k: "days", l: "Valid for (days)", t: "number", min: 1, req: 1, v: 30 }, { k: "owner", l: "Give to player (username, optional)", t: "text" }, { k: "note", l: "Note", t: "text" }], "Create", async function (v) {
+      if (!(v.n >= 1 && v.n <= 50)) throw new Error("Create between 1 and 50 codes at a time");
+      var owner = null; if (v.owner) { var u = await q(sb.from("profiles").select("id").eq("username", v.owner).maybeSingle()); if (!u) throw new Error("No player called " + v.owner); owner = u.id }
+      var exp = new Date(Date.now() + v.days * 864e5).toISOString(), rows = [];
+      for (var i = 0; i < v.n; i++) rows.push({ code: makeCode(), owner_id: owner, note: v.note || null, expires_at: exp });
+      await q(sb.from("invites").insert(rows)); toast(v.n + " code" + (v.n > 1 ? "s" : "") + " created"); setTimeout(reload, 0);
+    });
+  };
+  acts.irev = async function (el) { if (!await confirmDlg("Revoke " + esc(el.dataset.id) + "?", "Nobody will be able to use this code.", "Revoke", true)) return; try { await q(sb.from("invites").update({ status: "revoked" }).eq("code", el.dataset.id)); toast("Revoked"); reload() } catch (e) { fail(e) } };
+
+  // ---------- SETTINGS ----------
+  views.settings = async function () {
+    var admins = await q(sb.from("profiles").select("id,username,created_at").eq("role", "admin").order("created_at"));
+    main('<div class="grid two"><div class="box"><h2>Appearance</h2><label class="chk"><input type="checkbox" id="dk"' + (document.documentElement.getAttribute("data-theme") === "dark" ? " checked" : "") + '> Dark mode for this admin page</label></div>' +
+      '<div class="box"><h2>Your account</h2><dl class="kv"><dt>Signed in as</dt><dd>' + esc(me.username) + '</dd></dl><button class="btn bad" id="so2">Sign out</button></div></div>' +
+      '<div class="box" style="margin-top:14px"><h2>Admin team</h2>' + table([{ h: "Admin", r: function (a) { return "<b>" + esc(a.username) + "</b>" + (a.id === me.id ? " (you)" : "") } }, { h: "Since", r: function (a) { return esc(fday(a.created_at)) } }], admins) +
+      '<p class="mut" style="margin-top:10px;font-size:14px">Add or remove admins from a player\'s Manage window in Players.</p></div>' +
+      '<div class="box"><h2>Good to know</h2><p class="mut" style="font-size:14px;line-height:1.6">Everything you do here is recorded in the Activity log and cannot be edited or deleted. Withdrawal controls live in Wallet. Never put your Supabase <b>secret / service_role</b> key in any file of the site.</p></div>');
+    $("dk").onchange = function () { var d = this.checked; document.documentElement.setAttribute("data-theme", d ? "dark" : "light"); try { localStorage.setItem("cx_admin_theme", d ? "dark" : "light") } catch (e) { } };
+    $("so2").onclick = signOut;
+  };
+
+  // ---------- events, boot ----------
+  async function signOut() { try { await sb.auth.signOut() } catch (e) { } location.href = "login.html" }
+  document.addEventListener("click", function (e) {
+    var t = e.target.closest("[data-close],[data-act],[data-v],[data-pg]"); if (!t) return;
+    if (t.hasAttribute("data-close")) { closeDlg(); return }
+    if (t.dataset.pg) { if (pageFn) Promise.resolve(pageFn(Number(t.dataset.pg))).catch(fail); return }
+    if (t.dataset.v) { if (t.dataset.v === cur) $("side").classList.remove("open"); else go(t.dataset.v); return }
+    var fn = acts[t.dataset.act]; if (fn) { Promise.resolve(fn(t)).catch(fail) }
+  });
+  $("menu").onclick = function () { $("side").classList.toggle("open") };
+  $("out").onclick = signOut;
+
+  function gate(title, text, extra) { $("app").hidden = true; $("gate").hidden = false; $("gate").innerHTML = '<div class="box"><h2>' + esc(title) + "</h2><p>" + esc(text) + "</p>" + (extra || "") + "</div>" }
+  (async function boot() {
+    if (!sb) { gate("Setup problem", "js/supabase.js did not load. It must sit in a js folder next to this page."); return }
+    try {
+      var s = (await sb.auth.getSession()).data.session;
+      if (!s) { location.replace("login.html?next=adim.html"); return }
+      var p = await q(sb.from("profiles").select("id,username,role,status").eq("id", s.user.id).maybeSingle());
+      if (!p || p.role !== "admin" || p.status !== "active") { gate("Admins only", "This account does not have admin access.", '<div class="acts" style="justify-content:center"><a class="btn sec" href="index.html">Back to the site</a><button class="btn bad" id="gso">Sign out</button></div>'); $("gso").onclick = signOut; return }
+      me = p; $("who").textContent = p.username; $("av").textContent = p.username.charAt(0).toUpperCase();
+      $("gate").hidden = true; $("app").hidden = false;
+      drawNav(0); await go((location.hash || "").replace("#", "") || "dash"); refreshPending();
+    } catch (e) { console.error(e); gate("Could not start", e.message || "Check your connection and reload.") }
+  })();
+})();
+</script>
+</body>
+</html>

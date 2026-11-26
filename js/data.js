@@ -33,6 +33,7 @@
   D.codeBox = function (x) {
     if (typeof x === "string") x = { code: x };
     if (!x) return "";
+    if (x.joined && x.pending) return '<p class="cxnote"><b>Waiting for approval.</b> You will get a notification when the Countrex team accepts you. If you are declined, your entry fee goes back to your wallet.</p>';
     if (x.rooms && x.joined) {
       var r = x.room, h = "";
       if (!r) return "";
@@ -58,21 +59,25 @@
   // asks for the newest columns first; if 009_rooms.sql has not been run yet, asks again without them so the page still works
   async function tq(c, cols) {
     var r = await c.from("tournaments").select(cols).neq("status", "draft").neq("status", "cancelled").order("join_closes_at");
-    if (r.error && /room_size|stage|prize_1/.test(r.error.message || "")) r = await c.from("tournaments").select("id,game_key,name,rules,player_limit,entry_fee,prize_pool,betting_enabled,join_closes_at,status,cover_url").neq("status", "draft").neq("status", "cancelled").order("join_closes_at");
+    if (r.error && /room_size|stage|prize_1|require_approval/.test(r.error.message || "")) r = await c.from("tournaments").select("id,game_key,name,rules,player_limit,entry_fee,prize_pool,betting_enabled,join_closes_at,status,cover_url").neq("status", "draft").neq("status", "cancelled").order("join_closes_at");
     return r;
   }
   D.refresh = async function () {
     var c = sb(); if (!c) return D.cache;
     try {
       var r = await Promise.all([
-        tq(c, "id,game_key,name,rules,player_limit,entry_fee,prize_pool,betting_enabled,join_closes_at,status,cover_url,room_size,stage,prize_1,prize_2,prize_3"),
+        tq(c, "id,game_key,name,rules,player_limit,entry_fee,prize_pool,betting_enabled,join_closes_at,status,cover_url,room_size,stage,prize_1,prize_2,prize_3,require_approval"),
         c.from("events").select("*").order("starts_at"),
         c.rpc("public_counts"), D.session()
       ]);
       if (r[0].error) throw r[0].error;
       var counts = {}; ((r[2] && r[2].data) || []).forEach(function (x) { counts[x.kind + ":" + x.id] = Number(x.n) || 0 });
       var s = r[3], mine = {};
-      if (s) { var m = await c.from("tournament_entries").select("tournament_id").eq("user_id", s.user.id); ((m && m.data) || []).forEach(function (x) { mine[x.tournament_id] = true }) }
+      if (s) {
+        var m = await c.from("tournament_entries").select("tournament_id,status").eq("user_id", s.user.id);
+        if (m.error) m = await c.from("tournament_entries").select("tournament_id").eq("user_id", s.user.id);   // 010 not run yet
+        ((m && m.data) || []).forEach(function (x) { mine[x.tournament_id] = x.status || "accepted" });
+      }
       var codes = {};
       if (s && Object.keys(mine).length) { try { var cr = await c.from("tournament_codes").select("tournament_id,code"); ((cr && cr.data) || []).forEach(function (x) { codes[x.tournament_id] = x.code }) } catch (e) { } }
       var rooms = {};
@@ -96,7 +101,7 @@
         return { id: t.id, n: t.name, g: GN[t.game_key] || t.game_key, p: counts["tournament:" + t.id] || 0, lim: t.player_limit,
           end: t.status === "open" ? new Date(t.join_closes_at).getTime() : 0,          // registration is only open while the status is "open"
           fee: t.entry_fee > 0 ? ghs(t.entry_fee) : "Free", prize: t.prize_pool > 0 ? ghs(t.prize_pool) : "", feeMinor: t.entry_fee, pr: pr,
-          rules: t.rules || "", bet: !!t.betting_enabled, cover: t.cover_url || "", joined: !!mine[t.id], code: mine[t.id] ? (codes[t.id] || "") : "", status: t.status, rooms: !!t.room_size, stage: t.stage || "", room: mine[t.id] ? (rooms[t.id] || null) : null };
+          rules: t.rules || "", bet: !!t.betting_enabled, cover: t.cover_url || "", joined: !!mine[t.id], pending: mine[t.id] === "pending", approval: !!t.require_approval, code: mine[t.id] === "accepted" ? (codes[t.id] || "") : "", status: t.status, rooms: !!t.room_size, stage: t.stage || "", room: mine[t.id] === "accepted" ? (rooms[t.id] || null) : null };
       });
       D.cache.events = (r[1].data || []).map(function (e) {
         return { id: e.id, n: e.name, t: e.category, p: counts["event:" + e.id] || 0, lim: e.join_limit || 0, end: new Date(e.starts_at).getTime(), prize: e.prize || "", cover: e.cover_url || "", joined: !!mineE[e.id] };
@@ -129,8 +134,8 @@
     var d = document.getElementById("cxjoin"); if (d) d.remove();
     d = document.createElement("dialog"); d.id = "cxjoin";
     d.innerHTML = "<h3>Join " + esc(t.n) + "?</h3><p>" + (need > 0 ? "<span class=\"cxw\">" + esc(ghs(need)) + "</span> will be taken from your wallet." : "This tournament is free to enter.") + "</p>" +
-      (bal != null && need > 0 ? "<p>Your wallet: <span class=\"cxw\">" + esc(ghs(bal)) + "</span></p>" : "") + (t.rooms ? "<p>You will be put in a random game room. The room ID and password will be sent to your notifications.</p>" : "") + (short ? "<p class=\"cxbad\">You do not have enough money. Add money to your wallet first.</p>" : "") +
-      "<div class=\"cxa\"><button type=\"button\" id=\"cxno\">Cancel</button><button type=\"button\" class=\"cxgo\" id=\"cxyes\"" + (short ? " disabled" : "") + ">Join" + (need > 0 ? " and pay" : "") + "</button></div>";
+      (bal != null && need > 0 ? "<p>Your wallet: <span class=\"cxw\">" + esc(ghs(bal)) + "</span></p>" : "") + (t.approval ? "<p>The Countrex team checks every request. " + (need > 0 ? "Your entry fee is held now and returned if you are declined." : "You will be told when you are accepted.") + "</p>" : "") + (t.rooms ? "<p>" + (t.approval ? "After you are accepted, you" : "You") + " will be put in a random game room. The room ID and password will be sent to your notifications.</p>" : "") + (short ? "<p class=\"cxbad\">You do not have enough money. Add money to your wallet first.</p>" : "") +
+      "<div class=\"cxa\"><button type=\"button\" id=\"cxno\">Cancel</button><button type=\"button\" class=\"cxgo\" id=\"cxyes\"" + (short ? " disabled" : "") + ">Join" + (t.approval ? " (request)" : "") + (need > 0 ? " and pay" : "") + "</button></div>";
     document.body.appendChild(d); d.showModal();
     d.querySelector("#cxno").onclick = function () { d.close() };
     d.addEventListener("close", function () { d.remove() });
@@ -142,7 +147,7 @@
         if (/login required|jwt/i.test(r.error.message || "")) { location.href = "login.html?next=" + encodeURIComponent(location.pathname.split("/").pop() || "index.html"); return }
         say(why(r.error)); await D.refresh(); if (o.redraw) o.redraw(); return;
       }
-      say(t.rooms ? "You joined " + t.n + "! Check your notifications for your room." : "You joined " + t.n + "!"); await D.refresh(); if (o.redraw) o.redraw();
+      say(t.approval ? "Request sent. You will be told when you are accepted." : t.rooms ? "You joined " + t.n + "! Check your notifications for your room." : "You joined " + t.n + "!"); await D.refresh(); if (o.redraw) o.redraw();
     };
   };
 

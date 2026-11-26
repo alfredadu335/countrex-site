@@ -33,6 +33,7 @@ button{font-family:inherit;cursor:pointer;color:inherit}
 .ic,.nav svg{width:20px;height:20px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;flex:none}
 .nav:hover{color:var(--text);background:var(--field)}
 .nav[aria-current=page]{background:var(--accent);color:#fff}
+.rqs{display:grid;gap:2px}.rq{display:flex;gap:10px;align-items:center;padding:9px 6px;border-bottom:1px solid var(--line);font-size:15px}.rq input{width:auto}
 .nav .dot{margin-left:auto;min-width:20px;height:20px;border-radius:99px;background:var(--bad);color:#fff;font-size:12px;font-weight:700;display:grid;place-items:center;padding:0 6px}
 .top{position:sticky;top:0;z-index:10;display:flex;align-items:center;gap:12px;padding:12px 16px;background:var(--deep);border-bottom:1px solid var(--line)}
 .top h1{font-size:20px;font-weight:700;letter-spacing:-.01em;margin-right:auto}
@@ -151,12 +152,13 @@ dialog h2{margin-bottom:14px;font-size:19px}
   function toast(m, bad) { var t = $("toast"); t.textContent = m; t.className = "toast" + (bad ? " bad" : ""); t.hidden = false; clearTimeout(toastT); toastT = setTimeout(function () { t.hidden = true }, bad ? 5000 : 2600) }
   async function q(p) { var r = await p; if (r.error) { var e = new Error(r.error.message || "Request failed"); e.code = r.error.code; throw e } return r.data }
   var rpc = function (n, a) { return q(sb.rpc(n, a || {})) };
-  function fail(e) { console.error(e); var m = e && e.message ? e.message : "Something went wrong"; if (/room_size|advance_per_room|prize_1|prize_2|prize_3|tournament_rooms|admin_set_room|admin_start_final|admin_finish_final|admin_set_qualifiers|admin_close_signup/.test(m) && /column|function|relation|schema cache/i.test(m)) m = "Run 009_rooms.sql in Supabase first, then try again."; if (/tournament_codes/.test(m)) m = "Run 008_tournament_codes.sql in Supabase first, then try again."; if (/cover_url/.test(m)) m = "Run 006_event_covers.sql in Supabase first, then try again."; toast(m, true) }
+  function fail(e) { console.error(e); var m = e && e.message ? e.message : "Something went wrong"; if (/require_approval|room_size|advance_per_room|prize_1|prize_2|prize_3|tournament_rooms|admin_accept_entries|admin_decline_entries|admin_set_room|admin_start_final|admin_finish_final|admin_set_qualifiers|admin_close_signup/.test(m) && /column|function|relation|schema cache/i.test(m)) m = /require_approval|admin_accept_entries|admin_decline_entries/.test(m) ? "Run 010_join_requests.sql in Supabase first, then try again." : "Run 009_rooms.sql in Supabase first, then try again."; if (/tournament_codes/.test(m)) m = "Run 008_tournament_codes.sql in Supabase first, then try again."; if (/cover_url/.test(m)) m = "Run 006_event_covers.sql in Supabase first, then try again."; toast(m, true) }
   function badge(text, cls) { return '<span class="bd ' + (cls || "mut") + '">' + esc(text) + "</span>" }
   var STATUS = { active: "ok", suspended: "warn", banned: "bad", completed: "ok", pending: "warn", failed: "bad", open: "ok", live: "warn", draft: "mut", finished: "mut", cancelled: "bad", unused: "ok", used: "mut", revoked: "bad" };
   var stBadge = function (s) { return badge(s, STATUS[s] || "mut") };
   var KIND = { deposit: "Deposit", entry_fee: "Entry fee", prize: "Prize", withdrawal: "Withdrawal", refund: "Refund", adjustment: "Adjustment" };
   var GAMES = [["codm", "Call of Duty: Mobile"], ["eafc", "EA SPORTS FC"], ["efootball", "eFootball"]];
+  function gname(k) { var g = GAMES.filter(function (x) { return x[0] === k })[0]; return g ? g[1] : k }
   var gameName = function (k) { for (var i = 0; i < GAMES.length; i++) if (GAMES[i][0] === k) return GAMES[i][1]; return k || "–" };
 
   function table(cols, rows, opts) {
@@ -226,7 +228,7 @@ dialog h2{margin-bottom:14px;font-size:19px}
   var NAV = [
     ["Overview", [["dash", "Dashboard", "M3 12 12 4l9 8v8a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1v-8Z"]]],
     ["People & money", [["players", "Players", "M16 11a4 4 0 1 0-8 0M4 21a8 8 0 0 1 16 0"], ["wallet", "Wallet", "M3 7h16a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7Zm0 0V6a2 2 0 0 1 2-2h12M16 14h2"]]],
-    ["Competition", [["tours", "Tournaments", "M8 21h8M12 17v4M7 4h10v5a5 5 0 0 1-10 0V4ZM7 6H4v2a3 3 0 0 0 3 3M17 6h3v2a3 3 0 0 1-3 3"], ["events", "Events", "M4 6h16v14H4V6Zm0 5h16M8 3v4M16 3v4"]]],
+    ["Competition", [["requests", "Join requests", "M16 11a4 4 0 1 0-8 0M4 21a8 8 0 0 1 12-6.9M17 15v6M14 18h6"], ["tours", "Tournaments", "M8 21h8M12 17v4M7 4h10v5a5 5 0 0 1-10 0V4ZM7 6H4v2a3 3 0 0 0 3 3M17 6h3v2a3 3 0 0 1-3 3"], ["events", "Events", "M4 6h16v14H4V6Zm0 5h16M8 3v4M16 3v4"]]],
     ["Community", [["news", "News & alerts", "M4 5h13v14H6a2 2 0 0 1-2-2V5Zm13 3h3v9a2 2 0 0 1-2 2M8 9h5M8 13h5"], ["chat", "Chat", "M4 5h16v11H9l-5 4V5Z"], ["invites", "Invite codes", "M3 8h18v3a2 2 0 0 0 0 4v3H3v-3a2 2 0 0 0 0-4V8Zm9 0v10"]]],
     ["System", [["log", "Activity log", "M5 4h14v16H5V4Zm4 5h6M9 13h6M9 17h3"], ["settings", "Settings", "M4 6h9M17 6h3M4 12h3M11 12h9M4 18h11M19 18h1M15 4v4M9 10v4M17 16v4"]]]
   ];
@@ -235,18 +237,22 @@ dialog h2{margin-bottom:14px;font-size:19px}
     $("nav").innerHTML = NAV.map(function (g) {
       return '<div class="grp">' + esc(g[0]) + "</div>" + g[1].map(function (n) {
         TITLES[n[0]] = n[1];
-        return '<button class="nav" data-v="' + n[0] + '"' + (n[0] === cur ? ' aria-current="page"' : "") + '><svg viewBox="0 0 24 24"><path d="' + n[2] + '"/></svg>' + esc(n[1]) + (n[0] === "wallet" && pending ? '<span class="dot">' + pending + "</span>" : "") + "</button>";
+        return '<button class="nav" data-v="' + n[0] + '"' + (n[0] === cur ? ' aria-current="page"' : "") + '><svg viewBox="0 0 24 24"><path d="' + n[2] + '"/></svg>' + esc(n[1]) + (n[0] === "wallet" && pending ? '<span class="dot">' + pending + "</span>" : n[0] === "requests" && reqCount ? '<span class="dot">' + reqCount + "</span>" : "") + "</button>";
       }).join("");
     }).join("");
   }
-  var pendingCount = 0;
+  var pendingCount = 0, reqCount = 0;
   async function go(v) {
     if (!views[v]) v = "dash";
     cur = v; pageFn = null; $("title").textContent = TITLES[v] || "Dashboard"; $("side").classList.remove("open");
     drawNav(pendingCount); main('<p class="empty">Loading…</p>');
     try { await views[v]() } catch (e) { console.error(e); main('<div class="box"><h2>Could not load this page</h2><p class="err">' + esc(e.message || e) + '</p><p class="mut" style="margin-top:8px">If this mentions a missing function, run 003_admin.sql in the Supabase SQL editor.</p></div>') }
   }
-  async function refreshPending() { try { var r = await rpc("admin_pending_withdrawals"); pendingCount = r.length; drawNav(pendingCount) } catch (e) { /* the page itself shows errors */ } }
+  async function refreshPending() {
+    try { var r = await rpc("admin_pending_withdrawals"); pendingCount = r.length } catch (e) { /* the page itself shows errors */ }
+    try { var c = await sb.from("tournament_entries").select("tournament_id", { count: "exact", head: true }).eq("status", "pending"); reqCount = c.count || 0 } catch (e) { }
+    drawNav(pendingCount);
+  }
   var reload = function () { return go(cur) };
 
   // ---------- DASHBOARD ----------
@@ -455,6 +461,44 @@ dialog h2{margin-bottom:14px;font-size:19px}
   async function dropCover(url) { var p = coverPath(url); if (p) { try { await sb.storage.from(COVER_BUCKET).remove([p]) } catch (e) { console.error(e) } } }
 
   // ---------- TOURNAMENTS ----------
+  // ---------- JOIN REQUESTS (accept / decline players) ----------
+  views.requests = async function () {
+    var ts = await q(sb.from("tournaments").select("id,name,game_key,entry_fee,player_limit,status,stage,require_approval,join_closes_at,tournament_entries(user_id,status,joined_at,profiles(username))").in("status", ["open", "live"]).eq("stage", "groups").order("join_closes_at"));
+    ts = ts.filter(function (t) { return t.tournament_entries.length || t.require_approval });
+    cache.req = {}; ts.forEach(function (t) { cache.req[t.id] = t });
+    var waiting = ts.reduce(function (a, t) { return a + t.tournament_entries.filter(function (e) { return e.status === "pending" }).length }, 0); reqCount = waiting; drawNav(pendingCount);
+    function who(e) { return esc((e.profiles && e.profiles.username) || "player") }
+    function row(t, e, kind) {
+      return '<label class="rq"><input type="checkbox" data-r="' + t.id + '" data-k="' + kind + '" value="' + e.user_id + '"> <b>' + who(e) + '</b> <span class="mut">· asked ' + esc(fdate(e.joined_at)) + (t.entry_fee > 0 ? " · paid " + money(t.entry_fee) : " · free") + "</span></label>";
+    }
+    main((waiting ? '<div class="alert"><span><b>' + waiting + " player" + (waiting > 1 ? "s" : "") + " waiting</b> for you to accept or decline.</span></div>" : "") +
+      (ts.length ? ts.map(function (t) {
+        var pend = t.tournament_entries.filter(function (e) { return e.status === "pending" }).sort(function (a, b) { return new Date(a.joined_at) - new Date(b.joined_at) }),
+          acc = t.tournament_entries.filter(function (e) { return e.status === "accepted" }).sort(function (a, b) { return new Date(a.joined_at) - new Date(b.joined_at) });
+        return '<div class="box" data-t="' + t.id + '"><div class="hd"><h2>' + esc(t.name) + '</h2><span class="mut">' + esc(gname(t.game_key)) + " · " + (pend.length + acc.length) + " / " + t.player_limit + " seats taken" + (t.require_approval ? "" : " · no approval needed") + "</span></div>" +
+          "<h3 style='font-size:15px;margin:10px 0 6px'>Waiting for you (" + pend.length + ")</h3>" +
+          (pend.length ? '<div class="rqs">' + pend.map(function (e) { return row(t, e, "p") }).join("") + '</div><div class="acts"><button class="btn sm" data-act="rsel" data-id="' + t.id + '" data-k="p">Select all</button><button class="btn sm" data-act="racc" data-id="' + t.id + '">Accept selected</button><button class="btn sm" data-act="raccall" data-id="' + t.id + '">Accept all (' + pend.length + ')</button><button class="btn bad sm" data-act="rdec" data-id="' + t.id + '" data-k="p">Decline selected</button></div>' : '<p class="mut" style="font-size:14px">Nobody is waiting.</p>') +
+          '<details style="margin-top:14px"><summary style="cursor:pointer;font-weight:600">Accepted players (' + acc.length + ')</summary>' + (acc.length ? '<div class="rqs" style="margin-top:8px">' + acc.map(function (e) { return row(t, e, "a") }).join("") + '</div><div class="acts"><button class="btn bad sm" data-act="rdec" data-id="' + t.id + '" data-k="a">Remove selected &amp; refund</button></div>' : '<p class="mut" style="font-size:14px;margin-top:6px">Nobody accepted yet.</p>') + "</details></div>";
+      }).join("") : '<div class="box"><p class="empty">No requests yet. When a player taps Join on a tournament that needs your approval, they show up here.</p></div>'));
+  };
+  function picked(id, k) { return Array.prototype.map.call(document.querySelectorAll('input[data-r="' + id + '"][data-k="' + k + '"]:checked'), function (c) { return c.value }) }
+  acts.rsel = function (el) { var boxes = document.querySelectorAll('input[data-r="' + el.dataset.id + '"][data-k="' + el.dataset.k + '"]'), all = Array.prototype.every.call(boxes, function (c) { return c.checked }); Array.prototype.forEach.call(boxes, function (c) { c.checked = !all }) };
+  acts.racc = async function (el) {
+    var ids = picked(el.dataset.id, "p"); if (!ids.length) { toast("Tick the players you want to accept"); return }
+    var n = await rpc("admin_accept_entries", { p_tournament: el.dataset.id, p_users: ids }); toast(n + " accepted and told"); reload(); refreshPending();
+  };
+  acts.raccall = async function (el) {
+    var t = cache.req[el.dataset.id]; if (!await confirmDlg("Accept everyone waiting?", "Every waiting player for " + esc(t.name) + " is accepted and told straight away. Players in a tournament with rooms are put in a random room.", "Accept all")) return;
+    var n = await rpc("admin_accept_entries", { p_tournament: t.id, p_users: null }); toast(n + " accepted and told"); reload(); refreshPending();
+  };
+  acts.rdec = function (el) {
+    var id = el.dataset.id, k = el.dataset.k, ids = picked(id, k), t = cache.req[id];
+    if (!ids.length) { toast("Tick the players first"); return }
+    form(k === "p" ? "Decline " + ids.length + " player" + (ids.length > 1 ? "s" : "") : "Remove " + ids.length + " player" + (ids.length > 1 ? "s" : ""), [{ k: "why", l: "Reason (the players will see this)", t: "textarea", ph: "Optional" }], k === "p" ? "Decline & refund" : "Remove & refund", async function (v) {
+      var n = await rpc("admin_decline_entries", { p_tournament: id, p_users: ids, p_reason: v.why || null }); toast(n + " removed. Entry fees returned"); reload(); refreshPending();
+    }, { intro: (t.entry_fee > 0 ? "Each player gets their " + money(t.entry_fee) + " entry fee back in their wallet. " : "") + "They are told in their notifications." });
+  };
+
   views.tours = async function () {
     var rows = await q(sb.from("tournaments").select("*, tournament_entries(count)").order("created_at", { ascending: false }));
     cache.tours = {}; rows.forEach(function (t) { t.n = t.tournament_entries && t.tournament_entries[0] ? t.tournament_entries[0].count : 0; cache.tours[t.id] = t });
@@ -486,6 +530,7 @@ dialog h2{margin-bottom:14px;font-size:19px}
       { k: "prize_pool", l: "Prize pool (GHS)", t: "money", v: t.prize_pool != null ? t.prize_pool / 100 : 0 },
       { k: "join_closes_at", l: "Registration closes", t: "datetime", req: 1, v: toLocalInput(t.join_closes_at) },
       { k: "game_code", l: "In-game tournament ID / code", t: "text", v: t.game_code, ph: "e.g. the room ID or code from the game", hint: "Players who join see this and copy it into the game. Not shown to the public." },
+      { k: "require_approval", l: "I approve players myself (they wait until I accept them)", t: "checkbox", v: t.id ? t.require_approval : true },
       { k: "room_size", l: "Players per game room (leave empty for a normal tournament)", t: "number", v: t.room_size, min: 2, dis: hasPlayers, ph: "8 for eFootball", hint: hasPlayers ? "Locked: players already joined." : "Example: 32 players with 8 per room makes 4 rooms. Players are put in a random room." },
       { k: "advance_per_room", l: "Players that move on from each room", t: "number", v: t.advance_per_room || 2, min: 1, dis: hasPlayers },
       ...(t.id ? [] : [{ k: "room_lines", l: "Game room IDs and passwords (one line per room)", t: "textarea", ph: "84721, pass123\n84722, pass456\n84723, pass789\n84724, pass000", hint: "Only for tournaments with rooms. First line = Room A, second line = Room B, and so on. Each player gets their room's ID and password in their notifications. You can leave this empty and add them later under Rooms." }]),
@@ -502,7 +547,7 @@ dialog h2{margin-bottom:14px;font-size:19px}
   function tourSave(id) {
     return async function (v) {
       var row = { game_key: v.game_key, name: v.name, rules: v.rules || null, player_limit: v.player_limit, entry_fee: v.entry_fee || 0, prize_pool: v.prize_pool || 0, join_closes_at: v.join_closes_at, betting_enabled: v.betting_enabled,
-        room_size: v.room_size || null, advance_per_room: v.advance_per_room || 2, prize_1: v.prize_1 || 0, prize_2: v.prize_2 || 0, prize_3: v.prize_3 || 0 };
+        require_approval: !!v.require_approval, room_size: v.room_size || null, advance_per_room: v.advance_per_room || 2, prize_1: v.prize_1 || 0, prize_2: v.prize_2 || 0, prize_3: v.prize_3 || 0 };
       if ((row.prize_1 + row.prize_2 + row.prize_3) > row.prize_pool) throw new Error("1st + 2nd + 3rd prizes are more than the prize pool");
       if (row.room_size && row.room_size > row.player_limit) throw new Error("Players per room cannot be more than the player limit");
       var roomLines = [];
