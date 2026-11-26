@@ -488,6 +488,7 @@ dialog h2{margin-bottom:14px;font-size:19px}
       { k: "game_code", l: "In-game tournament ID / code", t: "text", v: t.game_code, ph: "e.g. the room ID or code from the game", hint: "Players who join see this and copy it into the game. Not shown to the public." },
       { k: "room_size", l: "Players per game room (leave empty for a normal tournament)", t: "number", v: t.room_size, min: 2, dis: hasPlayers, ph: "8 for eFootball", hint: hasPlayers ? "Locked: players already joined." : "Example: 32 players with 8 per room makes 4 rooms. Players are put in a random room." },
       { k: "advance_per_room", l: "Players that move on from each room", t: "number", v: t.advance_per_room || 2, min: 1, dis: hasPlayers },
+      ...(t.id ? [] : [{ k: "room_lines", l: "Game room IDs and passwords (one line per room)", t: "textarea", ph: "84721, pass123\n84722, pass456\n84723, pass789\n84724, pass000", hint: "Only for tournaments with rooms. First line = Room A, second line = Room B, and so on. Each player gets their room's ID and password in their notifications. You can leave this empty and add them later under Rooms." }]),
       { k: "prize_1", l: "1st place prize (GHS)", t: "money", v: t.prize_1 ? t.prize_1 / 100 : 0 },
       { k: "prize_2", l: "2nd place prize (GHS)", t: "money", v: t.prize_2 ? t.prize_2 / 100 : 0 },
       { k: "prize_3", l: "3rd place prize (GHS)", t: "money", v: t.prize_3 ? t.prize_3 / 100 : 0, hint: "Only used for tournaments with rooms. The three prizes must not add up to more than the prize pool." },
@@ -504,6 +505,12 @@ dialog h2{margin-bottom:14px;font-size:19px}
         room_size: v.room_size || null, advance_per_room: v.advance_per_room || 2, prize_1: v.prize_1 || 0, prize_2: v.prize_2 || 0, prize_3: v.prize_3 || 0 };
       if ((row.prize_1 + row.prize_2 + row.prize_3) > row.prize_pool) throw new Error("1st + 2nd + 3rd prizes are more than the prize pool");
       if (row.room_size && row.room_size > row.player_limit) throw new Error("Players per room cannot be more than the player limit");
+      var roomLines = [];
+      if (!id && row.room_size && (v.room_lines || "").trim()) {
+        roomLines = v.room_lines.split("\n").map(function (l) { return l.trim() }).filter(Boolean).map(function (l) { var m = /^([^,]+?)\s*(?:,|\s)\s*(.*)$/.exec(l); return m ? [m[1].trim(), (m[2] || "").trim()] : [l, ""] });
+        if (roomLines.length > Math.ceil(row.player_limit / row.room_size)) throw new Error("You typed " + roomLines.length + " room lines but this tournament only has " + Math.ceil(row.player_limit / row.room_size) + " rooms");
+      }
+      var isNew = !id;
       if (v.status) row.status = v.status;
       if (!(v.player_limit >= 2)) throw new Error("Player limit must be at least 2");
       if (row.entry_fee < 0 || row.prize_pool < 0) throw new Error("Amounts cannot be negative");
@@ -517,7 +524,12 @@ dialog h2{margin-bottom:14px;font-size:19px}
         if (id) { if (gc) await q(sb.from("tournament_codes").upsert({ tournament_id: id, code: gc, updated_at: new Date().toISOString() })); else await q(sb.from("tournament_codes").delete().eq("tournament_id", id)) }
       } catch (e) { if (newUrl && newUrl !== oldUrl) dropCover(newUrl); throw e }   // do not leave a picture nobody uses
       if (oldUrl && oldUrl !== newUrl) dropCover(oldUrl);
+      if (roomLines.length) {
+        var rms = await q(sb.from("tournament_rooms").select("id,room_no").eq("tournament_id", id).eq("stage", "group").order("room_no"));
+        for (var i = 0; i < roomLines.length && i < rms.length; i++) await rpc("admin_set_room", { p_room: rms[i].id, p_game_room_id: roomLines[i][0], p_password: roomLines[i][1] });
+      }
       toast("Saved"); setTimeout(reload, 0);
+      if (isNew && row.room_size) setTimeout(function () { openRooms(id) }, 500);
     };
   }
   acts.tnew = function () { form("New tournament", tourFields(), "Create", tourSave(null)) };
@@ -569,7 +581,7 @@ dialog h2{margin-bottom:14px;font-size:19px}
   // ---------- ROOMS (one tournament, several game rooms) ----------
   async function openRooms(id) {
     var t = (await q(sb.from("tournaments").select("*").eq("id", id).single()));
-    var rooms = await q(sb.from("tournament_rooms").select("*, tournament_room_players(user_id, advanced, profiles(username))").eq("tournament_id", id).order("stage").order("room_no"));
+    var rooms = await q(sb.from("tournament_rooms").select("*, tournament_room_players(user_id, advanced, notified_at, profiles(username))").eq("tournament_id", id).order("stage").order("room_no"));
     var groups = rooms.filter(function (r) { return r.stage === "group" }), fin = rooms.filter(function (r) { return r.stage === "final" })[0];
     var total = groups.reduce(function (a, r) { return a + r.tournament_room_players.length }, 0), over = t.status === "finished" || t.status === "cancelled";
     var stageName = { groups: "Group stage", final: "Final", done: "Finished" }[t.stage] || t.stage;
@@ -579,7 +591,7 @@ dialog h2{margin-bottom:14px;font-size:19px}
       return '<div class="rm"><h4>' + esc(r.label) + ' <span class="mut" style="font-weight:400">' + ps.length + (isFinal ? "" : " / " + t.room_size) + ' players</span></h4>' +
         (over ? "" : '<div class="rg"><div><label>Game room ID</label><input id="rid_' + r.id + '" value="' + esc(r.game_room_id || "") + '" autocomplete="off"></div><div><label>Password</label><input id="rpw_' + r.id + '" value="' + esc(r.game_password || "") + '" autocomplete="off"></div></div>' +
         '<button class="btn sec sm" data-act="rsave" data-id="' + r.id + '">Save &amp; tell the players</button>') +
-        (ps.length ? '<div class="pl">' + ps.map(function (p) { return '<label>' + (canPick ? '<input type="checkbox" data-q="' + r.id + '" value="' + p.user_id + '"' + (p.advanced ? " checked" : "") + ">" : (isFinal ? "" : (p.advanced ? "✓ " : ""))) + esc(p.profiles && p.profiles.username) + "</label>" }).join("") + "</div>" : '<p class="mut" style="font-size:14px">Nobody here yet.</p>') +
+        (ps.length ? '<div class="pl">' + ps.map(function (p) { return '<label>' + (canPick ? '<input type="checkbox" data-q="' + r.id + '" value="' + p.user_id + '"' + (p.advanced ? " checked" : "") + ">" : (isFinal ? "" : (p.advanced ? "✓ " : ""))) + esc(p.profiles && p.profiles.username) + (isFinal && !r.game_room_id ? "" : ' <span class="mut" style="font-size:12px">' + (p.notified_at ? "✓ sent " + new Date(p.notified_at).toLocaleString([], { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" }) : (r.game_room_id ? "not sent" : "waiting for ID")) + "</span>") + "</label>" }).join("") + "</div>" : '<p class="mut" style="font-size:14px">Nobody here yet.</p>') +
         (canPick ? '<button class="btn sm" data-act="rqual" data-id="' + r.id + '">Save the ' + need + ' who moved on</button>' : "") + "</div>";
     }
     var acts_ = "";

@@ -134,7 +134,12 @@
       border-radius: 16px; text-decoration: none;
       font-size: 13px; font-weight: 600; color: var(--muted);
     }
-    .bottom-nav a span { display: block; font-size: 22px; }
+    .bottom-nav a span { display: block; line-height: 0; }
+    .bottom-nav a span svg { width: 24px; height: 24px; display: block; margin: 0 auto 3px; }
+    .notif p { white-space: pre-line; }
+    .ico svg { width: 22px; height: 22px; }
+    .cpy { display: block; width: fit-content; margin: 8px 0; padding: 7px 12px; border: 1px solid var(--line); border-radius: 10px; background: var(--white); color: var(--ink); font: inherit; font-weight: 700; font-size: 13px; cursor: pointer }
+    .cpy b { color: var(--purple) }
     .bottom-nav a.active { background: var(--purple-soft); color: var(--purple); }
   
 /* ----- 3-dash menu (same as the homepage) ----- */
@@ -260,89 +265,18 @@ html[data-theme="dark"] .toast{background:#EDE8F3;color:#131114}
 
       <!-- notifications get inserted here by JavaScript -->
       <div class="list" id="list"></div>
-      <p class="empty" id="empty">🎉 You're all caught up!</p>
+      <p class="empty" id="empty">Loading…</p>
     </main>
 
     <nav class="bottom-nav">
-      <a href="index.html"><span>🏠</span>Home</a>
-      <a href="events.html"><span>📅</span>Events</a>
-      <a href="leaderboard.html"><span>🏆</span>Leaderboard</a>
-      <a href="community.html"><span>👥</span>Community</a>
+      <a href="index.html"><span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 11 12 4l8 7"/><path d="M6 10v9a1 1 0 0 0 1 1h3.5v-5.5h3V20H17a1 1 0 0 0 1-1v-9"/></svg></span>Home</a>
+      <a href="events.html"><span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="5.5" width="16" height="14.5" rx="3"/><path d="M4 10h16M8.5 3.5v4M15.5 3.5v4"/></svg></span>Events</a>
+      <a href="leaderboard.html"><span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 4h8v5a4 4 0 0 1-8 0z"/><path d="M8 6H5.5a1 1 0 0 0-1 1c0 2.2 1.5 3.7 3.7 4M16 6h2.5a1 1 0 0 1 1 1c0 2.2-1.5 3.7-3.7 4"/><path d="M12 13v3.5M8.5 20h7M10 16.5h4"/></svg></span>Leaderboard</a>
+      <a href="community.html"><span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="9" cy="8.5" r="3.2"/><path d="M3.5 19.5c.6-3.3 3-5 5.5-5s4.9 1.7 5.5 5"/><circle cx="17" cy="9.5" r="2.5"/><path d="M16.5 14.7c2.2.1 3.7 1.6 4.2 4.3"/></svg></span>Community</a>
     </nav>
   </div>
 
-  <script>
-    // ---------- A. THE DATA ----------
-    // Later you can replace this array with data from a server.
-    const notifications = [
-      { id: 1, type: "events",    icon: "🏆", title: "Tournament opening soon",  text: "FC27 Weekend Cup registration opens tomorrow at 6:00 PM.", time: "5 min ago",  read: false },
-      { id: 2, type: "wallet",    icon: "💰", title: "Deposit successful",       text: "Your wallet was topped up with $20.00.",                   time: "1 hour ago", read: false },
-      { id: 3, type: "community", icon: "💬", title: "New reply",                text: "Kwame replied to your post in the FC27 lobby.",            time: "3 hours ago",read: false },
-      { id: 4, type: "events",    icon: "⏰", title: "Match reminder",           text: "Your match starts in 30 minutes. Get ready!",              time: "Yesterday",  read: true  },
-      { id: 5, type: "wallet",    icon: "🎁", title: "Prize received",           text: "You won $15.00 in the Friday Night Showdown.",             time: "2 days ago", read: true  }
-    ];
 
-    let currentFilter = "all";
-
-    // ---------- B. GRAB THE HTML ELEMENTS WE NEED ----------
-    const listEl  = document.getElementById("list");
-    const emptyEl = document.getElementById("empty");
-    const countEl = document.getElementById("unreadCount");
-
-    // ---------- C. DRAW THE LIST ----------
-    function render() {
-      // keep only the notifications that match the active chip
-      const shown = notifications.filter(n => currentFilter === "all" || n.type === currentFilter);
-
-      // build one card of HTML per notification
-      listEl.innerHTML = shown.map(n => `
-        <article class="notif ${n.read ? "" : "unread"}" data-id="${n.id}">
-          <div class="ico">${n.icon}</div>
-          <div>
-            <h3>${n.title}</h3>
-            <p>${n.text}</p>
-            <time>${n.time}</time>
-          </div>
-        </article>
-      `).join("");
-
-      // show the empty message when there is nothing to display
-      emptyEl.style.display = shown.length ? "none" : "block";
-
-      // update "3 unread" text
-      const unread = notifications.filter(n => !n.read).length;
-      countEl.textContent = unread ? `${unread} unread` : "No unread notifications";
-    }
-
-    // ---------- D. INTERACTIONS ----------
-    // Tap a card -> mark that one as read
-    listEl.addEventListener("click", e => {
-      const card = e.target.closest(".notif");
-      if (!card) return;
-      const item = notifications.find(n => n.id === Number(card.dataset.id));
-      item.read = true;
-      render();
-    });
-
-    // "Mark all as read" button
-    document.getElementById("markAll").addEventListener("click", () => {
-      notifications.forEach(n => n.read = true);
-      render();
-    });
-
-    // Filter chips
-    document.getElementById("chips").addEventListener("click", e => {
-      const chip = e.target.closest(".chip");
-      if (!chip) return;
-      document.querySelectorAll(".chip").forEach(c => c.classList.remove("active"));
-      chip.classList.add("active");
-      currentFilter = chip.dataset.filter;
-      render();
-    });
-
-    // first draw when the page loads
-    render();
-  </script>
 <aside class="menu" id="sheet" aria-label="Menu" hidden>
   <div class="mhead"><span class="mbrand">Countrex</span><button class="mclose" id="mclose" type="button" aria-label="Close menu"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button></div>
   <a class="mprofile" href="profile.html" data-gate="My Profile">
@@ -368,6 +302,57 @@ html[data-theme="dark"] .toast{background:#EDE8F3;color:#131114}
 <div class="scrim" id="scrim" hidden></div>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
 <script src="js/supabase.js"></script>
+<script>
+/* NOTIFICATIONS: the real messages for the signed-in player (room IDs and passwords, wallet and event news). Nothing here is sample data. */
+(function(){
+  var sb=supabaseClient, me=null, items=[], reads={}, filter="all";
+  var $=function(i){return document.getElementById(i)}, listEl=$("list"), emptyEl=$("empty"), countEl=$("unreadCount");
+  var SV=function(p){return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'+p+'</svg>'};
+  var IC={events:SV('<path d="M8 4h8v5a4 4 0 0 1-8 0z"/><path d="M12 13v3.5M8.5 20h7M10 16.5h4"/>'),
+    matches:SV('<rect x="4" y="5.5" width="16" height="14.5" rx="3"/><path d="M4 10h16M8.5 3.5v4M15.5 3.5v4"/>'),
+    wallet:SV('<rect x="2.5" y="6" width="19" height="13.5" rx="3"/><path d="M21.5 11.2h-4a2.2 2.2 0 0 0 0 4.4h4z"/>'),
+    community:SV('<path d="M5 5h14a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2h-7l-4.5 3.5V17H5a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2z"/>'),
+    news:SV('<rect x="3.5" y="4" width="13" height="16" rx="2"/><path d="M16.5 8H20a1 1 0 0 1 1 1v9a2 2 0 0 1-2 2M7 8.5h6M7 12h6M7 15.5h4"/>'),
+    account:SV('<circle cx="12" cy="8" r="4"/><path d="M4 20c1.5-4 5-5.5 8-5.5s6.5 1.5 8 5.5"/>')};
+  var GROUP={all:null,events:["events","matches"],wallet:["wallet"],community:["community","news"]};
+  function esc(t){return String(t==null?"":t).replace(/[&<>"']/g,function(c){return{"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]})}
+  function ago(iso){var m=Math.floor((Date.now()-new Date(iso))/60000);if(m<1)return "Just now";if(m<60)return m+" min ago";var h=Math.floor(m/60);if(h<24)return h+(h===1?" hour":" hours")+" ago";var d=Math.floor(h/24);if(d===1)return "Yesterday";if(d<7)return d+" days ago";return new Date(iso).toLocaleDateString([],{day:"numeric",month:"short"})}
+  // a line like "Game room ID: 84721" or "Password: abc" gets a Copy button
+  function body(t){return String(t||"").split("\n").map(function(l){var m=/^(Game room ID|Password):\s*(.+)$/.exec(l);
+    return m?'<button type="button" class="cpy" data-copy="'+esc(m[2])+'">'+esc(m[1])+': <b>'+esc(m[2])+'</b> · Copy</button>':esc(l)}).join("\n").replace(/<\/button>\n/g,"</button>")}
+  function render(){
+    var g=GROUP[filter], shown=items.filter(function(n){return !g||g.indexOf(n.type)>-1});
+    listEl.innerHTML=shown.map(function(n){return '<article class="notif'+(reads[n.id]?"":" unread")+'" data-id="'+esc(n.id)+'"><div class="ico">'+(IC[n.type]||IC.account)+'</div><div><h3>'+esc(n.title)+'</h3><p>'+body(n.body)+'</p><time>'+ago(n.created_at)+'</time></div></article>'}).join("");
+    emptyEl.textContent=items.length?"Nothing here.":"No notifications yet. Messages about your tournaments and wallet show up here.";
+    emptyEl.style.display=shown.length?"none":"block";
+    var u=items.filter(function(n){return !reads[n.id]}).length; countEl.textContent=u?u+" unread":"No unread notifications";
+  }
+  async function markRead(ids){
+    ids=ids.filter(function(i){return !reads[i]}); if(!ids.length)return; ids.forEach(function(i){reads[i]=1}); render();
+    try{await sb.from("notification_reads").upsert(ids.map(function(i){return{user_id:me,notification_id:i}}),{onConflict:"user_id,notification_id",ignoreDuplicates:true})}catch(e){console.error(e)}
+  }
+  listEl.addEventListener("click",function(e){
+    var c=e.target.closest("[data-copy]");
+    if(c){var t=c.getAttribute("data-copy"),o=c.innerHTML,done=function(){c.textContent="Copied ✓";setTimeout(function(){c.innerHTML=o},1600)};
+      if(navigator.clipboard&&navigator.clipboard.writeText)navigator.clipboard.writeText(t).then(done,function(){prompt("Copy this:",t)});else prompt("Copy this:",t);return}
+    var card=e.target.closest(".notif"); if(card)markRead([card.dataset.id]);
+  });
+  $("markAll").addEventListener("click",function(){markRead(items.map(function(n){return n.id}))});
+  $("chips").addEventListener("click",function(e){var c=e.target.closest(".chip");if(!c)return;document.querySelectorAll(".chip").forEach(function(x){x.classList.remove("active")});c.classList.add("active");filter=c.dataset.filter;render()});
+  (async function(){
+    var s=(await sb.auth.getSession()).data.session; if(!s){location.replace("login.html?next=notifications.html");return}
+    me=s.user.id;
+    try{
+      var r=await Promise.all([sb.from("notifications").select("id,user_id,type,title,body,created_at").or("user_id.eq."+me+",user_id.is.null").order("created_at",{ascending:false}).limit(100),
+        sb.from("notification_reads").select("notification_id").eq("user_id",me)]);
+      if(r[0].error)throw r[0].error; items=r[0].data||[]; ((r[1]&&r[1].data)||[]).forEach(function(x){reads[x.notification_id]=1});
+    }catch(e){console.error(e);emptyEl.textContent="Couldn't load your notifications. Check your connection and refresh.";emptyEl.style.display="block";return}
+    render();
+    sb.channel("notif-"+me).on("postgres_changes",{event:"INSERT",schema:"public",table:"notifications"},function(p){var n=p.new; if(n.user_id&&n.user_id!==me)return; if(items.some(function(x){return x.id===n.id}))return; items.unshift(n); render()}).subscribe();
+    setInterval(render,60000);
+  })();
+})();
+</script>
 <script>
 /* 3-DASH MENU (same as the homepage): opens, closes, and shows who is logged in. */
 (function () {
