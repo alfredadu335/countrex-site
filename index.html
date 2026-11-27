@@ -140,6 +140,17 @@ h2.sh{font-size:2rem;letter-spacing:-.035em;line-height:1;margin:0 0 8px;font-we
 .sheet{position:fixed;z-index:60;top:60px;left:50%;transform:translateX(-50%);width:100%;max-width:480px;padding:10px 14px 16px;background:var(--bg);border-radius:0 0 26px 26px;box-shadow:0 30px 60px -30px rgba(26,11,46,.5)}
 .sheet[hidden],.scrim[hidden]{display:none}
 .notes h3{margin:6px 12px 4px;font-size:1.3rem;letter-spacing:-.02em}
+.nl{display:grid;gap:8px;margin:6px 4px 4px;max-height:60dvh;overflow:auto}
+.ni{border:1px solid var(--line);border-radius:16px;padding:12px 14px;background:var(--bg)}
+.ni.un{background:var(--field);border-color:var(--pline)}
+.ni b{display:block;font-size:1rem;letter-spacing:-.01em}
+.ni p{margin:4px 0 0;font-size:.92rem;color:var(--muted);line-height:1.4}
+.ni .kv{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-top:8px;padding:8px 10px;border-radius:12px;background:var(--field);border:1px solid var(--line)}
+.ni .kv span{font-size:.78rem;color:var(--muted);display:block}
+.ni .kv strong{font-size:1.05rem;letter-spacing:.02em;word-break:break-all;user-select:all}
+.ni .kv button,.ni .lk,.nall{font:inherit;font-weight:700;font-size:.85rem;border:0;border-radius:10px;padding:7px 12px;background:var(--accent);color:#fff;cursor:pointer;text-decoration:none;display:inline-block}
+.ni .lk{margin-top:8px}
+.nall{display:block;text-align:center;margin:10px 4px 0;background:var(--field);color:var(--accent)}
 .empty{text-align:center;padding:22px 18px 18px;color:var(--muted)}
 .empty svg{width:46px;height:46px;color:var(--pline)}
 .empty b{display:block;color:var(--ink);font-size:1.1rem;margin:10px 0 4px}
@@ -344,11 +355,13 @@ html[data-theme="dark"] .toast{background:#EDE8F3;color:#131114}
 <!-- I. NOTIFICATIONS PANEL (opens from the bell). Empty for now: there is nothing in the database yet. -->
 <section class="sheet notes" id="npanel" aria-label="Notifications" hidden>
   <h3>Notifications</h3>
-  <div class="empty">
+  <div id="nlist" class="nl" hidden></div>
+  <div class="empty" id="nempty">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9.5a6 6 0 0 1 12 0c0 4.6 2 6.2 2 6.2H4s2-1.6 2-6.2z"/><path d="M10 19a2.1 2.1 0 0 0 4 0"/></svg>
     <b>You're all caught up</b>
     <span>Updates about your matches and tournaments will show up here.</span>
   </div>
+  <a class="nall" id="nall" href="notifications.html" hidden>See all notifications</a>
 </section>
 
 <aside class="menu" id="sheet" aria-label="Menu" hidden>
@@ -457,8 +470,42 @@ html[data-theme="dark"] .toast{background:#EDE8F3;color:#131114}
       $("gin").href="login.html?next=index.html"; $("gup").href="signup.html?next=index.html";
       if(!$("gate").open)$("gate").showModal(); return;
     }
-    setNotes(npanel.hidden);
+    var opening=npanel.hidden; setNotes(opening);
+    if(opening) loadNotes(true);
   };
+  // Live notifications in the bell: newest first, with the Tournament ID and Password shown with Copy buttons.
+  function nesc(x){ return String(x==null?"":x).replace(/[&<>"']/g,function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]}) }
+  var noteIds=[];
+  async function loadNotes(markRead){
+    await ready; if(!session||typeof supabaseClient==="undefined") return;
+    var sb=supabaseClient, me=session.user.id;
+    try{
+      var r=await Promise.all([
+        sb.from("notifications").select("*").or("user_id.eq."+me+",user_id.is.null").order("created_at",{ascending:false}).limit(8),
+        sb.from("notification_reads").select("notification_id").eq("user_id",me)]);
+      if(r[0].error) throw r[0].error;
+      var rows=r[0].data||[], seen={}; ((r[1]&&r[1].data)||[]).forEach(function(x){ seen[x.notification_id]=1 });
+      noteIds=rows.map(function(n){return n.id}); var unread=rows.filter(function(n){return !seen[n.id]});
+      window.setUnread(unread.length&&!markRead?unread.length:0);
+      $("nempty").hidden=rows.length>0; $("nlist").hidden=!rows.length; $("nall").hidden=!rows.length;
+      $("nlist").innerHTML=rows.map(function(n){
+        var lines=String(n.body||"").split("\n"), h="", txt=[];
+        lines.forEach(function(l){
+          var m=/^(Game room ID|Tournament ID|Password):\s*(.+)$/.exec(l);
+          if(m) h+='<div class="kv"><div><span>'+nesc(m[1])+'</span><strong>'+nesc(m[2])+'</strong></div><button type="button" data-copy="'+nesc(m[2])+'">Copy</button></div>';
+          else if(l.trim()) txt.push(nesc(l));
+        });
+        return '<article class="ni'+(seen[n.id]?'':' un')+'"><b>'+nesc(n.title)+'</b>'+(txt.length?'<p>'+txt.join('<br>')+'</p>':'')+h+(n.link?'<a class="lk" href="'+nesc(n.link)+'">'+(/draw/.test(n.link)?"See the draw":"Open")+'</a>':'')+'</article>';
+      }).join("");
+      if(markRead&&unread.length){ try{ await sb.from("notification_reads").upsert(unread.map(function(n){return{user_id:me,notification_id:n.id}}),{onConflict:"user_id,notification_id",ignoreDuplicates:true}) }catch(e){} }
+    }catch(e){ console.error(e) }
+  }
+  $("nlist").addEventListener("click",function(e){
+    var b=e.target.closest("[data-copy]"); if(!b) return;
+    var v=b.getAttribute("data-copy");
+    try{ navigator.clipboard.writeText(v).then(function(){ b.textContent="Copied"; setTimeout(function(){ b.textContent="Copy" },1500) }) }catch(x){ b.textContent="Select it" }
+  });
+  ready.then(function(){ loadNotes(false) });
   // Countdown on event cards: set data-start="2026-11-20T18:00:00Z" on a card and its numbers start counting down.
   document.querySelectorAll(".ev").forEach(function(c){
     var t=Date.parse(c.dataset.start||""); if(isNaN(t)) return;       // no date yet: it keeps saying "Date to be announced"
