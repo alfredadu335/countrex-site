@@ -114,6 +114,23 @@ dialog h2{margin-bottom:14px;font-size:19px}
 .rm{border:1px solid var(--line);border-radius:12px;padding:12px;margin-bottom:12px}.rm h4{margin:0 0 8px;font-size:15px}.rm .rg{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px}.rm .pl{display:flex;flex-wrap:wrap;gap:6px 14px;margin:8px 0}.rm .pl label{display:flex;gap:6px;align-items:center;font-size:14px}dialog.wide{width:min(720px,calc(100% - 24px))}
 .pay{display:grid;grid-template-columns:auto 1fr 1fr 1fr;gap:8px;align-items:center;margin-bottom:8px}
 .pay input{padding:8px 10px}
+.bar{position:fixed;left:10px;right:10px;bottom:max(10px,env(safe-area-inset-bottom));z-index:30;display:flex;gap:2px;justify-content:space-between;padding:6px;background:color-mix(in srgb,var(--side),transparent 6%);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);border:1px solid var(--line);border-radius:30px;box-shadow:0 8px 28px rgba(26,11,46,.22)}
+.bar button{flex:1;min-width:0;border:0;background:none;border-radius:24px;padding:8px 2px 6px;display:flex;flex-direction:column;align-items:center;gap:3px;font-size:11px;font-weight:600;color:var(--muted);position:relative}
+.bar button svg{width:23px;height:23px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.bar button[aria-current=page]{background:var(--accent);color:#fff}
+.bar .dot{position:absolute;top:2px;left:calc(50% + 6px);min-width:18px;height:18px;border-radius:99px;background:var(--bad);color:#fff;font-size:11px;font-weight:700;display:grid;place-items:center;padding:0 5px}
+.mcard{background:var(--card);border:1px solid var(--line);border-radius:20px;padding:4px 16px;margin-bottom:16px}
+.mrow{display:flex;align-items:center;gap:16px;width:100%;border:0;background:none;padding:15px 0;font-size:16px;font-weight:500;text-align:left;border-top:1px solid var(--line)}
+.mrow:first-child{border-top:0}
+.mrow svg.l{width:24px;height:24px;stroke:var(--text);fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;flex:none}
+.mrow span.t{flex:1}
+.mrow svg.c{width:18px;height:18px;stroke:var(--muted);fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;flex:none}
+.mrow .dot{min-width:20px;height:20px;border-radius:99px;background:var(--bad);color:#fff;font-size:12px;font-weight:700;display:grid;place-items:center;padding:0 6px}
+.mhead{display:flex;align-items:center;gap:14px;padding:6px 4px 18px}
+.mhead .av{width:64px;height:64px;font-size:26px}
+.mhead b{font-size:22px;display:block}
+@media(max-width:999px){.side{display:none}main{padding-bottom:110px}}
+@media(min-width:1000px){.bar{display:none}}
 @media(min-width:640px){.stats{grid-template-columns:repeat(4,1fr)}main{padding:24px}}
 @media(min-width:1000px){.app{grid-template-columns:260px minmax(0,1fr)}.side{position:sticky;top:0;height:100vh;inset:auto;max-width:none;transform:none}.ib.m{display:none}.me{display:flex}.two{grid-template-columns:1fr 1fr}}
 </style>
@@ -136,6 +153,7 @@ dialog h2{margin-bottom:14px;font-size:19px}
     <main id="main"></main>
   </div>
 </div>
+<nav class="bar" id="bar" aria-label="Main"></nav>
 <dialog id="dlg"><h2 id="dt"></h2><div id="db"></div></dialog>
 <div id="toast" class="toast" hidden></div>
 
@@ -240,7 +258,7 @@ dialog h2{margin-bottom:14px;font-size:19px}
     ["Community", [["news", "News & alerts", "M4 5h13v14H6a2 2 0 0 1-2-2V5Zm13 3h3v9a2 2 0 0 1-2 2M8 9h5M8 13h5"], ["chat", "Chat", "M4 5h16v11H9l-5 4V5Z"], ["invites", "Invite codes", "M3 8h18v3a2 2 0 0 0 0 4v3H3v-3a2 2 0 0 0 0-4V8Zm9 0v10"]]],
     ["System", [["log", "Activity log", "M5 4h14v16H5V4Zm4 5h6M9 13h6M9 17h3"], ["settings", "Settings", "M4 6h9M17 6h3M4 12h3M11 12h9M4 18h11M19 18h1M15 4v4M9 10v4M17 16v4"]]]
   ];
-  var TITLES = {};
+  var TITLES = { menu: "Menu" };
   function drawNav(pending) {
     $("nav").innerHTML = NAV.map(function (g) {
       return '<div class="grp">' + esc(g[0]) + "</div>" + g[1].map(function (n) {
@@ -248,7 +266,29 @@ dialog h2{margin-bottom:14px;font-size:19px}
         return '<button class="nav" data-v="' + n[0] + '"' + (n[0] === cur ? ' aria-current="page"' : "") + '><svg viewBox="0 0 24 24"><path d="' + n[2] + '"/></svg>' + esc(n[1]) + (n[0] === "wallet" && pending ? '<span class="dot">' + pending + "</span>" : n[0] === "requests" && reqCount ? '<span class="dot">' + reqCount + "</span>" : "") + "</button>";
       }).join("");
     }).join("");
+    drawBar(pending);
   }
+  var BAR = [["dash", "Home"], ["players", "Players"], ["requests", "Requests"], ["tours", "Tournaments"]], ICON = {};
+  function drawBar(pending) {
+    NAV.forEach(function (g) { g[1].forEach(function (n) { ICON[n[0]] = n[2] }) });
+    var inBar = BAR.some(function (b) { return b[0] === cur });
+    $("bar").innerHTML = BAR.map(function (b) {
+      var dot = b[0] === "requests" && reqCount ? '<span class="dot">' + reqCount + "</span>" : "";
+      return '<button data-v="' + b[0] + '"' + (b[0] === cur ? ' aria-current="page"' : "") + '><svg viewBox="0 0 24 24"><path d="' + ICON[b[0]] + '"/></svg>' + b[1] + dot + "</button>";
+    }).join("") + '<button data-v="menu"' + (!inBar ? ' aria-current="page"' : "") + '><svg viewBox="0 0 24 24"><path d="M4 7h16M4 12h16M4 17h16"/></svg>More' + (pending && !reqCount ? '<span class="dot">' + pending + "</span>" : "") + "</button>";
+  }
+  views.menu = async function () {
+    var chev = '<svg class="c" viewBox="0 0 24 24"><path d="m9 6 6 6-6 6"/></svg>';
+    main('<div class="mhead"><span class="av">' + esc(me.username.charAt(0).toUpperCase()) + '</span><div><b>' + esc(me.username) + '</b><span class="mut">Admin</span></div></div>' +
+      NAV.map(function (g) {
+        return '<div class="mcard">' + g[1].map(function (n) {
+          var dot = n[0] === "wallet" && pendingCount ? '<span class="dot">' + pendingCount + "</span>" : n[0] === "requests" && reqCount ? '<span class="dot">' + reqCount + "</span>" : "";
+          return '<button class="mrow" data-v="' + n[0] + '"><svg class="l" viewBox="0 0 24 24"><path d="' + n[2] + '"/></svg><span class="t">' + esc(n[1]) + "</span>" + dot + chev + "</button>";
+        }).join("") + "</div>";
+      }).join("") +
+      '<div class="mcard"><button class="mrow" id="mso"><svg class="l" viewBox="0 0 24 24"><path d="M15 4h4a1 1 0 0 1 1 1v14a1 1 0 0 1-1 1h-4M10 8l-4 4 4 4M6 12h10"/></svg><span class="t" style="color:var(--bad)">Sign out</span></button></div>');
+    $("mso").onclick = signOut;
+  };
   var pendingCount = 0, reqCount = 0;
   async function go(v) {
     if (!views[v]) v = "dash";
@@ -538,6 +578,7 @@ dialog h2{margin-bottom:14px;font-size:19px}
       { k: "prize_pool", l: "Prize pool (GHS)", t: "money", v: t.prize_pool != null ? t.prize_pool / 100 : 0 },
       { k: "join_closes_at", l: "Registration closes", t: "datetime", req: 1, v: toLocalInput(t.join_closes_at) },
       { k: "game_code", l: "In-game tournament ID / code", t: "text", v: t.game_code, ph: "e.g. the room ID or code from the game", hint: "Players who join see this and copy it into the game. Not shown to the public." },
+      { k: "game_password", l: "In-game password (optional)", t: "text", v: t.game_password, ph: "e.g. 888888", hint: "Sent with the Tournament ID, on its own line. Leave empty if the game room has no password." },
       { k: "require_approval", l: "I approve players myself (they wait until I accept them)", t: "checkbox", v: t.id ? t.require_approval : true },
       { k: "room_size", l: "Players per game room (leave empty for a normal tournament)", t: "number", v: t.room_size, min: 2, dis: hasPlayers, ph: "8 for eFootball", hint: hasPlayers ? "Locked: players already joined." : "Example: 32 players with 8 per room makes 4 rooms. Players are put in a random room." },
       { k: "advance_per_room", l: "Players that move on from each room", t: "number", v: t.advance_per_room || 2, min: 1, dis: hasPlayers },
@@ -574,8 +615,9 @@ dialog h2{margin-bottom:14px;font-size:19px}
       try {
         if (id) { if (!("entry_fee" in v) || document.getElementById("f_entry_fee").disabled) delete row.entry_fee; if (document.getElementById("f_room_size").disabled) { delete row.room_size; delete row.advance_per_room } await q(sb.from("tournaments").update(row).eq("id", id)) }
         else { var nr = await q(sb.from("tournaments").insert(row).select("id")); id = nr && nr[0] && nr[0].id }
-        var gc = (v.game_code || "").trim();
-        if (id) { if (gc) await q(sb.from("tournament_codes").upsert({ tournament_id: id, code: gc, updated_at: new Date().toISOString() })); else await q(sb.from("tournament_codes").delete().eq("tournament_id", id)) }
+        var gc = (v.game_code || "").trim(), gp = (v.game_password || "").trim();
+        if (gp && !gc) throw new Error("Type the Tournament ID too, or clear the password");
+        if (id) { if (gc) { var cr = { tournament_id: id, code: gc, password: gp || null, updated_at: new Date().toISOString() }; try { await q(sb.from("tournament_codes").upsert(cr)) } catch (e1) { if (/password/i.test(e1.message || "")) { if (gp) throw new Error("Run 013_code_password.sql in Supabase first, then try again."); delete cr.password; await q(sb.from("tournament_codes").upsert(cr)) } else throw e1 } } else await q(sb.from("tournament_codes").delete().eq("tournament_id", id)) }
       } catch (e) { if (newUrl && newUrl !== oldUrl) dropCover(newUrl); throw e }   // do not leave a picture nobody uses
       if (oldUrl && oldUrl !== newUrl) dropCover(oldUrl);
       var told = 0;
@@ -592,7 +634,7 @@ dialog h2{margin-bottom:14px;font-size:19px}
     };
   }
   acts.tnew = function () { form("New tournament", tourFields(), "Create", tourSave(null)) };
-  acts.tedit = async function (el) { var t = cache.tours[el.dataset.id]; if (t.room_size) { try { var rr = await q(sb.from("tournament_rooms").select("room_no,game_room_id,game_password").eq("tournament_id", t.id).eq("stage", "group").order("room_no")); t.room_lines = rr.map(function (x) { return x.game_room_id ? x.game_room_id + (x.game_password ? ", " + x.game_password : "") : "" }).join("\n") } catch (e) { t.room_lines = "" } } try { var cd = await q(sb.from("tournament_codes").select("code").eq("tournament_id", t.id).maybeSingle()); t.game_code = cd ? cd.code : "" } catch (e) { } form("Edit tournament", tourFields(t), "Save", tourSave(t.id)) };
+  acts.tedit = async function (el) { var t = cache.tours[el.dataset.id]; if (t.room_size) { try { var rr = await q(sb.from("tournament_rooms").select("room_no,game_room_id,game_password").eq("tournament_id", t.id).eq("stage", "group").order("room_no")); t.room_lines = rr.map(function (x) { return x.game_room_id ? x.game_room_id + (x.game_password ? ", " + x.game_password : "") : "" }).join("\n") } catch (e) { t.room_lines = "" } } try { var cd = await q(sb.from("tournament_codes").select("*").eq("tournament_id", t.id).maybeSingle()); t.game_code = cd ? cd.code : ""; t.game_password = cd && cd.password ? cd.password : "" } catch (e) { } form("Edit tournament", tourFields(t), "Save", tourSave(t.id)) };
   acts.tdel = async function (el) {
     var t = cache.tours[el.dataset.id];
     if (!await confirmDlg("Delete " + esc(t.name) + "?", "This removes it and its fixtures for good.", "Delete", true)) return;
@@ -896,7 +938,7 @@ dialog h2{margin-bottom:14px;font-size:19px}
     if (t.dataset.v) { if (t.dataset.v === cur) $("side").classList.remove("open"); else go(t.dataset.v); return }
     var fn = acts[t.dataset.act]; if (fn) { Promise.resolve(fn(t)).catch(fail) }
   });
-  $("menu").onclick = function () { $("side").classList.toggle("open") };
+  $("menu").onclick = function () { go("menu") };
   $("out").onclick = signOut;
 
   function gate(title, text, extra) { $("app").hidden = true; $("gate").hidden = false; $("gate").innerHTML = '<div class="box"><h2>' + esc(title) + "</h2><p>" + esc(text) + "</p>" + (extra || "") + "</div>" }

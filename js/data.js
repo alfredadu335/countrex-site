@@ -46,7 +46,7 @@
       else h += '<p class="cxnote">You are in <b>' + esc(r.label) + '</b>. Your room ID and password will be sent to your notifications soon.</p>';
       return h;
     }
-    return x.code ? cxRow("Tournament ID — paste this in the game", x.code) : "";
+    return x.code ? cxRow("Tournament ID — paste this in the game", x.code) + (x.codePass ? cxRow("Password", x.codePass) : "") : "";
   };
   document.addEventListener("click", function (e) {
     var b = e.target.closest && e.target.closest("[data-cxcopy]"); if (!b) return; var t = b.getAttribute("data-cxcopy");
@@ -79,7 +79,7 @@
         ((m && m.data) || []).forEach(function (x) { mine[x.tournament_id] = x.status || "accepted" });
       }
       var codes = {};
-      if (s && Object.keys(mine).length) { try { var cr = await c.from("tournament_codes").select("tournament_id,code"); ((cr && cr.data) || []).forEach(function (x) { codes[x.tournament_id] = x.code }) } catch (e) { } }
+      if (s && Object.keys(mine).length) { try { var cr = await c.from("tournament_codes").select("*"); ((cr && cr.data) || []).forEach(function (x) { codes[x.tournament_id] = x.code; codes["p" + x.tournament_id] = x.password || "" }) } catch (e) { } }
       var rooms = {};
       if (s && Object.keys(mine).length) {
         try {
@@ -101,7 +101,7 @@
         return { id: t.id, n: t.name, g: GN[t.game_key] || t.game_key, p: counts["tournament:" + t.id] || 0, lim: t.player_limit,
           end: t.status === "open" ? new Date(t.join_closes_at).getTime() : 0,          // registration is only open while the status is "open"
           fee: t.entry_fee > 0 ? ghs(t.entry_fee) : "Free", prize: t.prize_pool > 0 ? ghs(t.prize_pool) : "", feeMinor: t.entry_fee, pr: pr,
-          rules: t.rules || "", bet: !!t.betting_enabled, cover: t.cover_url || "", joined: !!mine[t.id], pending: mine[t.id] === "pending", approval: !!t.require_approval, code: mine[t.id] === "accepted" ? (codes[t.id] || "") : "", status: t.status, rooms: !!t.room_size, stage: t.stage || "", room: mine[t.id] === "accepted" ? (rooms[t.id] || null) : null };
+          rules: t.rules || "", bet: !!t.betting_enabled, cover: t.cover_url || "", joined: !!mine[t.id], pending: mine[t.id] === "pending", approval: !!t.require_approval, code: mine[t.id] === "accepted" ? (codes[t.id] || "") : "", codePass: mine[t.id] === "accepted" ? (codes["p" + t.id] || "") : "", status: t.status, rooms: !!t.room_size, stage: t.stage || "", room: mine[t.id] === "accepted" ? (rooms[t.id] || null) : null };
       });
       D.cache.events = (r[1].data || []).map(function (e) {
         return { id: e.id, n: e.name, t: e.category, p: counts["event:" + e.id] || 0, lim: e.join_limit || 0, end: new Date(e.starts_at).getTime(), prize: e.prize || "", cover: e.cover_url || "", joined: !!mineE[e.id] };
