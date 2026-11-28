@@ -371,7 +371,7 @@ html[data-theme="dark"] .ico.in{color:#3FCB92}html[data-theme="dark"] .ico.out{c
       if (!st.has_pin) return pinView("create");
       if (st.locked_seconds > 0) return pinView("locked", st.locked_seconds);
       if (!st.unlocked) return pinView("unlock");
-      S.until = Date.now() + st.unlocked_seconds * 1000; await loadWallet();
+      S.until = Date.now() + st.unlocked_seconds * 1000; await loadWallet(); checkReturn();
     } catch (e) { console.error(e); view("vLoad"); $("vLoad").textContent = "We could not open your wallet. Check your connection and refresh." }
   }
 
@@ -461,8 +461,46 @@ html[data-theme="dark"] .ico.in{color:#3FCB92}html[data-theme="dark"] .ico.out{c
   document.addEventListener("keydown", function (e) { if (e.key === "Escape") closeSheet() });
 
   $("openAdd").onclick = function () {
-    openSheet('<h3 id="sheetT">Add money</h3><p class="lead">Adding money is not open yet. We are setting up mobile money payments and will tell you here and in your notifications when it is ready.</p><button class="primary" data-close type="button">OK</button>');
+    openSheet('<h3 id="sheetT">Add money</h3><p class="lead">Pay with MTN, Telecel or AT mobile money, or with a card. You will see a secure payment page, then come straight back here.</p>' +
+      '<form id="af" novalidate><div><label for="aa">Amount (GHS)</label><input id="aa" inputmode="decimal" autocomplete="off" placeholder="0.00"><small class="small" style="display:block;margin:6px 0 0">From GHS 5 to GHS 2,000 each time.</small></div>' +
+      '<div class="quick"><button type="button" data-q="10">10</button><button type="button" data-q="20">20</button><button type="button" data-q="50">50</button><button type="button" data-q="100">100</button></div>' +
+      '<p class="err" id="aerr" role="alert"></p><button class="primary" type="submit">Continue to payment</button><button class="cancel" data-close type="button">Cancel</button></form>');
+    $("af").addEventListener("click", function (e) { var b = e.target.closest("[data-q]"); if (b) $("aa").value = b.dataset.q });
+    $("af").onsubmit = async function (e) {
+      e.preventDefault(); var er = $("aerr"), btn = e.submitter || $("af").querySelector("button[type=submit]"), amt = toMinor($("aa").value); er.textContent = "";
+      if (isNaN(amt)) { er.textContent = "Type an amount like 20 or 20.50."; return }
+      if (amt < 500) { er.textContent = "The smallest amount is GHS 5."; return }
+      if (amt > 200000) { er.textContent = "The largest amount is GHS 2,000 each time."; return }
+      btn.disabled = true; btn.textContent = "Opening payment…";
+      try {
+        var r = await sb.functions.invoke("deposit-start", { body: { amount: amt } });
+        var data = r.data, status = r.error && r.error.context && r.error.context.status;
+        if (r.error && !data && r.error.context && r.error.context.json) { try { data = await r.error.context.json() } catch (x) { } }
+        if (data && data.url) { location.href = data.url; return }
+        if (status === 503 || (data && data.error === "not_configured")) er.textContent = "Adding money is not open yet. We will tell you here when it is ready.";
+        else if (data && /too many/i.test(data.error || "")) er.textContent = "Too many tries. Please wait a little and try again.";
+        else er.textContent = "We could not start the payment. Please try again.";
+      } catch (x) { er.textContent = "We could not start the payment. Check your connection and try again." }
+      btn.disabled = false; btn.textContent = "Continue to payment";
+    };
   };
+  // Coming back from Paystack (?reference=...): ask the server to confirm the payment, then show the new balance.
+  async function checkReturn() {
+    var u = new URLSearchParams(location.search), ref = u.get("reference") || u.get("trxref");
+    if (!ref || !/^cx_[a-f0-9]{32}$/.test(ref)) return;
+    history.replaceState(null, "", location.pathname);
+    toast("Checking your payment…");
+    for (var i = 0; i < 4; i++) {
+      try {
+        var r = await sb.functions.invoke("deposit-verify", { body: { reference: ref } });
+        var st = r.data && r.data.status;
+        if (st === "paid") { toast("Payment received. Money added!"); loadWallet(); return }
+        if (st === "failed") { toast("The payment did not go through. You were not charged."); return }
+      } catch (x) { }
+      await new Promise(function (ok) { setTimeout(ok, 2500) });
+    }
+    toast("Still waiting for the payment. It will show here as soon as it is confirmed.");
+  }
   $("openWithdraw").onclick = function () {
     if (!S.lim.on) return openSheet('<h3 id="sheetT">Withdraw</h3><p class="lead">Withdrawals are paused right now. Please try again later.</p><button class="primary" data-close type="button">OK</button>');
     if (!S.payout) return openSheet('<h3 id="sheetT">Withdraw</h3><p class="lead">First tell us where to send your money.</p><button class="primary" id="goPay" type="button">Add payout details</button><button class="cancel" data-close type="button">Not now</button>'), ($("goPay").onclick = openPayout);
